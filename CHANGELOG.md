@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.1] - 2026-11-01
+
+- `ignore` now sees through shadow DOM: it tests the elements on the event's `composedPath()`, from the innermost up to the view, so a button inside a web component's open shadow root is left alone. Before, only the event's target (the host) was tested. A closed shadow root stays a limit: mark its host with `data-kazoku-ignore`.
+
 ## [0.2.0] - 2026-11-01
 
 - A button, link or form control inside the view still works: a pointer press on a child that matches the new `ignore` selector is not captured, so the click goes through and a drag from the empty view still turns it. Attribute `ignore` and `createViewController` option `ignore`; the default is `button, a, input, select, textarea, label, [data-kazoku-ignore]` (`DEFAULT_IGNORE`); `ignore=""` leaves nothing alone.
