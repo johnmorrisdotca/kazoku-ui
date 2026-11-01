@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.3.0] - 2026-11-01
 
 - Zoom about a point of your own: the `anchor` attribute (`x,y`), the `element.anchor` setter and the controller's `anchor` member and option take a point in CSS pixels from the view's middle at Fit. The + and - buttons, the 2x button and the + and - keys zoom about it, and it stays fixed on screen within a pixel; wheel, pinch and double tap still zoom about the pointer. With no anchor they zoom about the middle, as before. `zoomAt` and `zoomBy` with no point use it.
 - Arrow Up the way a wheel goes: `key-tilt="wheel"` (option `keyTilt: "wheel"`) makes Arrow Up tip the way a wheel turned up does. The default, `drag`, still tips like a drag up.
