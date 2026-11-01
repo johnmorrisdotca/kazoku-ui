@@ -1,0 +1,94 @@
+{
+  "name": "@johnmorrisdotca/kazoku-ui",
+  "version": "0.1.0",
+  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package. First part: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) as a framework-free custom element and a plain controller. Zero dependencies.",
+  "keywords": [
+    "view-controls",
+    "3d",
+    "turntable",
+    "orbit",
+    "zoom",
+    "pan",
+    "pinch",
+    "custom-element",
+    "web-component",
+    "accessible",
+    "typescript",
+    "javascript",
+    "zero-dependencies",
+    "browser"
+  ],
+  "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnmorrisdotca/kazoku-ui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/johnmorrisdotca/kazoku-ui/issues"
+  },
+  "author": "John Morris",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./dist/view-controls/define.js"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./view-controls": {
+      "types": "./dist/view-controls/index.d.ts",
+      "import": "./dist/view-controls/index.js",
+      "default": "./dist/view-controls/index.js"
+    },
+    "./view-controls/element": {
+      "types": "./dist/view-controls/element.d.ts",
+      "import": "./dist/view-controls/element.js",
+      "default": "./dist/view-controls/element.js"
+    },
+    "./view-controls/define": {
+      "types": "./dist/view-controls/define.d.ts",
+      "import": "./dist/view-controls/define.js",
+      "default": "./dist/view-controls/define.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.check.json",
+    "test": "node --test test/*.test.ts",
+    "test:package": "pnpm build && node scripts/check-package.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && node scripts/check-package.mjs",
+    "prepublishOnly": "pnpm check",
+    "dev": "pnpm build && node scripts/dev.mjs",
+    "site": "pnpm build && node scripts/site.mjs",
+    "test:demo": "pnpm site && playwright test",
+    "screenshots": "pnpm site && node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.11.0"
+}
