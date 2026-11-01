@@ -2,7 +2,7 @@
 // `exports` imported, the element's tag defined once on a stand-in registry and left alone when it is already taken, and the pure entry run on a server with no DOM.
 // A package whose `exports` name a file that is not in the tarball fails here, before it is published. `pnpm test:package` builds first.
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
@@ -44,7 +44,7 @@ for (const file of new Set(pointed)) {
 console.log(`ok   every file package.json points at is in the tarball (${new Set(pointed).size})`);
 
 const project = join(scratch, "project");
-run("node", ["-e", `require("node:fs").mkdirSync(${JSON.stringify(project)})`], scratch);
+mkdirSync(project);
 writeFileSync(join(project, "package.json"), JSON.stringify({ name: "consumer", private: true, type: "module" }));
 run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], project);
 writeFileSync(join(project, "check.mjs"), `
