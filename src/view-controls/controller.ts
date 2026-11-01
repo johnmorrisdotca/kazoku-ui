@@ -276,14 +276,22 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const canTurn = (): boolean => controller.turnable;
 
     const ignored = (e: Event): boolean => {
-      const target = e.target as Element | null;
-      if (controller.ignore === "" || typeof target?.closest !== "function") return false;
+      if (controller.ignore === "") return false;
+      const path = typeof e.composedPath === "function" ? e.composedPath() : [];
       try {
-        const hit = target.closest(controller.ignore);
-        return hit !== null && hit !== view && view.contains(hit);
+        if (path.length === 0) {
+          const target = e.target as Element | null;
+          const hit = typeof target?.closest === "function" ? target.closest(controller.ignore) : null;
+          return hit !== null && hit !== view && view.contains(hit);
+        }
+        for (const node of path) {
+          if (node === view) return false;
+          if (typeof (node as Element).matches === "function" && (node as Element).matches(controller.ignore)) return true;
+        }
       } catch {
         return false;
       }
+      return false;
     };
 
     const onDown = (e: PointerEvent): void => {

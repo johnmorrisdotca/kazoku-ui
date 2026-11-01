@@ -104,6 +104,8 @@ Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fit
 
 The hands capture the pointer on the `for` element, so a press on a button or link placed inside it would be taken for a drag and its click lost. A press on anything that matches `ignore` is left alone (no capture, no drag, no double-tap), and the click goes through. Mark any other child with `data-kazoku-ignore`. Dragging from the empty part of the view turns it as before.
 
+`ignore` also sees through shadow DOM: it tests every element on the event's path from the innermost one up to the view, so a button inside a web component's open shadow root (a card's own Animate button, say) is left alone even though the event's target is the component. A closed shadow root hides its inside from the page, so only the component itself can be matched: mark the host with `data-kazoku-ignore`, or add its tag name to `ignore`.
+
 ### Opening at the scene's natural size
 
 Zoom 1 is Fit, whatever size that is on the page. A page that draws its scene at `fitScale` (for example 0.4 of natural size when it fits the view) and wants to open at natural size sets `zoom="1"` and tells the controls the scale:

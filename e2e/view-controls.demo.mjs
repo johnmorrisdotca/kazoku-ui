@@ -315,6 +315,42 @@ test("a button or link inside the view still clicks while a drag on the view sti
   expect(errors).toEqual([]);
 });
 
+test("a button inside an open shadow root in the view still clicks while a drag on the empty view still turns it", async ({ page }) => {
+  const errors = await ready(page);
+  await page.locator("#scene").evaluate((scene) => {
+    scene.style.position = "relative";
+    const host = document.createElement("div");
+    host.id = "card-host";
+    host.style.cssText = "position:absolute;top:8px;left:8px;z-index:5;width:120px;height:56px;";
+    host.dataset.clicks = "0";
+    const root = host.attachShadow({ mode: "open" });
+    const inner = document.createElement("button");
+    inner.id = "card-button";
+    inner.textContent = "Animate";
+    inner.style.cssText = "width:120px;height:56px;";
+    inner.addEventListener("click", () => { host.dataset.clicks = String(Number(host.dataset.clicks) + 1); });
+    root.append(inner);
+    scene.append(host);
+  });
+  const at = await centreOf(page, "#card-host");
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 30, at.y + 2, { steps: 4 });
+  await page.mouse.up();
+  await page.mouse.click(at.x, at.y);
+  await expect(page.locator("#card-host")).toHaveAttribute("data-clicks", /^[1-9]/);
+  expect((await stateOf(page)).yaw, "the shadow button does not turn the view").toBe(0);
+  await expect(page.locator("#scene")).not.toHaveAttribute("data-grab", "1");
+  const box = await page.locator("#scene").boundingBox();
+  const from = { x: box.x + box.width / 2, y: box.y + box.height - 20 };
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 120, from.y, { steps: 6 });
+  await page.mouse.up();
+  expect(Math.abs((await stateOf(page)).yaw)).toBeGreaterThan(10);
+  expect(errors).toEqual([]);
+});
+
 test("the view can open at a zoom set against the page's fit scale, and Fit is still Fit", async ({ page }) => {
   const errors = await ready(page);
   const read = () => page.locator(BAR).evaluate((el) => ({ zoom: el.state.zoom, fitScale: el.fitScale }));
