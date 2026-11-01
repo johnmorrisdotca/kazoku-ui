@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.0] - 2026-11-01
+
+- A button, link or form control inside the view still works: a pointer press on a child that matches the new `ignore` selector is not captured, so the click goes through and a drag from the empty view still turns it. Attribute `ignore` and `createViewController` option `ignore`; the default is `button, a, input, select, textarea, label, [data-kazoku-ignore]` (`DEFAULT_IGNORE`); `ignore=""` leaves nothing alone.
+- Open at a zoom set against the page's fit scale: `zoom` is `fit` (the default, unchanged) or a number where 1 is the scene's natural size, and `fit-scale` / `setFitScale(n)` / the `fitScale` option tell the controls what zoom 1 means. The event's `zoom` stays 1 at Fit. New controller members `fitScale`, `startZoom`, `setStartZoom`; a new `fit-scale` reason in the event. `formatAddress` takes a fifth argument, `startZoom`, so the opening zoom keeps the address plain.
+
 ## [0.1.0] - 2026-11-01
 
 The first release, and its first part: view controls, at `@johnmorrisdotca/kazoku-ui/view-controls`.
