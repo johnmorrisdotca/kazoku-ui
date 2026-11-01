@@ -98,6 +98,25 @@ myPlayButton.onclick = () => view.toggle();
 myZoomIn.onclick = () => view.zoomBy(1.4);
 ```
 
+Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
+
+### Buttons and links inside the view
+
+The hands capture the pointer on the `for` element, so a press on a button or link placed inside it would be taken for a drag and its click lost. A press on anything that matches `ignore` is left alone (no capture, no drag, no double-tap), and the click goes through. Mark any other child with `data-kazoku-ignore`. Dragging from the empty part of the view turns it as before.
+
+### Opening at the scene's natural size
+
+Zoom 1 is Fit, whatever size that is on the page. A page that draws its scene at `fitScale` (for example 0.4 of natural size when it fits the view) and wants to open at natural size sets `zoom="1"` and tells the controls the scale:
+
+```js
+const controls = document.querySelector("kazoku-view-controls");
+controls.setAttribute("zoom", "1"); // natural size
+controls.setFitScale(measure()); // the scale the scene is drawn at when it fits, for example 0.4
+// the event's zoom is now 2.5; draw at event.detail.zoom * controls.fitScale
+```
+
+`setFitScale` moves the view to the opening zoom for the new scale, unless the reader has already zoomed. Fit and the Fit key still go to zoom 1, and the address leaves a zoom out when it is the opening one. `zoom="fit"`, or no `zoom`, changes nothing from before.
+
 ## The event API
 
 `kazoku-viewchange` is dispatched on the element (it bubbles and crosses shadow roots). `event.detail`, and the first argument of `onChange`, is:
@@ -106,12 +125,12 @@ myZoomIn.onclick = () => view.zoomBy(1.4);
 |---|---|
 | `yaw` | Degrees, -180 up to 180: the turn about the vertical. Dragging right makes it larger. |
 | `tilt` | Degrees, held to plus or minus `tilt-max` (30): the top tips away as it gets larger (dragging up). |
-| `zoom` | 1 to 5 (`zoom-min`, `zoom-max`). |
+| `zoom` | 1 to 5 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale` (see below). |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
 | `drag` | `"move"` or `"turn"`: what a plain drag does while zoomed in. |
 | `final` | False for the steps of a drag, a pinch, a slider and the automatic turn; true when something settled. Do the costly drawing on `final`, the cheap transform on every event. |
-| `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `play`, `pause` or `set`. |
+| `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `fit-scale`, `play`, `pause` or `set`. |
 
 An `init` event is sent once, a moment after the element connects, with the starting view (from the attributes and the address). `element.state` is the current view at any time.
 
@@ -121,7 +140,10 @@ An `init` event is sent once, a moment after the element connects, with the star
 |---|---|
 | `for` | The id of the view the hands bind to. Or set `element.view = someElement`. |
 | `lang` | `en` or `ja`. Otherwise the nearest `lang` above it, else English. |
-| `yaw`, `tilt`, `zoom` | The starting view. |
+| `yaw`, `tilt` | The starting angle and tilt. |
+| `zoom` | The starting zoom: `fit` (the default) or a number, a scale where 1 is the scene's natural size. It opens at that number divided by `fit-scale`; with `fit-scale` left at 1 it is the `zoom` of the event. |
+| `fit-scale` | The scale your page draws the scene at when it is at Fit (event `zoom` 1): what zoom 1 means. 1 by default. Or call `element.setFitScale(n)` once the scene is measured. |
+| `ignore` | A CSS selector for what inside the view a pointer press leaves alone, so its click goes through: `button, a, input, select, textarea, label, [data-kazoku-ignore]` by default. A bare `ignore=""` leaves nothing alone. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `speed` | Degrees a second (30). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
@@ -131,12 +153,12 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
 
-Methods: `play()`, `pause()`, `front()`, `fit()`, `set({ yaw, tilt, zoom, panX, panY, drag })`, and `controller` (the `createViewController` object behind it). `element.words = { front: "Home" }` replaces labels.
+Methods: `play()`, `pause()`, `front()`, `fit()`, `set({ yaw, tilt, zoom, panX, panY, drag })`, `setFitScale(n)`, and `controller` (the `createViewController` object behind it). `element.words = { front: "Home" }` replaces labels.
 Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line`, `--kazoku-accent`; the parts are `bar`, `field`, `slider` and `button`.
 
 ### The address
 
-Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?)`.
+Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
 
 ### Why the tag is only defined when it is free
 
@@ -144,11 +166,11 @@ Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan
 
 ## Size
 
-Gzipped, unbundled: the element and its definition about 4.8 KB, the controller 3.5 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
+Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 3.9 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 25 unit tests of the maths, the address and the controller, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, zoom about the pointer, pan when zoomed, touch, the address, the labels, reduced motion).
+`pnpm check` (lint, types, 29 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, pan when zoomed, touch, the address, the labels, reduced motion).
 
 ## Not yet
 
