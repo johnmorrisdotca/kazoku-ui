@@ -41,3 +41,8 @@ test("a bad or out-of-range value is dropped or held to its limit", () => {
   assert.deepEqual(parseAddress("yaw=5"), { yaw: 5 });
   assert.deepEqual(parseAddress("?zoom=0"), { zoom: 1 });
 });
+
+test("a zoom at the page's own start leaves the address, and Fit is then written", () => {
+  assert.equal(formatAddress("", { ...plain, zoom: 2.5 }, undefined, false, 2.5), "");
+  assert.equal(formatAddress("", { ...plain, zoom: 1 }, undefined, false, 2.5), "?zoom=1");
+});

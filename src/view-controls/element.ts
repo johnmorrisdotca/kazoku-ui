@@ -1,7 +1,7 @@
 // <kazoku-view-controls>: the view controls as a framework-free custom element. It never draws the scene. It binds the pointer, pinch, wheel and keys
 // to the element named by `for`, and tells the page what the view is now with a `kazoku-viewchange` event; the page applies it to its canvas, WebGL, SVG or CSS 3D.
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
-import { createViewController, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
+import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
 import { ZOOM_STEP, ZOOMED } from "./math.ts";
 import { STYLES } from "./styles.ts";
@@ -52,12 +52,14 @@ const HTML = `
 </div>`;
 
 /**
- * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt`, `zoom` (the starting view), `autoplay` (turn by itself from the
- * start, unless the reader prefers reduced motion), `speed` (degrees a second), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the
- * choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light or dark), `overlay` (sit over the bottom of a positioned parent).
+ * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
+ * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `speed` (degrees a second),
+ * `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
+ * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "speed", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "speed", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -119,19 +121,32 @@ export class ViewControlsElement extends HTMLElement {
     this.#ensure().set(next);
   }
 
+  /** What zoom 1 means to the page: the scene is drawn at `state.zoom * fitScale`. */
+  get fitScale(): number {
+    return this.#ensure().fitScale;
+  }
+
+  setFitScale(scale: number): void {
+    this.#ensure().setFitScale(scale);
+  }
+
   connectedCallback(): void {
     const c = this.#ensure();
     if (this.#root.querySelector(".bar") === null) this.#build();
     this.#keys = parseKeys(this.getAttribute("address-keys"));
     this.#limits();
     const start: Partial<ViewState> = {};
-    for (const key of ["yaw", "tilt", "zoom"] as const) {
+    for (const key of ["yaw", "tilt"] as const) {
       const value = Number(this.getAttribute(key));
       if (this.hasAttribute(key) && Number.isFinite(value)) start[key] = value;
     }
     if (this.hasAttribute("address")) Object.assign(start, parseAddress(globalThis.location?.search ?? "", this.#keys, c.limits));
     c.turnable = !this.hasAttribute("flat");
     c.speed = Number(this.getAttribute("speed")) || 30;
+    c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
+    const fitScale = Number(this.getAttribute("fit-scale"));
+    if (this.hasAttribute("fit-scale")) c.setFitScale(fitScale);
+    c.setStartZoom(this.#startZoom());
     c.set(start, true, "init");
     this.#label();
     this.#resolveView();
@@ -162,14 +177,22 @@ export class ViewControlsElement extends HTMLElement {
     const c = this.#ensure();
     if (name === "for") this.#resolveView();
     else if (name === "lang") this.#label();
-    else if (name === "yaw" || name === "tilt" || name === "zoom") {
+    else if (name === "yaw" || name === "tilt") {
       if (value !== null && Number.isFinite(Number(value))) c.set({ [name]: Number(value) });
-    } else if (name === "speed") c.speed = Number(value) || 30;
+    } else if (name === "zoom") c.setStartZoom(this.#startZoom());
+    else if (name === "fit-scale") c.setFitScale(Number(value));
+    else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
+    else if (name === "speed") c.speed = Number(value) || 30;
     else if (name === "flat") {
       c.turnable = value === null;
       this.#show();
     } else if (name === "address-keys") this.#keys = parseKeys(value);
     else this.#limits();
+  }
+
+  #startZoom(): "fit" | number {
+    const value = Number(this.getAttribute("zoom"));
+    return this.hasAttribute("zoom") && Number.isFinite(value) && value > 0 ? value : "fit";
   }
 
   #ensure(): ViewController {
@@ -312,7 +335,7 @@ export class ViewControlsElement extends HTMLElement {
       this.#saveTimer = 0;
       try {
         const s = this.#ensure().state;
-        const next = formatAddress(globalThis.location.search, s, this.#keys, s.turning);
+        const next = formatAddress(globalThis.location.search, s, this.#keys, s.turning, this.#ensure().startZoom);
         if (next !== globalThis.location.search) globalThis.history.replaceState(globalThis.history.state, "", `${globalThis.location.pathname}${next}${globalThis.location.hash}`);
       } catch {
         /* an address that cannot be changed (a sandboxed frame): the view still works */

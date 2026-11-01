@@ -136,3 +136,73 @@ test("the labels are complete in both languages", () => {
   assert.equal(languageOf(""), "en");
   assert.equal(wordsFor("en", { front: "Home" }).front, "Home");
 });
+
+test("it opens at Fit by default, and a number is a scale over the page's fit scale", () => {
+  assert.equal(make().view.state.zoom, 1);
+  assert.equal(make({ zoom: "fit", fitScale: 0.4 }).view.state.zoom, 1);
+  assert.equal(make({ zoom: 2 }).view.state.zoom, 2);
+  const { view } = make({ zoom: 1, fitScale: 0.4 });
+  assert.equal(view.state.zoom, 2.5);
+  assert.equal(view.startZoom, 2.5);
+  assert.equal(make({ initial: { zoom: 3 } }).view.state.zoom, 3);
+  assert.equal(make({ zoom: 1, fitScale: 0.01 }).view.state.zoom, 5, "held to the zoom limit");
+});
+
+test("the page can tell it what zoom 1 means later, until the reader has zoomed", () => {
+  const { view, seen } = make({ zoom: 1 });
+  assert.equal(view.state.zoom, 1);
+  view.setFitScale(0.5);
+  assert.deepEqual([view.fitScale, view.state.zoom, seen.at(-1)?.reason], [0.5, 2, "fit-scale"]);
+  view.setFitScale(0.25);
+  assert.equal(view.state.zoom, 4);
+  view.zoomBy(0.5);
+  view.setFitScale(0.5);
+  assert.equal(view.state.zoom, 2, "the reader's zoom stays");
+  view.fit();
+  assert.equal(view.state.zoom, 1, "Fit still means 1");
+  view.setFitScale(0.1);
+  assert.equal(view.state.zoom, 1);
+  view.setStartZoom("fit");
+  assert.deepEqual([view.state.zoom, view.startZoom], [1, 1]);
+  view.setFitScale(Number.NaN);
+  view.setFitScale(-2);
+  assert.equal(view.fitScale, 0.1);
+});
+
+test("a press on what is inside the view is left alone, a press on the view itself is taken", () => {
+  const listeners = new Map<string, (e: unknown) => void>();
+  const inside = new Set<unknown>();
+  let captured = 0;
+  const fakeView = {
+    style: {},
+    dataset: {} as Record<string, string>,
+    addEventListener: (type: string, fn: (e: unknown) => void) => listeners.set(type, fn),
+    removeEventListener: () => undefined,
+    setPointerCapture: () => { captured += 1; },
+    contains: (node: unknown) => inside.has(node),
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }),
+    ownerDocument: {},
+  };
+  const child = (selector: string | undefined) => {
+    const node = { closest: (sel: string) => (selector !== undefined && sel.split(",").map((s) => s.trim()).includes(selector) ? node : null) };
+    inside.add(node);
+    return node;
+  };
+  const press = (target: unknown) => listeners.get("pointerdown")?.({ target, pointerId: 1, pointerType: "mouse", button: 0, clientX: 5, clientY: 5, shiftKey: false });
+  const { view } = make();
+  view.bind(fakeView as unknown as HTMLElement);
+  press(child("button"));
+  assert.equal(captured, 0, "a button inside is not captured");
+  press(child("[data-kazoku-ignore]"));
+  assert.equal(captured, 0);
+  press(child(undefined));
+  assert.equal(captured, 1, "other children turn the view");
+  listeners.get("pointercancel")?.({ pointerId: 1, type: "pointercancel" });
+  view.ignore = "";
+  press(child("button"));
+  assert.equal(captured, 2, "an empty selector leaves nothing alone");
+  listeners.get("pointercancel")?.({ pointerId: 1, type: "pointercancel" });
+  view.ignore = "((";
+  press(child("button"));
+  assert.equal(captured, 3, "a bad selector leaves nothing alone");
+});

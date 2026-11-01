@@ -18,6 +18,9 @@ export interface ChangeInfo {
   reason: string;
 }
 
+/** What `bind` leaves alone by default: the page's own controls inside the view. */
+export const DEFAULT_IGNORE = "button, a, input, select, textarea, label, [data-kazoku-ignore]";
+
 export interface Clock {
   request(callback: (now: number) => void): number;
   cancel(id: number): void;
@@ -30,6 +33,12 @@ export interface ViewControllerOptions {
   /** Degrees a second when it turns by itself. */
   speed?: number;
   limits?: Partial<Limits>;
+  /** The starting zoom: "fit" (the default) or a scale where 1 is the scene's natural size; it opens at that scale divided by `fitScale`. With `fitScale` left at 1 a number is a zoom as `ViewState.zoom` has it. `initial.zoom` is used only when this is left out. */
+  zoom?: "fit" | number;
+  /** The page's scale when the view is at Fit (`state.zoom` 1): what zoom 1 means. The scene is drawn at `state.zoom * fitScale`. 1 by default. */
+  fitScale?: number;
+  /** A CSS selector for what inside the view `bind` leaves alone: a press on a match is not captured, so its click goes through. An empty string leaves nothing alone. */
+  ignore?: string;
   /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
   size?: () => Size | undefined;
   onChange?: (state: ViewState, info: ChangeInfo) => void;
@@ -42,6 +51,16 @@ export interface ViewController {
   turnable: boolean;
   speed: number;
   readonly limits: Limits;
+  /** What a pointer press leaves alone inside the view (see `ViewControllerOptions.ignore`). Can be changed at any time. */
+  ignore: string;
+  /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
+  readonly fitScale: number;
+  /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
+  readonly startZoom: number;
+  /** Tell the controller what zoom 1 means. If the reader has not zoomed since the start, the view moves to the starting zoom for the new scale. */
+  setFitScale(scale: number): void;
+  /** Start at "fit" or at a scale relative to natural size, and go there now. */
+  setStartZoom(zoom: "fit" | number): void;
   set(next: Partial<ViewState>, final?: boolean, reason?: string): void;
   play(): void;
   pause(): void;
@@ -62,6 +81,8 @@ export interface ViewController {
   destroy(): void;
 }
 
+const positive = (value: unknown): number | undefined => (typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined);
+
 const browserClock = (): Clock => ({ request: (callback) => globalThis.requestAnimationFrame(callback), cancel: (id) => globalThis.cancelAnimationFrame(id) });
 
 export function createViewController(options: ViewControllerOptions = {}): ViewController {
@@ -72,7 +93,14 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let frame = 0;
   let last = 0;
   let holds = 0;
+  let fitScale = positive(options.fitScale) ?? 1;
+  let start: "fit" | number = positive(options.zoom) ?? "fit";
+  let atStart = true;
+  const startState = (): number => (start === "fit" ? 1 : start / fitScale);
   const state: ViewState = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0, turning: false, drag: "move", ...options.initial };
+
+  if (start !== "fit") state.zoom = clamp(startState(), limits.zoomMin, limits.zoomMax);
+  atStart = state.zoom === clamp(startState(), limits.zoomMin, limits.zoomMax);
 
   const size = (): Size | undefined => {
     const own = sizeOf?.();
@@ -94,6 +122,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const held = clampPan({ ...next, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size());
     state.yaw = controller.turnable ? wrapYaw(held.yaw) : state.yaw;
     state.tilt = controller.turnable ? held.tilt : state.tilt;
+    if (held.zoom !== state.zoom) atStart = false;
     state.zoom = held.zoom;
     state.panX = held.panX;
     state.panY = held.panY;
@@ -130,6 +159,29 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     turnable: options.turnable ?? true,
     speed: options.speed ?? 30,
     limits,
+    ignore: options.ignore ?? DEFAULT_IGNORE,
+    get fitScale() {
+      return fitScale;
+    },
+    get startZoom() {
+      return clamp(startState(), limits.zoomMin, limits.zoomMax);
+    },
+    setFitScale(scale) {
+      const next = positive(scale);
+      if (next === undefined || next === fitScale) return;
+      fitScale = next;
+      if (!atStart) return;
+      const before = state.zoom;
+      take({ ...camera(), zoom: startState() });
+      atStart = true;
+      if (state.zoom !== before) emit(true, "fit-scale");
+    },
+    setStartZoom(zoom) {
+      start = positive(zoom) ?? "fit";
+      take({ ...camera(), zoom: startState() });
+      atStart = true;
+      emit(true, "set");
+    },
     set(next, final = true, reason = "set") {
       const { turning, drag, ...cam } = next;
       take({ ...camera(), ...cam });
@@ -223,8 +275,20 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     };
     const canTurn = (): boolean => controller.turnable;
 
+    const ignored = (e: Event): boolean => {
+      const target = e.target as Element | null;
+      if (controller.ignore === "" || typeof target?.closest !== "function") return false;
+      try {
+        const hit = target.closest(controller.ignore);
+        return hit !== null && hit !== view && view.contains(hit);
+      } catch {
+        return false;
+      }
+    };
+
     const onDown = (e: PointerEvent): void => {
       if (e.pointerType === "mouse" && e.button > 2) return;
+      if (ignored(e)) return;
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try {
         view.setPointerCapture(e.pointerId);

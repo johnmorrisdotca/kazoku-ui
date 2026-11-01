@@ -266,3 +266,80 @@ test("a second copy of the package does not break the page: the tag already take
   expect(result).toEqual({ same: true, defined: true, returned: false });
   expect(errors).toEqual([]);
 });
+
+test("a button or link inside the view still clicks while a drag on the view still turns it", async ({ page }) => {
+  const errors = await ready(page);
+  await page.locator("#scene").evaluate((scene) => {
+    scene.style.position = "relative";
+    const add = (tag, id, left) => {
+      const el = document.createElement(tag);
+      el.id = id;
+      el.textContent = id;
+      el.style.cssText = `position:absolute;top:8px;left:${left}px;z-index:5;width:96px;height:48px;`;
+      if (tag === "a") el.href = "#clicked";
+      el.dataset.clicks = "0";
+      el.addEventListener("click", () => { el.dataset.clicks = String(Number(el.dataset.clicks) + 1); });
+      scene.append(el);
+    };
+    add("button", "inner-button", 8);
+    add("a", "inner-link", 112);
+    add("div", "inner-marked", 216);
+    document.getElementById("inner-marked").dataset.kazokuIgnore = "";
+  });
+  for (const id of ["inner-button", "inner-link", "inner-marked"]) {
+    const at = await centreOf(page, `#${id}`);
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    // The browser starts its own drag on a link, so the link is pressed and released in place.
+    if (id !== "inner-link") await page.mouse.move(at.x + 30, at.y + 2, { steps: 4 });
+    await page.mouse.up();
+    await expect(page.locator(`#${id}`)).toHaveAttribute("data-clicks", /^[1-9]/);
+    expect((await stateOf(page)).yaw, `${id} does not turn the view`).toBe(0);
+    await expect(page.locator("#scene")).not.toHaveAttribute("data-grab", "1");
+  }
+  await page.locator("#inner-button").click();
+  await expect(page.locator("#inner-button")).toHaveAttribute("data-clicks", /^[2-9]/);
+  // A drag that starts on the view itself still turns it.
+  const box = await page.locator("#scene").boundingBox();
+  const from = { x: box.x + box.width / 2, y: box.y + box.height - 20 };
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 120, from.y, { steps: 6 });
+  await page.mouse.up();
+  expect(Math.abs((await stateOf(page)).yaw)).toBeGreaterThan(10);
+  // The selector is an option: a bare `ignore` leaves nothing alone, and a change reaches the controller.
+  await page.locator(BAR).evaluate((el) => el.setAttribute("ignore", "#inner-button"));
+  expect(await page.locator(BAR).evaluate((el) => el.controller.ignore)).toBe("#inner-button");
+  await page.locator(BAR).evaluate((el) => el.removeAttribute("ignore"));
+  expect(await page.locator(BAR).evaluate((el) => el.controller.ignore.includes("button"))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("the view can open at a zoom set against the page's fit scale, and Fit is still Fit", async ({ page }) => {
+  const errors = await ready(page);
+  const read = () => page.locator(BAR).evaluate((el) => ({ zoom: el.state.zoom, fitScale: el.fitScale }));
+  expect(await read()).toEqual({ zoom: 1, fitScale: 1 });
+  await page.locator(BAR).evaluate((el) => { el.setAttribute("zoom", "1"); el.setAttribute("fit-scale", "0.5"); });
+  expect(await read()).toEqual({ zoom: 2, fitScale: 0.5 });
+  await page.locator(BAR).evaluate((el) => el.setFitScale(0.25));
+  expect((await read()).zoom).toBe(4);
+  await button(page, "fit").click();
+  expect((await read()).zoom).toBe(1);
+  await page.locator(BAR).evaluate((el) => el.removeAttribute("zoom"));
+  expect((await read()).zoom).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("a page that opens zoomed in leaves the plain address plain and a fresh page opens there", async ({ page }) => {
+  await ready(page);
+  const fresh = await page.evaluate(async () => {
+    const el = document.createElement("kazoku-view-controls");
+    el.setAttribute("zoom", "1");
+    el.setAttribute("fit-scale", "0.5");
+    document.body.append(el);
+    const zoom = el.state.zoom;
+    el.remove();
+    return zoom;
+  });
+  expect(fresh).toBe(2);
+});

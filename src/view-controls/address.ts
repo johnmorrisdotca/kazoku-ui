@@ -45,9 +45,9 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
 
 /**
  * The query string (with its `?`, or empty) that keeps `choices` and every other parameter of `search`. A choice at its starting value is left out, so
- * the plain address stays plain. `leaveYaw` keeps the angle out while the view turns by itself (it would change every frame).
+ * the plain address stays plain. `leaveYaw` keeps the angle out while the view turns by itself (it would change every frame). `startZoom` is the zoom the view opens at (1, Fit, unless the page starts elsewhere).
  */
-export function formatAddress(search: string, choices: AddressChoices, keys: AddressKeys = DEFAULT_KEYS, leaveYaw = false): string {
+export function formatAddress(search: string, choices: AddressChoices, keys: AddressKeys = DEFAULT_KEYS, leaveYaw = false, startZoom = 1): string {
   const params = new URLSearchParams(search);
   const set = (key: string, value: string | undefined): void => {
     if (value === undefined) params.delete(key);
@@ -55,7 +55,7 @@ export function formatAddress(search: string, choices: AddressChoices, keys: Add
   };
   if (!leaveYaw) set(keys.yaw, Math.round(choices.yaw) === 0 ? undefined : String(rounded(wrapYaw(choices.yaw), 0)));
   set(keys.tilt, Math.round(choices.tilt) === 0 ? undefined : String(rounded(choices.tilt, 0)));
-  set(keys.zoom, Math.abs(choices.zoom - 1) < 0.005 ? undefined : String(rounded(choices.zoom, 2)));
+  set(keys.zoom, Math.abs(choices.zoom - startZoom) < 0.005 ? undefined : String(rounded(choices.zoom, 2)));
   set(keys.drag, choices.drag === "turn" ? "turn" : undefined);
   const text = params.toString();
   return text === "" ? "" : `?${text}`;
