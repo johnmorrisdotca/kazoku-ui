@@ -379,3 +379,109 @@ test("a page that opens zoomed in leaves the plain address plain and a fresh pag
   });
   expect(fresh).toBe(2);
 });
+
+test("with an anchor, the buttons and keys zoom about it and it stays where it is within a pixel", async ({ page }) => {
+  const errors = await ready(page, "?anchor=pin");
+  const pin = await centreOf(page, "#pin");
+  const fixed = async (label) => {
+    const now = await centreOf(page, "#pin");
+    expect(Math.abs(now.x - pin.x), label).toBeLessThan(1);
+    expect(Math.abs(now.y - pin.y), label).toBeLessThan(1);
+  };
+  await button(page, "in").click();
+  expect((await stateOf(page)).zoom).toBeGreaterThan(1.3);
+  await fixed("plus");
+  await button(page, "out").click();
+  expect((await stateOf(page)).zoom).toBeCloseTo(1, 5);
+  await fixed("plus then minus");
+  await button(page, "two").click();
+  await fixed("2x");
+  await page.locator("#scene").focus();
+  await page.keyboard.press("+");
+  await page.keyboard.press("-");
+  await fixed("the keys");
+  await button(page, "fit").click();
+  // The wheel still zooms about the pointer, not the anchor.
+  const scene = await page.locator("#scene").boundingBox();
+  const at = { x: scene.x + scene.width * 0.8, y: scene.y + scene.height * 0.7 };
+  const mark = await page.evaluate(([p]) => { const r = document.querySelector("#zoomer").getBoundingClientRect(); return { u: (p.x - r.left) / r.width, v: (p.y - r.top) / r.height }; }, [at]);
+  await wheel(page, at, -50);
+  const where = await page.evaluate(([m]) => { const r = document.querySelector("#zoomer").getBoundingClientRect(); return { x: r.left + m.u * r.width, y: r.top + m.v * r.height }; }, [mark]);
+  expect(Math.abs(where.x - at.x)).toBeLessThan(1.5);
+  expect(Math.abs(where.y - at.y)).toBeLessThan(1.5);
+  expect(errors).toEqual([]);
+});
+
+test("without an anchor the buttons zoom about the middle, and the anchor attribute and setter agree", async ({ page }) => {
+  await ready(page);
+  await button(page, "in").click();
+  expect(await stateOf(page)).toMatchObject({ panX: 0, panY: 0 });
+  await button(page, "fit").click();
+  await page.locator(BAR).evaluate((el) => el.setAttribute("anchor", "-40, 20"));
+  expect(await page.locator(BAR).evaluate((el) => el.anchor)).toEqual({ x: -40, y: 20 });
+  await page.locator(BAR).evaluate((el) => { el.anchor = { x: 10, y: 5 }; });
+  expect(await page.locator(BAR).evaluate((el) => el.controller.anchor)).toEqual({ x: 10, y: 5 });
+  await page.locator(BAR).evaluate((el) => { el.anchor = undefined; });
+  await button(page, "in").click();
+  expect(await stateOf(page)).toMatchObject({ panX: 0, panY: 0 });
+});
+
+test("Arrow Up tips like a drag up, or like a wheel up with key-tilt wheel", async ({ page }) => {
+  await ready(page);
+  await page.locator("#scene").focus();
+  await page.keyboard.press("ArrowUp");
+  expect((await stateOf(page)).tilt).toBe(5);
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  expect((await stateOf(page)).tilt).toBe(-5);
+  await page.goto("/?key-tilt=wheel");
+  await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+  await page.locator("#scene").focus();
+  await page.keyboard.press("ArrowUp");
+  expect((await stateOf(page)).tilt).toBe(-5);
+  await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })));
+  expect((await stateOf(page)).tilt).toBeLessThan(-5);
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  expect((await stateOf(page)).tilt).toBeGreaterThan(-20);
+});
+
+test("stop-turn: a press, the wheel or a key stops the automatic turn, and without it they do not", async ({ page }) => {
+  for (const query of ["", "?stop-turn"]) {
+    const stops = query !== "";
+    for (const hand of ["press", "wheel", "key"]) {
+      await page.goto(`/${query}`);
+      await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+      await button(page, "play").click();
+      await expect(button(page, "play")).toHaveAttribute("aria-pressed", "true");
+      await page.locator("#scene").focus();
+      if (hand === "press") {
+        const at = await centreOf(page, "#scene");
+        await page.mouse.move(at.x, at.y + 100);
+        await page.mouse.down();
+        await page.mouse.up();
+      } else if (hand === "wheel") {
+        await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true, cancelable: true })));
+      } else await page.keyboard.press("ArrowLeft");
+      expect((await stateOf(page)).turning, `${hand} ${query}`).toBe(!stops);
+      await expect(button(page, "play")).toHaveAttribute("aria-pressed", String(!stops));
+    }
+  }
+});
+
+test("tilt-step rounds the tilt of a drag to whole degrees", async ({ page }) => {
+  for (const [query, whole] of [["", false], ["?tilt-step=1", true]]) {
+    await page.goto(`/${query}`);
+    await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+    const box = await page.locator("#scene").boundingBox();
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 7, from.y - 17.3, { steps: 5 });
+    await page.mouse.up();
+    const tilt = (await stateOf(page)).tilt;
+    expect(Number.isInteger(tilt), `${query} ${tilt}`).toBe(whole);
+    expect(tilt).toBeGreaterThan(0);
+  }
+});

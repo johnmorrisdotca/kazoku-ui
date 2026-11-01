@@ -216,3 +216,133 @@ test("a press on what is inside the view is left alone, a press on the view itse
   press(child("button"));
   assert.equal(captured, 5, "a bad selector leaves nothing alone");
 });
+
+const fakeBound = () => {
+  const listeners = new Map<string, (e: unknown) => void>();
+  const fakeView = {
+    style: {},
+    dataset: {} as Record<string, string>,
+    addEventListener: (type: string, fn: (e: unknown) => void) => listeners.set(type, fn),
+    removeEventListener: () => undefined,
+    setPointerCapture: () => undefined,
+    contains: () => false,
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }),
+    ownerDocument: {},
+  };
+  const key = (k: string) => { let stopped = false; listeners.get("keydown")?.({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, preventDefault: () => { stopped = true; } }); return stopped; };
+  const wheel = (init: object) => listeners.get("wheel")?.({ ctrlKey: false, metaKey: false, shiftKey: false, deltaX: 0, deltaY: 0, deltaMode: 0, clientX: 200, clientY: 150, preventDefault: () => undefined, ...init });
+  const press = (x: number, y: number) => listeners.get("pointerdown")?.({ target: {}, composedPath: () => [], pointerId: 1, pointerType: "mouse", button: 0, clientX: x, clientY: y, shiftKey: false });
+  const move = (x: number, y: number) => listeners.get("pointermove")?.({ pointerId: 1, pointerType: "mouse", clientX: x, clientY: y });
+  const release = () => listeners.get("pointerup")?.({ pointerId: 1, type: "pointerup", pointerType: "mouse", clientX: 0, clientY: 0, timeStamp: 1e9 });
+  return { fakeView: fakeView as unknown as HTMLElement, key, wheel, press, move, release };
+};
+
+test("the buttons and keys zoom about the anchor, which stays where it is on screen", () => {
+  const { view } = make();
+  const screen = (): { x: number; y: number } => ({ x: view.state.panX + view.state.zoom * 60, y: view.state.panY + view.state.zoom * -30 });
+  view.anchor = { x: 60, y: -30 };
+  const before = screen();
+  view.zoomBy(1.4);
+  assert.ok(Math.abs(screen().x - before.x) < 1 && Math.abs(screen().y - before.y) < 1, "plus keeps the anchor");
+  assert.ok(view.state.zoom > 1.39);
+  view.zoomBy(1.25);
+  const mid = screen();
+  view.zoomBy(1 / 1.25);
+  view.zoomBy(1 / 1.4);
+  assert.ok(Math.abs(mid.x - before.x) < 1 && Math.abs(screen().x - before.x) < 1 && Math.abs(screen().y - before.y) < 1, "plus then minus leaves it fixed");
+  assert.ok(Math.abs(view.state.zoom - 1) < 1e-9);
+  view.zoomAt(2);
+  assert.ok(Math.abs(screen().x - 60) < 1, "zoomAt with no point uses it too");
+  view.fit();
+  view.anchor = undefined;
+  view.zoomBy(2);
+  assert.deepEqual([view.state.panX, view.state.panY], [0, 0], "no anchor: about the middle, as before");
+});
+
+test("the anchor moves with the picture when the view is moved", () => {
+  const { view } = make({ anchor: { x: 40, y: 0 } });
+  view.zoomAt(2);
+  view.panBy(-1, 0);
+  const x = view.state.panX + view.state.zoom * 40;
+  view.zoomBy(1.25);
+  assert.ok(Math.abs(view.state.panX + view.state.zoom * 40 - x) < 1);
+});
+
+test("the wheel and a pinch still zoom about the pointer, whatever the anchor", () => {
+  const { view } = make({ anchor: { x: 60, y: 0 } });
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  hands.wheel({ ctrlKey: true, deltaY: -50, clientX: 300, clientY: 150 });
+  const k = view.state.zoom;
+  assert.ok(k > 1);
+  assert.ok(Math.abs(view.state.panX - (100 - 100 * k)) < 1e-6, "about the pointer's place, 100 right of the middle");
+});
+
+test("Arrow Up tips like a drag up by default and like a wheel up with keyTilt wheel", () => {
+  const drag = make();
+  const a = fakeBound();
+  drag.view.bind(a.fakeView);
+  a.key("ArrowUp");
+  assert.equal(drag.view.state.tilt, 5);
+  a.key("ArrowDown");
+  a.key("ArrowDown");
+  assert.equal(drag.view.state.tilt, -5);
+  const wheel = make({ keyTilt: "wheel" });
+  const b = fakeBound();
+  wheel.view.bind(b.fakeView);
+  b.key("ArrowUp");
+  assert.equal(wheel.view.state.tilt, -5);
+  b.key("ArrowDown");
+  b.key("ArrowDown");
+  assert.equal(wheel.view.state.tilt, 5);
+  // A wheel turned up (negative deltaY) with the view focused goes the same way as Arrow Up does with keyTilt wheel.
+  const c = make({ keyTilt: "wheel" });
+  const d = fakeBound();
+  (d.fakeView as unknown as { ownerDocument: { activeElement: unknown } }).ownerDocument.activeElement = d.fakeView;
+  c.view.bind(d.fakeView);
+  d.wheel({ deltaY: -100 });
+  const wheelUp = c.view.state.tilt;
+  c.view.set({ tilt: 0 });
+  d.key("ArrowUp");
+  assert.equal(Math.sign(c.view.state.tilt), Math.sign(wheelUp));
+});
+
+test("a press, the wheel or a key stops the automatic turn only when asked; a control never does", () => {
+  for (const stopTurn of [false, true]) {
+    for (const hand of ["press", "wheel", "key", "ctrl-wheel"] as const) {
+      const { view, clock } = make({ stopTurn });
+      const hands = fakeBound();
+      (hands.fakeView as unknown as { ownerDocument: { activeElement: unknown } }).ownerDocument.activeElement = hands.fakeView;
+      view.bind(hands.fakeView);
+      view.play();
+      clock.step(16);
+      if (hand === "press") hands.press(10, 10);
+      else if (hand === "wheel") hands.wheel({ deltaY: 40 });
+      else if (hand === "ctrl-wheel") hands.wheel({ ctrlKey: true, deltaY: -40 });
+      else hands.key("ArrowLeft");
+      assert.equal(view.state.turning, !stopTurn, `${hand}, stopTurn ${stopTurn}`);
+    }
+  }
+  const { view } = make({ stopTurn: true });
+  view.play();
+  view.zoomBy(1.4);
+  view.set({ tilt: 4 });
+  view.front();
+  assert.equal(view.state.turning, true);
+  const idle = make({ stopTurn: true });
+  const hands = fakeBound();
+  idle.view.bind(hands.fakeView);
+  assert.equal(hands.key("q"), false, "a key it does not handle is left alone");
+});
+
+test("tiltStep rounds the tilt of a drag, and 0 leaves it as it is", () => {
+  for (const [tiltStep, expected] of [[0, 3.4], [1, 3], [5, 5]] as const) {
+    const { view } = make({ tiltStep });
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    hands.press(100, 100);
+    hands.move(100, 83);
+    assert.ok(Math.abs(view.state.tilt - expected) < 1e-9, `step ${tiltStep}`);
+    hands.release();
+  }
+});

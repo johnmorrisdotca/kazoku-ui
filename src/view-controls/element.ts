@@ -3,7 +3,7 @@
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { ZOOM_STEP, ZOOMED } from "./math.ts";
+import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
 
@@ -55,11 +55,12 @@ const HTML = `
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
  * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `speed` (degrees a second),
- * `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
+ * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips),
+ * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "speed", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "speed", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -121,6 +122,15 @@ export class ViewControlsElement extends HTMLElement {
     this.#ensure().set(next);
   }
 
+  /** The point the zoom buttons and keys zoom about: `{ x, y }` in CSS pixels from the view's middle when it is at Fit, moving with the picture. `undefined` zooms about the view's middle. The `anchor` attribute (`"x,y"`) sets the same. */
+  get anchor(): Point | undefined {
+    return this.#ensure().anchor;
+  }
+
+  set anchor(point: Point | undefined | null) {
+    this.#ensure().anchor = point ?? undefined;
+  }
+
   /** What zoom 1 means to the page: the scene is drawn at `state.zoom * fitScale`. */
   get fitScale(): number {
     return this.#ensure().fitScale;
@@ -144,6 +154,8 @@ export class ViewControlsElement extends HTMLElement {
     c.turnable = !this.hasAttribute("flat");
     c.speed = Number(this.getAttribute("speed")) || 30;
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
+    for (const name of ["key-tilt", "stop-turn", "tilt-step"]) this.#option(name);
+    if (this.hasAttribute("anchor")) this.#option("anchor");
     const fitScale = Number(this.getAttribute("fit-scale"));
     if (this.hasAttribute("fit-scale")) c.setFitScale(fitScale);
     c.setStartZoom(this.#startZoom());
@@ -182,12 +194,24 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
+    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step") this.#option(name);
     else if (name === "speed") c.speed = Number(value) || 30;
     else if (name === "flat") {
       c.turnable = value === null;
       this.#show();
     } else if (name === "address-keys") this.#keys = parseKeys(value);
     else this.#limits();
+  }
+
+  #option(name: string): void {
+    const c = this.#ensure();
+    const value = this.getAttribute(name);
+    if (name === "anchor") {
+      const [x, y] = (value ?? "").trim().split(/[\s,]+/).map(Number);
+      c.anchor = x !== undefined && y !== undefined && Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined;
+    } else if (name === "key-tilt") c.keyTilt = value === "wheel" ? "wheel" : "drag";
+    else if (name === "stop-turn") c.stopTurn = value !== null;
+    else if (name === "tilt-step") c.tiltStep = Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
   #startZoom(): "fit" | number {

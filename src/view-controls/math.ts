@@ -75,10 +75,11 @@ export function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, li
   return { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
 }
 
-/** A one-pointer drag that turns: `dx` and `dy` pixels from where it began, in a view of `size`. A finger does not tilt (the page's own scroll keeps the vertical drag). */
-export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips: boolean, limits: Limits = DEFAULT_LIMITS): Pick<Camera, "yaw" | "tilt"> {
+/** A one-pointer drag that turns: `dx` and `dy` pixels from where it began, in a view of `size`. A finger does not tilt (the page's own scroll keeps the vertical drag). A `step` above 0 rounds the tilt to a multiple of it. */
+export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips: boolean, limits: Limits = DEFAULT_LIMITS, step = 0): Pick<Camera, "yaw" | "tilt"> {
   const yaw = wrapYaw(start.yaw + (dx / (size.width || 360)) * TURN_ACROSS);
-  const tilt = tips ? clamp(start.tilt - (dy / (size.height || 360)) * TILT_ACROSS, -limits.tiltMax, limits.tiltMax) : start.tilt;
+  const raw = start.tilt - (dy / (size.height || 360)) * TILT_ACROSS;
+  const tilt = tips ? clamp(step > 0 ? Math.round(raw / step) * step : raw, -limits.tiltMax, limits.tiltMax) : start.tilt;
   return { yaw, tilt };
 }
 

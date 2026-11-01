@@ -98,13 +98,27 @@ myPlayButton.onclick = () => view.toggle();
 myZoomIn.onclick = () => view.zoomBy(1.4);
 ```
 
-Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
+Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`. `anchor`, `keyTilt`, `stopTurn` and `tiltStep` are also members you can change at any time. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
 
 ### Buttons and links inside the view
 
 The hands capture the pointer on the `for` element, so a press on a button or link placed inside it would be taken for a drag and its click lost. A press on anything that matches `ignore` is left alone (no capture, no drag, no double-tap), and the click goes through. Mark any other child with `data-kazoku-ignore`. Dragging from the empty part of the view turns it as before.
 
 `ignore` also sees through shadow DOM: it tests every element on the event's path from the innermost one up to the view, so a button inside a web component's open shadow root (a card's own Animate button, say) is left alone even though the event's target is the component. A closed shadow root hides its inside from the page, so only the component itself can be matched: mark the host with `data-kazoku-ignore`, or add its tag name to `ignore`.
+
+### Zooming about a point of your own
+
+The zoom buttons and keys have no pointer, so they zoom about the view's middle. If your scene's middle is not the view's (a piece standing to one side, say), tell the controls where it is:
+
+```js
+controls.anchor = { x: 60, y: -30 }; // pixels from the view's middle when it is at Fit
+```
+
+Zoom is about that point of the picture, so it stays put on screen however far in the reader is and wherever the view has been moved to: `+` then `-` leaves it where it was within a pixel. Without the element, set `view.anchor` on the controller, or pass `anchor` to `createViewController`; `view.zoomBy(f)` and `view.zoomAt(z)` with no point use it.
+
+### Keys, the wheel and the turn
+
+Arrow Up tips like a drag up (`tilt` gets larger). A page whose wheel and keys should agree sets `key-tilt="wheel"`: Arrow Up then tips the way a wheel turned up does (`tilt` gets smaller), and Arrow Down the other way. `stop-turn` stops the automatic turn when the reader takes hold of the view with a press, the wheel or a key (a `pause` event is sent first); the defaults keep it turning, and a button or slider never stops it. `tilt-step="1"` makes a drag give whole degrees of tilt.
 
 ### Opening at the scene's natural size
 
@@ -146,6 +160,10 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `zoom` | The starting zoom: `fit` (the default) or a number, a scale where 1 is the scene's natural size. It opens at that number divided by `fit-scale`; with `fit-scale` left at 1 it is the `zoom` of the event. |
 | `fit-scale` | The scale your page draws the scene at when it is at Fit (event `zoom` 1): what zoom 1 means. 1 by default. Or call `element.setFitScale(n)` once the scene is measured. |
 | `ignore` | A CSS selector for what inside the view a pointer press leaves alone, so its click goes through: `button, a, input, select, textarea, label, [data-kazoku-ignore]` by default. A bare `ignore=""` leaves nothing alone. |
+| `anchor` | `x,y`: the point the + and - buttons, the 2x button and the + and - keys zoom about, in CSS pixels from the middle of the view when it is at Fit (zoom 1, no pan). It is a point on the picture, so it moves with it and stays fixed on screen while the buttons zoom. Left out, they zoom about the view's middle, as before. The wheel, a pinch and a double tap still zoom about the pointer. Or set `element.anchor = { x, y }` (`undefined` clears it). |
+| `key-tilt` | Which way Arrow Up tips the view: `drag` (the default: like a drag up) or `wheel` (the way a wheel turned up tips it, the other way). Arrow Down goes the other way from Up. |
+| `stop-turn` | A press on the view, the wheel over it or a key it handles stops the automatic turn. Off by default, so the turn carries on. Buttons and sliders never stop it. |
+| `tilt-step` | Round the tilt of a drag to a multiple of this many degrees (`1` gives whole degrees). 0 by default: not rounded. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `speed` | Degrees a second (30). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
@@ -168,11 +186,11 @@ Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan
 
 ## Size
 
-Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 3.9 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
+Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 29 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, pan when zoomed, touch, the address, the labels, reduced motion).
+`pnpm check` (lint, types, 36 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion).
 
 ## Not yet
 

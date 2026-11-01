@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Zoom about a point of your own: the `anchor` attribute (`x,y`), the `element.anchor` setter and the controller's `anchor` member and option take a point in CSS pixels from the view's middle at Fit. The + and - buttons, the 2x button and the + and - keys zoom about it, and it stays fixed on screen within a pixel; wheel, pinch and double tap still zoom about the pointer. With no anchor they zoom about the middle, as before. `zoomAt` and `zoomBy` with no point use it.
+- Arrow Up the way a wheel goes: `key-tilt="wheel"` (option `keyTilt: "wheel"`) makes Arrow Up tip the way a wheel turned up does. The default, `drag`, still tips like a drag up.
+- `stop-turn` (option `stopTurn`) stops the automatic turn on a press, the wheel or a key on the view, with a `pause` event. Off by default; buttons and sliders never stop it.
+- `tilt-step` (option `tiltStep`) rounds the tilt of a drag to a multiple of this many degrees; `1` gives whole degrees. `dragTurn` takes it as a seventh argument. 0 by default.
+- The demo switches them on in its address: `?anchor=pin`, `?key-tilt=wheel`, `?stop-turn`, `?tilt-step=1`.
+
 ## [0.2.1] - 2026-11-01
 
 - `ignore` now sees through shadow DOM: it tests the elements on the event's `composedPath()`, from the innermost up to the view, so a button inside a web component's open shadow root is left alone. Before, only the event's target (the host) was tested. A closed shadow root stays a limit: mark its host with `data-kazoku-ignore`.

@@ -15,6 +15,18 @@ function apply(s) {
 
 controls.addEventListener("kazoku-viewchange", (event) => apply(event.detail));
 
+// Options, off by default, switched on in the address: ?anchor=pin (the + and - buttons and keys zoom about the ring), ?key-tilt=wheel, ?stop-turn, ?tilt-step=1.
+const options = new URLSearchParams(location.search);
+for (const name of ["key-tilt", "stop-turn", "tilt-step"]) if (options.has(name)) controls.setAttribute(name, options.get(name));
+if (options.get("anchor") === "pin") {
+  const place = () => {
+    const pin = $("pin");
+    controls.anchor = { x: pin.offsetLeft + pin.offsetWidth / 2 - $("scene").clientWidth / 2, y: pin.offsetTop + pin.offsetHeight / 2 - $("scene").clientHeight / 2 };
+  };
+  place();
+  window.addEventListener("resize", place);
+}
+
 const SAY = {
   en: "Drag the card to turn it. Zoom in, then drag to move it, or use the arrows. The controls never draw: the page does, from the events.",
   ja: "カードをドラッグすると回ります。拡大してからドラッグで動かすか、矢印を使います。操作部は描画しません。描くのはページです。",

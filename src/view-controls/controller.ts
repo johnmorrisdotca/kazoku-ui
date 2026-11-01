@@ -21,6 +21,9 @@ export interface ChangeInfo {
 /** What `bind` leaves alone by default: the page's own controls inside the view. */
 export const DEFAULT_IGNORE = "button, a, input, select, textarea, label, [data-kazoku-ignore]";
 
+/** Which way Arrow Up tips the view: like a drag up (`"drag"`, the default) or the way the wheel turned up does (`"wheel"`, the other way). */
+export type KeyTilt = "drag" | "wheel";
+
 export interface Clock {
   request(callback: (now: number) => void): number;
   cancel(id: number): void;
@@ -39,6 +42,14 @@ export interface ViewControllerOptions {
   fitScale?: number;
   /** A CSS selector for what inside the view `bind` leaves alone: a press on a match is not captured, so its click goes through. An empty string leaves nothing alone. */
   ignore?: string;
+  /** The point the zoom buttons and keys zoom about, in content coordinates: CSS pixels from the view's middle when it is at Fit (zoom 1, no pan). It moves with the picture, so the point stays where it is on screen while the view zooms. Left out, they zoom about the view's middle. */
+  anchor?: Point;
+  /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (as a wheel turned up). */
+  keyTilt?: KeyTilt;
+  /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
+  stopTurn?: boolean;
+  /** Round the tilt of a drag to a multiple of this many degrees; 0 (the default) leaves it unrounded, 1 gives whole degrees. */
+  tiltStep?: number;
   /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
   size?: () => Size | undefined;
   onChange?: (state: ViewState, info: ChangeInfo) => void;
@@ -53,6 +64,11 @@ export interface ViewController {
   readonly limits: Limits;
   /** What a pointer press leaves alone inside the view (see `ViewControllerOptions.ignore`). Can be changed at any time. */
   ignore: string;
+  /** The point the buttons and keys zoom about (see `ViewControllerOptions.anchor`); `undefined` for the view's middle. Can be changed at any time. */
+  anchor: Point | undefined;
+  keyTilt: KeyTilt;
+  stopTurn: boolean;
+  tiltStep: number;
   /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
   readonly fitScale: number;
   /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
@@ -70,7 +86,7 @@ export interface ViewController {
   releaseTurn(): void;
   front(): void;
   fit(): void;
-  /** Zoom to `next` about the point `at` (client pixels; the view's middle when left out). */
+  /** Zoom to `next` about the point `at` (client pixels); left out, about the `anchor`, else the view's middle. */
   zoomAt(next: number, at?: Point, final?: boolean): void;
   zoomBy(factor: number, at?: Point): void;
   /** Move the view by whole fractions of its size: `panBy(1, 0)` is a quarter of its width to the right. */
@@ -80,6 +96,8 @@ export interface ViewController {
   bind(view: HTMLElement): () => void;
   destroy(): void;
 }
+
+const HANDLED_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "_", "0", "Home"];
 
 const positive = (value: unknown): number | undefined => (typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined);
 
@@ -133,9 +151,12 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const r = bound.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   };
-  /** Client pixels to pixels from the view's middle. */
+  /** Client pixels to pixels from the view's middle; with none, the anchor's place on screen now, else the middle. */
   const fromMiddle = (at: Point | undefined): Point => {
-    if (at === undefined) return { x: 0, y: 0 };
+    if (at === undefined) {
+      const a = controller.anchor;
+      return a === undefined ? { x: 0, y: 0 } : { x: state.panX + state.zoom * a.x, y: state.panY + state.zoom * a.y };
+    }
     const c = centre();
     return { x: at.x - c.x, y: at.y - c.y };
   };
@@ -160,6 +181,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     speed: options.speed ?? 30,
     limits,
     ignore: options.ignore ?? DEFAULT_IGNORE,
+    anchor: options.anchor,
+    keyTilt: options.keyTilt ?? "drag",
+    stopTurn: options.stopTurn ?? false,
+    tiltStep: options.tiltStep ?? 0,
     get fitScale() {
       return fitScale;
     },
@@ -274,6 +299,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       holding = false;
     };
     const canTurn = (): boolean => controller.turnable;
+    const grab = (): void => {
+      if (controller.stopTurn) controller.pause();
+    };
 
     const ignored = (e: Event): boolean => {
       if (controller.ignore === "") return false;
@@ -297,6 +325,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const onDown = (e: PointerEvent): void => {
       if (e.pointerType === "mouse" && e.button > 2) return;
       if (ignored(e)) return;
+      grab();
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try {
         view.setPointerCapture(e.pointerId);
@@ -337,7 +366,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         if (!canTurn()) return;
         const r = view.getBoundingClientRect();
         // Up and down tips it for a mouse; on a finger the browser keeps the vertical drag to scroll the page, and the tilt slider tips it.
-        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch", limits) });
+        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch", limits, controller.tiltStep) });
         emit(false, "drag");
       }
     };
@@ -373,6 +402,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       if (e.ctrlKey || e.metaKey) {
         // A trackpad's pinch arrives as Ctrl and the wheel; Command and the wheel does the same for a mouse.
         e.preventDefault();
+        grab();
         controller.zoomAt(state.zoom * wheelZoomFactor(e.deltaY, e.deltaMode), { x: e.clientX, y: e.clientY });
         return;
       }
@@ -382,12 +412,16 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       if (!horizontal && !focused) return;
       e.preventDefault();
       if (!canTurn()) return;
+      grab();
       if (horizontal || e.shiftKey) controller.set({ yaw: state.yaw + (e.deltaX || e.deltaY) * 0.3 }, true, "wheel");
       else controller.set({ tilt: Math.round(state.tilt + e.deltaY * 0.15) }, true, "wheel");
     };
 
     const onKey = (e: KeyboardEvent): void => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!HANDLED_KEYS.includes(e.key)) return;
+      grab();
+      const up = controller.keyTilt === "wheel" ? -5 : 5;
       const big = e.shiftKey ? 45 : 15;
       const turn = (next: Partial<ViewState>): void => {
         if (canTurn()) controller.set(next, true, "key");
@@ -395,8 +429,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       switch (e.key) {
         case "ArrowLeft": turn({ yaw: state.yaw - big }); break;
         case "ArrowRight": turn({ yaw: state.yaw + big }); break;
-        case "ArrowUp": turn({ tilt: state.tilt + 5 }); break;
-        case "ArrowDown": turn({ tilt: state.tilt - 5 }); break;
+        case "ArrowUp": turn({ tilt: state.tilt + up }); break;
+        case "ArrowDown": turn({ tilt: state.tilt - up }); break;
         case "+": case "=": controller.zoomBy(1.25); break;
         case "-": case "_": controller.zoomBy(1 / 1.25); break;
         case "0": case "Home": controller.front(); controller.fit(); break;

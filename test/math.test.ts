@@ -81,3 +81,12 @@ test("a Ctrl wheel zooms in on a turn up and out on a turn down", () => {
   assert.ok(wheelZoomFactor(-3, 1) > 1);
   assert.equal(wheelZoomFactor(0, 0), 1);
 });
+
+test("dragTurn rounds the tilt to a step and still holds the limits", () => {
+  const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
+  const size = { width: 400, height: 300 };
+  assert.equal(dragTurn(start, 0, -17, size, true, undefined, 1).tilt, 3);
+  assert.ok(Math.abs(dragTurn(start, 0, -17, size, true, undefined, 0).tilt - 3.4) < 1e-9);
+  assert.equal(dragTurn(start, 0, -300, size, true, undefined, 7).tilt, 30);
+  assert.equal(dragTurn(start, 0, -17, size, false, undefined, 1).tilt, 0);
+});
