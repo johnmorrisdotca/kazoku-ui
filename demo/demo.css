@@ -1,0 +1,43 @@
+:root { --ink: #1b1b1f; --muted: #5b5e68; --bg: #f5f6f8; --surface: #ffffff; --line: #c9ccd3; --accent: #2457d6; --face: #fdfdfb; --face-a: #2457d6; --face-b: #1b1b1f; --edge: #b7bcc8; --back: #e9edf8; --grid: #d5d8df; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) { :root { --ink: #f1f2f6; --muted: #a2a6b3; --bg: #121317; --surface: #1c1d22; --line: #4a4d58; --accent: #8fb0ff; --face: #2a2d36; --face-a: #8fb0ff; --face-b: #f1f2f6; --edge: #555a69; --back: #232632; --grid: #2c2f3a; } }
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1rem/1.45 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 8px 16px 24px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { margin: 0; font-size: 1.25rem; }
+.sub { font-weight: 400; color: var(--muted); }
+.intro { margin: 2px 0 8px; color: var(--muted); font-size: 0.9rem; }
+.lang { display: inline-flex; gap: 4px; }
+.lang button { min-height: 48px; min-width: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.lang button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.scene { position: relative; height: 380px; overflow: hidden; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); cursor: grab; user-select: none; -webkit-user-select: none; }
+.scene[data-grabbing="1"] { cursor: grabbing; }
+.scene:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.zoomer { position: absolute; inset: 0; transform-origin: 50% 50%; }
+.grid { position: absolute; inset: -50%; background-image: radial-gradient(var(--grid) 1.5px, transparent 1.6px); background-size: 28px 28px; }
+.pin { position: absolute; left: 30%; top: 30%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid var(--accent); }
+.persp { position: absolute; inset: 0; display: grid; place-items: center; perspective: 900px; }
+.card { position: relative; width: 150px; height: 210px; transform-style: preserve-3d; }
+.face { position: absolute; backface-visibility: hidden; }
+.front, .back { inset: 0; border-radius: 10px; background: var(--face); border: 1px solid var(--edge); }
+.front { transform: translateZ(14px); }
+.back { transform: rotateY(180deg) translateZ(14px); background: var(--back); }
+.face svg { width: 100%; height: 100%; display: block; }
+.face .a { fill: var(--face-a); }
+.face .b { fill: var(--face-b); }
+.edge-l, .edge-r { top: 0; width: 28px; height: 100%; left: 50%; margin-left: -14px; background: var(--edge); }
+.edge-l { transform: rotateY(-90deg) translateZ(75px); }
+.edge-r { transform: rotateY(90deg) translateZ(75px); }
+.edge-t, .edge-b { left: 0; width: 100%; height: 28px; top: 50%; margin-top: -14px; background: var(--edge); }
+.edge-t { transform: rotateX(90deg) translateZ(105px); }
+.edge-b { transform: rotateX(-90deg) translateZ(105px); }
+kazoku-view-controls { margin-top: 6px; }
+.readout { display: block; margin-top: 6px; color: var(--muted); font: 0.8rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+@media (max-width: 640px) {
+  main { padding: 4px 12px 16px; }
+  .intro { display: none; }
+  .scene { height: min(300px, 36vh); }
+  .readout { display: none; }
+}

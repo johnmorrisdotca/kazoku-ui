@@ -1,0 +1,268 @@
+import { expect, test } from "@playwright/test";
+
+// The view controls on the demo page, in a real browser at a phone's width and a desk's, in Chromium and WebKit.
+const BAR = "kazoku-view-controls";
+const stateOf = (page) => page.evaluate((tag) => ({ ...document.querySelector(tag).state }), BAR);
+const button = (page, name) => page.locator(`${BAR} [data-b="${name}"]`);
+const centreOf = (page, selector) => page.locator(selector).evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+/** A wheel turn with Ctrl or Command held, sent to the view: the same event a trackpad's pinch makes, and the same in every browser. */
+const wheel = (page, at, deltaY, mod = "ctrlKey") => page.locator("#scene").evaluate((el, [p, dy, key]) => {
+  el.dispatchEvent(new WheelEvent("wheel", { clientX: p.x, clientY: p.y, deltaY: dy, [key]: true, bubbles: true, cancelable: true }));
+}, [at, deltaY, mod]);
+/** A touch or pen pointer event sent to the view. */
+const touch = (page, type, id, x, y) => page.locator("#scene").evaluate((el, [t, i, cx, cy]) => {
+  el.dispatchEvent(new PointerEvent(t, { pointerId: i, pointerType: "touch", isPrimary: i === 1, clientX: cx, clientY: cy, bubbles: true, cancelable: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
+}, [type, id, x, y]);
+const ready = async (page, query = "") => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await page.goto(`/${query}`);
+  await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+  return errors;
+};
+
+test("the controls are visible without scrolling, a finger wide, and in the page's own style", async ({ page }) => {
+  const errors = await ready(page);
+  await button(page, "two").click();
+  const report = await page.evaluate(() => {
+    const root = document.querySelector("kazoku-view-controls").shadowRoot;
+    const vh = window.innerHeight;
+    const shown = [...root.querySelectorAll("button, input")].filter((el) => !el.closest("[hidden]") && el.getClientRects().length > 0);
+    const small = shown.filter((el) => { const r = el.getBoundingClientRect(); return r.height < 47.5 || (el.tagName === "BUTTON" && r.width < 47.5); }).map((el) => el.dataset.b ?? el.id);
+    const below = shown.filter((el) => el.getBoundingClientRect().bottom > vh).map((el) => el.dataset.b ?? el.id);
+    const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
+    return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
+  });
+  // Angle, tilt, auto-turn, front, four zoom buttons, four arrows, two drag buttons.
+  expect(report.count).toBe(14);
+  expect(report.small).toEqual([]);
+  expect(report.below).toEqual([]);
+  expect(report.plain).toEqual([]);
+  expect(report.scrolled).toBe(0);
+  expect(report.wide).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test("it never turns on its own until asked, and a toggle during the turn keeps the angle advancing", async ({ page }) => {
+  await ready(page);
+  await page.waitForTimeout(300);
+  expect((await stateOf(page)).turning).toBe(false);
+  expect((await stateOf(page)).yaw).toBe(0);
+  await button(page, "play").click();
+  await expect(button(page, "play")).toHaveAttribute("aria-pressed", "true");
+  const advances = async (label) => {
+    const before = (await stateOf(page)).yaw;
+    await expect.poll(async () => (await stateOf(page)).yaw, { message: label, timeout: 4000 }).not.toBe(before);
+    expect((await stateOf(page)).turning, label).toBe(true);
+    await expect(button(page, "play"), label).toHaveAttribute("aria-pressed", "true");
+  };
+  await advances("turning");
+  await button(page, "in").click();
+  await advances("after zoom in");
+  await button(page, "two").click();
+  await advances("after 2x");
+  await button(page, "turn").click();
+  await advances("after the Turn choice");
+  await button(page, "move").click();
+  await advances("after the Move choice");
+  await button(page, "right").click();
+  await advances("after the pan pad");
+  await page.locator(`${BAR} #tilt`).fill("12");
+  await advances("after the tilt slider");
+  await button(page, "fit").click();
+  await advances("after Fit");
+  await button(page, "front").click();
+  expect((await stateOf(page)).tilt).toBe(0);
+  await advances("after Front");
+  // The angle slider sets the angle and the turn goes on from there.
+  await page.locator(`${BAR} #yaw`).fill("60");
+  await expect.poll(async () => (await stateOf(page)).yaw).toBeGreaterThan(60);
+  expect((await stateOf(page)).yaw).toBeLessThan(100);
+  expect((await stateOf(page)).turning).toBe(true);
+  // Pause stops it, and only that does.
+  await button(page, "play").click();
+  const stopped = (await stateOf(page)).yaw;
+  await page.waitForTimeout(300);
+  expect((await stateOf(page)).yaw).toBe(stopped);
+  expect((await stateOf(page)).turning).toBe(false);
+});
+
+test("zoom about the pointer keeps what is under it there", async ({ page }) => {
+  await ready(page);
+  const pin = await centreOf(page, "#pin");
+  await wheel(page, pin, -50);
+  const first = await stateOf(page);
+  expect(first.zoom).toBeGreaterThan(1.5);
+  const after = await centreOf(page, "#pin");
+  expect(Math.abs(after.x - pin.x)).toBeLessThan(1.5);
+  expect(Math.abs(after.y - pin.y)).toBeLessThan(1.5);
+  // Another point, with Command, from a zoomed and moved view.
+  const scene = await page.locator("#scene").boundingBox();
+  const at = { x: scene.x + scene.width * 0.7, y: scene.y + scene.height * 0.6 };
+  const mark = await page.evaluate(([p]) => {
+    const z = document.querySelector("#zoomer");
+    const r = z.getBoundingClientRect();
+    return { u: (p.x - r.left) / r.width, v: (p.y - r.top) / r.height };
+  }, [at]);
+  await wheel(page, at, -40, "metaKey");
+  const second = await stateOf(page);
+  expect(second.zoom).toBeGreaterThan(first.zoom);
+  const where = await page.evaluate(([m]) => {
+    const r = document.querySelector("#zoomer").getBoundingClientRect();
+    return { x: r.left + m.u * r.width, y: r.top + m.v * r.height };
+  }, [mark]);
+  expect(Math.abs(where.x - at.x)).toBeLessThan(1.5);
+  expect(Math.abs(where.y - at.y)).toBeLessThan(1.5);
+  // Ctrl and a wheel turn down zooms out, back to 1x at the end and the middle again.
+  await wheel(page, at, 800);
+  expect((await stateOf(page))).toMatchObject({ zoom: 1, panX: 0, panY: 0 });
+});
+
+test("the buttons zoom, the pan pad appears when zoomed and moves the view, and a drag moves it", async ({ page }) => {
+  await ready(page);
+  await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
+  await button(page, "two").click();
+  expect((await stateOf(page)).zoom).toBe(2);
+  await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
+  const width = (await page.locator("#scene").boundingBox()).width;
+  const pin = await centreOf(page, "#pin");
+  await button(page, "right").click();
+  let s = await stateOf(page);
+  expect(s.panX).toBeCloseTo(width / 4, 0);
+  expect((await centreOf(page, "#pin")).x - pin.x).toBeCloseTo(width / 4, 0);
+  await button(page, "down").click();
+  s = await stateOf(page);
+  expect(s.panY).toBeGreaterThan(0);
+  // A mouse drag moves it (the Move choice); the angle does not change. A touchscreen has no mouse, so the drag is sent as touch below.
+  const before = await stateOf(page);
+  const scene = await page.locator("#scene").boundingBox();
+  const from = { x: scene.x + scene.width / 2, y: scene.y + scene.height / 2 };
+  await touch(page, "pointerdown", 1, from.x, from.y);
+  await touch(page, "pointermove", 1, from.x - 40, from.y - 20);
+  await touch(page, "pointerup", 1, from.x - 40, from.y - 20);
+  const moved = await stateOf(page);
+  expect(moved.panX - before.panX).toBeCloseTo(-40, 0);
+  expect(moved.panY - before.panY).toBeCloseTo(-20, 0);
+  expect(moved.yaw).toBe(before.yaw);
+  // The Turn choice makes the same drag turn it.
+  await button(page, "turn").click();
+  await expect(button(page, "turn")).toHaveAttribute("aria-pressed", "true");
+  await touch(page, "pointerdown", 1, from.x, from.y);
+  await touch(page, "pointermove", 1, from.x + 60, from.y);
+  await touch(page, "pointerup", 1, from.x + 60, from.y);
+  const turned = await stateOf(page);
+  expect(turned.yaw).toBeGreaterThan(10);
+  expect(turned.panX).toBe(moved.panX);
+  // Fit puts it back.
+  await button(page, "fit").click();
+  expect(await stateOf(page)).toMatchObject({ zoom: 1, panX: 0, panY: 0 });
+  await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
+});
+
+test("one finger turns at 1x and two fingers pinch", async ({ page }) => {
+  await ready(page);
+  const scene = await page.locator("#scene").boundingBox();
+  const mid = { x: scene.x + scene.width / 2, y: scene.y + scene.height / 2 };
+  await touch(page, "pointerdown", 1, mid.x, mid.y);
+  await touch(page, "pointermove", 1, mid.x + scene.width / 4, mid.y + 30);
+  await touch(page, "pointerup", 1, mid.x + scene.width / 4, mid.y + 30);
+  let s = await stateOf(page);
+  expect(s.yaw).toBeCloseTo(45, 0);
+  expect(s.tilt).toBe(0);
+  // A pinch: two fingers apart by 100, then by 200.
+  await touch(page, "pointerdown", 1, mid.x - 50, mid.y);
+  await touch(page, "pointerdown", 2, mid.x + 50, mid.y);
+  await touch(page, "pointermove", 1, mid.x - 100, mid.y);
+  await touch(page, "pointermove", 2, mid.x + 100, mid.y);
+  s = await stateOf(page);
+  expect(s.zoom).toBeCloseTo(2, 1);
+  await touch(page, "pointerup", 2, mid.x + 100, mid.y);
+  await touch(page, "pointerup", 1, mid.x - 100, mid.y);
+  // Zoomed in, one finger moves the view.
+  const before = await stateOf(page);
+  await touch(page, "pointerdown", 1, mid.x, mid.y);
+  await touch(page, "pointermove", 1, mid.x + 30, mid.y + 10);
+  await touch(page, "pointerup", 1, mid.x + 30, mid.y + 10);
+  s = await stateOf(page);
+  expect(s.panX - before.panX).toBeCloseTo(30, 0);
+  expect(s.yaw).toBe(before.yaw);
+  expect(await page.locator("#scene").evaluate((el) => el.style.touchAction)).toBe("none");
+});
+
+test("the keys on the view zoom and turn it", async ({ page }) => {
+  await ready(page);
+  await page.locator("#scene").focus();
+  await page.keyboard.press("ArrowRight");
+  expect((await stateOf(page)).yaw).toBe(15);
+  await page.keyboard.press("+");
+  expect((await stateOf(page)).zoom).toBeCloseTo(1.25, 2);
+  await page.keyboard.press("0");
+  expect(await stateOf(page)).toMatchObject({ yaw: 0, tilt: 0, zoom: 1 });
+});
+
+test("the choices are in the address, and the address is the whole state", async ({ page }) => {
+  await ready(page, "?yaw=40&tilt=10&zoom=2&drag=turn&keep=1");
+  expect(await stateOf(page)).toMatchObject({ yaw: 40, tilt: 10, zoom: 2, drag: "turn", panX: 0, panY: 0 });
+  await expect(page.locator(`${BAR} #yaw`)).toHaveValue("40");
+  await button(page, "fit").click();
+  await page.locator(`${BAR} #yaw`).fill("-90");
+  await expect(page).toHaveURL(/yaw=-90/);
+  await expect(page).not.toHaveURL(/zoom=/);
+  await expect(page).toHaveURL(/keep=1/);
+  await expect(page).toHaveURL(/drag=turn/);
+  const again = page.url();
+  await page.goto("about:blank");
+  await page.goto(again);
+  await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+  expect(await stateOf(page)).toMatchObject({ yaw: -90, tilt: 10, zoom: 1, drag: "turn" });
+  // The card on the page follows the state it was started with.
+  expect(await page.locator("#card").evaluate((el) => el.style.transform)).toContain("rotateY(-90deg)");
+});
+
+test("the labels are English or Japanese", async ({ page }) => {
+  await ready(page);
+  await expect(button(page, "front")).toHaveText("Front");
+  await expect(button(page, "play")).toHaveAttribute("aria-label", "Auto-turn");
+  await page.locator('[data-lang="ja"]').click();
+  await expect(button(page, "front")).toHaveText("正面");
+  await expect(button(page, "play")).toHaveAttribute("aria-label", "自動回転");
+  await expect(button(page, "fit")).toHaveText("全体");
+  await expect(page.locator(`${BAR} [data-g="zoom"]`)).toHaveAttribute("aria-label", "ズーム");
+  // Nothing wider than the screen in Japanese either.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("reduced motion is respected: no automatic turn unless the reader asks", async ({ page }) => {
+  const make = () => page.evaluate(async () => {
+    const view = document.createElement("div");
+    const bar = document.createElement("kazoku-view-controls");
+    bar.setAttribute("autoplay", "");
+    bar.view = view;
+    document.body.append(view, bar);
+    await new Promise((done) => setTimeout(done, 400));
+    const turning = bar.state.turning;
+    bar.remove();
+    view.remove();
+    return turning;
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await ready(page);
+  expect(await make()).toBe(false);
+  // The button still works for a reader who presses it.
+  await button(page, "play").click();
+  await expect(button(page, "play")).toHaveAttribute("aria-pressed", "true");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  expect(await make()).toBe(true);
+});
+
+test("a second copy of the package does not break the page: the tag already taken is left alone", async ({ page }) => {
+  const errors = await ready(page);
+  const result = await page.evaluate(async () => {
+    const before = customElements.get("kazoku-view-controls");
+    const again = await import(`/dist/view-controls/define.js?copy=2`);
+    return { same: customElements.get("kazoku-view-controls") === before, defined: before !== undefined, returned: again.defineViewControls() };
+  });
+  expect(result).toEqual({ same: true, defined: true, returned: false });
+  expect(errors).toEqual([]);
+});

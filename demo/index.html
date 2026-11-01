@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: view controls</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">view controls</span></h1>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">English</button>
+      <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+    </div>
+  </header>
+  <p class="intro" data-say="intro">Drag the card to turn it. Zoom in, then drag to move it, or use the arrows. The controls never draw: the page does, from the events.</p>
+  <div class="scene" id="scene" tabindex="0" role="group" aria-roledescription="3D view" data-testid="scene">
+    <div class="zoomer" id="zoomer" data-testid="zoomer">
+      <div class="grid"></div>
+      <span class="pin" id="pin" data-testid="pin"></span>
+      <div class="persp">
+        <div class="card" id="card" data-testid="card">
+          <div class="face front">
+            <svg viewBox="0 0 150 210" aria-hidden="true"><circle cx="75" cy="86" r="42" class="a"/><path d="M75 52l36 62H39z" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg>
+          </div>
+          <div class="face back">
+            <svg viewBox="0 0 150 210" aria-hidden="true"><rect x="34" y="40" width="82" height="82" rx="14" class="a"/><circle cx="75" cy="81" r="20" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg>
+          </div>
+          <div class="face edge-l"></div><div class="face edge-r"></div><div class="face edge-t"></div><div class="face edge-b"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <kazoku-view-controls id="controls" for="scene" address data-testid="controls"></kazoku-view-controls>
+  <output class="readout" id="readout" data-testid="readout" aria-live="off"></output>
+</main>
+<script type="module" src="demo.js"></script>
+</body>
+</html>
