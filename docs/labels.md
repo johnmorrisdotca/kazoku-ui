@@ -1,0 +1,27 @@
+# Labels
+
+The labels of the view controls, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
+
+The Japanese is written for the interface and has not yet been read by a native speaker.
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | View controls | 表示の操作 | hyōji no sōsa, controls of the view |
+| `angle` | Angle | 角度 | kakudo, angle |
+| `tilt` | Tilt | 傾き | katamuki, tilt |
+| `autoTurn` | Auto-turn | 自動回転 | jidō kaiten, automatic turning |
+| `front` | Front | 正面 | shōmen, front |
+| `zoom` | Zoom | ズーム | zūmu, zoom |
+| `zoomOut` | Zoom out | 縮小 | shukushō, make smaller |
+| `zoomTwo` | Zoom to 2 times | 2倍にする | nibai ni suru, make it 2 times |
+| `zoomIn` | Zoom in | 拡大 | kakudai, make larger |
+| `fit` | Fit | 全体 | zentai, the whole |
+| `pan` | Move the view | 表示を動かす | hyōji o ugokasu, move the view |
+| `panLeft` | Move left | 左へ | hidari e, to the left |
+| `panRight` | Move right | 右へ | migi e, to the right |
+| `panUp` | Move up | 上へ | ue e, up |
+| `panDown` | Move down | 下へ | shita e, down |
+| `drag` | What a drag does | ドラッグの動作 | doraggu no dōsa, what dragging does |
+| `dragMove` | Move | 移動 | idō, move |
+| `dragTurn` | Turn | 回転 | kaiten, turn |
