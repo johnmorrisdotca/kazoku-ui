@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+One agent-instruction template for the family's package repos. Tooling and docs only; the package is unchanged.
+
+- `templates/AGENTS.md`: the family rules above a marker (read spx-stats `docs/package-work.md` first, the board and ticket prefix with `--area`, ports, commits, checks, the release path, hand-off project, reporting) and a Facts table plus a "This repo" section below it for what is true only in one repo. Public: no private host, path or key.
+- `docs/agents-template.md`: how to adopt it, and which repos would. `test/template.test.ts` holds the marker, the table and the privacy rule.
+
 ## [0.7.2] - 2026-11-02
 
 One release workflow for all the family's packages.

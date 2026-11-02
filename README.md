@@ -256,6 +256,10 @@ jobs:
 
 npm accepts a called workflow: the trusted-publisher entry on npmjs.com names the **calling** file (`release.yml`), and `id-token: write` goes on both. To move a repo over, keep its file name `release.yml`, replace the body with the call, and pin to a released tag. The inputs, the sources and the steps are in [docs/release-workflow.md](docs/release-workflow.md).
 
+## One AGENTS.md for the family's package repos
+
+`templates/AGENTS.md` is the agent-instruction file every package repo can start from: the family rules (read spx-stats `docs/package-work.md` first, the board and ticket prefix, ports, checks, release, hand-off) above a marker, and the repo's own facts below it. See [docs/agents-template.md](docs/agents-template.md).
+
 ## Content-Security-Policy
 
 The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.
@@ -266,7 +270,7 @@ Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, 
 
 ## Checks
 
-`pnpm check` (lint, types, 75 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
+`pnpm check` (lint, types, 77 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
 
 ## Not yet
 
