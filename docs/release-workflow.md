@@ -13,7 +13,7 @@ From npm's trusted-publishing documentation, https://docs.npmjs.com/trusted-publ
 - The entry takes the workflow filename only, with its `.yml` extension, as a file in `.github/workflows/` of the repository, case-sensitive: "Enter only the filename, not the full path".
 - It needs npm CLI 11.5.1 or later and Node 22.14.0 or later. Provenance is generated automatically; the `--provenance` flag is harmless.
 
-The page does not say in one sentence which name the entry must carry; that follows from the first quote (the caller's name is the one checked). This was read from the documentation, not tested with a real publish: the first release run through the reusable workflow is the proof. If npm refuses it, the entry's error names the workflow it saw; fix the entry, no code change. John runs releases; an agent never does.
+The page does not say in one sentence which name the entry must carry; that follows from the first quote (the caller's name is the one checked). It is also proved: kazoku-ui 0.7.2 was released on 2026-11-02 by running `release.yml` (which only calls `reusable-release.yml`) from `main` at c107297. It published to npm by trusted publishing with provenance and tagged `v0.7.2`, with the publisher entry naming `release.yml`. If npm ever refuses a called workflow, the error names the workflow it saw; fix the entry, no code change. John runs releases; an agent never does.
 
 So for each repo: package settings on npmjs.com → Trusted Publisher → GitHub Actions → repository `johnmorrisdotca/<repo>`, workflow filename `release.yml`. kazoku-ui's entry already says `release.yml`, so switching it to the call changes nothing on npmjs.com.
 
