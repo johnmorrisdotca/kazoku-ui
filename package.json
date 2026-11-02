@@ -1,6 +1,6 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address and a save-as-image button, each a framework-free custom element and a plain controller. Zero dependencies.",
   "keywords": [
     "view-controls",
