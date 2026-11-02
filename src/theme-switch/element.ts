@@ -1,7 +1,7 @@
 // <kazoku-theme-switch>: Light, Dark and Auto as a row of buttons. It writes the choice as `data-theme` on a target (the page's <html> by default; `auto` removes it),
 // keeps it in the address and, if asked, in localStorage, and tells the page with a `kazoku-themechange` event. It draws nothing of the page: the page's CSS reads `data-theme`.
+import { createAddressState } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
-import { writeParam } from "../shared/query.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { resolveTarget } from "../shared/target.ts";
@@ -46,6 +46,7 @@ export class ThemeSwitchElement extends HTMLElement {
   #words: Partial<ThemeWords> = {};
   #ready = false;
   #styled = false;
+  #address = createAddressState({ delay: 0 });
   #stop: (() => void)[] = [];
   #watching: MutationObserver | undefined;
 
@@ -168,7 +169,7 @@ export class ThemeSwitchElement extends HTMLElement {
     const changed = theme !== this.#choice;
     this.#choice = theme;
     this.#render();
-    if (this.hasAttribute("address")) writeParam(this.#addressKey(), theme === "auto" ? null : theme);
+    if (this.hasAttribute("address")) this.#address.set(this.#addressKey(), theme === "auto" ? null : theme);
     if (this.hasAttribute("storage")) {
       remember(this.#storageKey(), theme);
     }

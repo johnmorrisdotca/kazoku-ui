@@ -41,3 +41,21 @@ kazoku-view-controls { margin-top: 6px; }
   .scene { height: min(300px, 36vh); }
   .readout { display: none; }
 }
+.panel { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 0; }
+.row .name { flex: none; min-width: 5.5rem; font-weight: 600; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.pill { -webkit-appearance: none; appearance: none; box-sizing: border-box; min-height: 48px; min-width: 48px; margin: 0; padding: 0 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pill:hover { border-color: var(--ink); }
+.pill[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.pill:focus-visible, .text:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.text { -webkit-appearance: none; appearance: none; box-sizing: border-box; min-height: 48px; width: min(20rem, 100%); padding: 0 16px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); color: var(--ink); font: inherit; }
+.sample { display: grid; place-items: center; min-height: 120px; margin: 8px 0; border: 1px dashed var(--line); border-radius: 12px; background-size: 18px 18px; font-weight: 700; }
+.sample[data-dots="on"] { background-image: radial-gradient(var(--grid) 1.5px, transparent 1.6px); }
+.sample span { font-size: 1.1rem; }
+.sample[data-size="s"] span { font-size: 0.9rem; }
+.sample[data-size="l"] span { font-size: 2rem; }
+.log { margin: 6px 0 0; padding: 0; list-style: none; color: var(--muted); font: 0.8rem/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+.nav { margin: 4px 0 0; font-size: 0.9rem; }
+.nav a { color: var(--accent); }
+output[data-testid="address"] { min-width: 0; overflow-wrap: anywhere; font: 0.85rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; }

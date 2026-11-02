@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: choices in the address</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">choices in the address</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
+  <p class="intro" data-say="intro">Change anything. The address changes with it and nothing is added to the history. Copy the address, reload or open it in another tab: the same choices come back.</p>
+  <section class="panel" aria-labelledby="choices">
+    <div class="row"><label class="name" for="name" id="choices" data-say="name">Name</label><input class="text" id="name" type="text" maxlength="24" autocomplete="off" data-testid="name" /></div>
+    <div class="row"><span class="name" data-say="size">Size</span>
+      <div class="seg" role="group" id="size" data-testid="size"><button class="pill" type="button" data-v="s">S</button><button class="pill" type="button" data-v="m">M</button><button class="pill" type="button" data-v="l">L</button></div></div>
+    <div class="row"><span class="name" data-say="dots">Dots</span><button class="pill" type="button" id="dots" data-testid="dots" aria-pressed="false" data-say="dotsButton">Show dots</button></div>
+    <div class="row"><span class="name"></span><button class="pill" type="button" id="reset" data-testid="reset" data-say="reset">Reset</button></div>
+    <div class="sample" id="sample" data-testid="sample" data-size="m" data-dots="off"><span id="sample-text"></span></div>
+  </section>
+  <section class="panel" aria-labelledby="now">
+    <div class="row"><span class="name" id="now" data-say="now">The address</span><output id="address" data-testid="address"></output></div>
+    <ol class="log" id="log" data-testid="log" aria-live="off"></ol>
+  </section>
+</main>
+<script type="module" src="address.js"></script>
+</body>
+</html>

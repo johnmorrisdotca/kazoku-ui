@@ -1,7 +1,7 @@
 // <kazoku-language-picker>: a button for each language the page gives, each in its own name. It writes the choice as `lang` on a target (the page's <html> by default),
 // keeps it in the address and, if asked, in localStorage, and tells the page with a `kazoku-languagechange` event. It translates nothing: the page reads the event and says its words.
+import { createAddressState } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
-import { writeParam } from "../shared/query.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { resolveTarget } from "../shared/target.ts";
@@ -41,6 +41,7 @@ export class LanguagePickerElement extends HTMLElement {
   #words: Partial<PickerWords> = {};
   #ready = false;
   #styled = false;
+  #address = createAddressState({ delay: 0 });
   #stop: (() => void)[] = [];
   #watching: MutationObserver | undefined;
 
@@ -163,7 +164,7 @@ export class LanguagePickerElement extends HTMLElement {
     if (this.#target !== undefined) applyLanguage(this.#target, code);
     this.#lang = code;
     this.#render();
-    if (this.hasAttribute("address")) writeParam(this.#addressKey(), code);
+    if (this.hasAttribute("address")) this.#address.set(this.#addressKey(), code);
     if (this.hasAttribute("storage")) remember(this.#storageKey(), code);
     if (code !== previous || reason === "user") this.#dispatch(previous, reason);
   }

@@ -1,5 +1,6 @@
 // <kazoku-view-controls>: the view controls as a framework-free custom element. It never draws the scene. It binds the pointer, pinch, wheel and keys
 // to the element named by `for`, and tells the page what the view is now with a `kazoku-viewchange` event; the page applies it to its canvas, WebGL, SVG or CSS 3D.
+import { createAddressWriter } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
@@ -70,7 +71,7 @@ export class ViewControlsElement extends HTMLElement {
   #words: Partial<ViewWords> = {};
   #ready = false;
   #sliderHeld = 0;
-  #saveTimer: ReturnType<typeof setTimeout> | 0 = 0;
+  #writer = createAddressWriter({ delay: 250 });
   #keys = DEFAULT_KEYS;
 
   constructor() {
@@ -181,8 +182,7 @@ export class ViewControlsElement extends HTMLElement {
     this.#controller = undefined;
     this.#view = undefined;
     this.#ready = false;
-    if (this.#saveTimer !== 0) globalThis.clearTimeout(this.#saveTimer);
-    this.#saveTimer = 0;
+    this.#writer.cancel();
   }
 
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
@@ -356,16 +356,9 @@ export class ViewControlsElement extends HTMLElement {
 
   /** The address is written at most four times a second: Safari stops a page that changes its address more than a hundred times in thirty seconds. */
   #save(): void {
-    if (this.#saveTimer !== 0) return;
-    this.#saveTimer = globalThis.setTimeout(() => {
-      this.#saveTimer = 0;
-      try {
-        const s = this.#ensure().state;
-        const next = formatAddress(globalThis.location.search, s, this.#keys, s.turning, this.#ensure().startZoom);
-        if (next !== globalThis.location.search) globalThis.history.replaceState(globalThis.history.state, "", `${globalThis.location.pathname}${next}${globalThis.location.hash}`);
-      } catch {
-        /* an address that cannot be changed (a sandboxed frame): the view still works */
-      }
-    }, 250);
+    this.#writer.write((search) => {
+      const s = this.#ensure().state;
+      return formatAddress(search, s, this.#keys, s.turning, this.#ensure().startZoom);
+    });
   }
 }
