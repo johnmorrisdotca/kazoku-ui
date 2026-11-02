@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **The must-have list as a check**: `templates/check-standard.mjs` (copied unchanged into each package as `scripts/check-standard.mjs`) fails when a package lacks its demo on Pages, an embed page, a documentation site with Japanese twins, the family files or tested usage examples (script tag, ES module, bundlers, React, Vue, Svelte, Angular, iframe, TypeScript). An item that cannot apply is named in `package.json` with a reason. [docs/package-standard.md](docs/package-standard.md); the rule is in spx-stats `docs/package-work.md`.
+
 ## [0.9.1] - 2026-11-02
 
 No 3D release without a freeze test (John, 2026-11-02, after a graphics-driver kernel panic during a test run). Test kit and release workflow; the parts themselves are unchanged.
