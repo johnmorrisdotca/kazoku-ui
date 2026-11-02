@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+The automatic turn asks for a frame only while someone can see the view, in every way an element can be used.
+
+- **A moved element no longer leaves a second loop running.** An element taken off the page and put back (a framework reordering its children, `append` to another parent) got a new controller while its buttons kept driving the old one: Auto-turn then ran a loop nothing suspended, on and off screen, and with `autoplay` a move in the same task started two. The controls now drive the controller in use, a destroyed controller never turns again, and only the controller in use speaks for the element.
+- **`element.play()` on an element that is on no page** (never added, or taken off) asks for no frame until it is put on one. It used to run for ever.
+- **A plain controller** stops too: `view.bind(element)` holds the turn while that element is off screen or the tab is hidden. It used to take the page's own `suspendTurn()`.
+- **A view that opens off screen** asks for no frame until the observer has said it is seen; before, the first frame could be asked for ahead of that answer.
+- `e2e/autoplay-loop.demo.mjs` counts at `requestAnimationFrame` itself: 0 callbacks, 0 changes and 0 waiting while out of sight or hidden, at most one callback, one change and one waiting request a page frame otherwise.
+- The tests' Chromium runs headless and draws in software (`--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, in `playwright.config.mjs` and the picture script).
+
 ## Unreleased
 
 - **The must-have list as a check**: `templates/check-standard.mjs` (copied unchanged into each package as `scripts/check-standard.mjs`) fails when a package lacks its demo on Pages, an embed page, a documentation site with Japanese twins, the family files or tested usage examples (script tag, ES module, bundlers, React, Vue, Svelte, Angular, iframe, TypeScript). An item that cannot apply is named in `package.json` with a reason. [docs/package-standard.md](docs/package-standard.md); the rule is in spx-stats `docs/package-work.md`.

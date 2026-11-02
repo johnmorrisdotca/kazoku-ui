@@ -405,3 +405,139 @@ test("play with seconds stops by itself after that many seconds of turning, and 
   for (let i = 0; i < 30; i += 1) clock.step(100);
   assert.equal(view.state.turning, true);
 });
+
+/** A view for `bind`, with an IntersectionObserver and a tab the test moves by hand. */
+function sightRig() {
+  const answers: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+  const observed: unknown[] = [];
+  const before = globalThis.IntersectionObserver;
+  globalThis.IntersectionObserver = class {
+    constructor(callback: (entries: { isIntersecting: boolean }[]) => void) { answers.push(callback); }
+    observe(target: unknown) { observed.push(target); }
+    disconnect() { answers.length = 0; }
+  } as unknown as typeof IntersectionObserver;
+  const listeners = new Set<() => void>();
+  const doc = {
+    visibilityState: "visible",
+    addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+    removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+  };
+  const view = { style: {}, dataset: {}, addEventListener: () => undefined, removeEventListener: () => undefined, ownerDocument: doc } as unknown as HTMLElement;
+  return {
+    view,
+    observed,
+    onScreen: (value: boolean) => { for (const answer of [...answers]) answer([{ isIntersecting: value }]); },
+    tab: (state: string) => { doc.visibilityState = state; for (const fn of [...listeners]) fn(); },
+    watching: () => answers.length > 0 || listeners.size > 0,
+    done: () => { globalThis.IntersectionObserver = before; },
+  };
+}
+
+test("a bound view that cannot be seen asks for no frame, from the start, off screen or in a hidden tab, and goes on where it was", () => {
+  const rig = sightRig();
+  try {
+    const { view, clock, seen } = make({ speed: 30 });
+    view.bind(rig.view);
+    assert.deepEqual(rig.observed, [rig.view]);
+    view.play();
+    assert.equal(clock.pending(), false, "not asked for before the observer has answered");
+    rig.onScreen(true);
+    assert.equal(clock.pending(), true);
+    clock.step(16);
+    clock.step(100);
+    const yaw = view.state.yaw;
+    assert.ok(yaw > 0);
+    rig.onScreen(false);
+    assert.equal(clock.pending(), false);
+    const sent = seen.length;
+    clock.step(5000);
+    assert.equal(seen.length, sent, "nothing sent while off screen");
+    rig.onScreen(true);
+    rig.tab("hidden");
+    assert.equal(clock.pending(), false);
+    rig.onScreen(false);
+    rig.tab("visible");
+    assert.equal(clock.pending(), false, "both have to be undone");
+    assert.equal(view.state.turning, true);
+    rig.onScreen(true);
+    assert.equal(clock.pending(), true);
+    clock.step(5000);
+    assert.equal(view.state.yaw, yaw, "the first frame back only starts the clock");
+    clock.step(100);
+    assert.ok(view.state.yaw - yaw <= 3.0001, "no jump for the time away");
+  } finally {
+    rig.done();
+  }
+});
+
+test("unbinding stops watching and takes its hold off, and the page's own suspend still counts", () => {
+  const rig = sightRig();
+  try {
+    const { view, clock } = make();
+    const off = view.bind(rig.view);
+    view.play();
+    assert.equal(clock.pending(), false);
+    view.suspendTurn();
+    off();
+    assert.equal(rig.watching(), false);
+    assert.equal(clock.pending(), false, "the page's suspend is still on");
+    view.resumeTurn();
+    assert.equal(clock.pending(), true);
+  } finally {
+    rig.done();
+  }
+});
+
+test("a destroyed controller never turns again, whatever still holds it", () => {
+  const { view, clock, seen } = make();
+  view.destroy();
+  const sent = seen.length;
+  view.play();
+  view.toggle();
+  view.set({ turning: true });
+  assert.equal(view.state.turning, false);
+  assert.equal(clock.pending(), false);
+  view.resumeTurn();
+  assert.equal(clock.pending(), false);
+  assert.ok(seen.slice(sent).every((change) => !change.state.turning));
+});
+
+test("one frame is asked for at a time, whatever is pressed during a frame", () => {
+  // A clock that remembers every request, so a second loop cannot hide behind the one before it.
+  const waiting = new Map<number, (now: number) => void>();
+  let id = 0;
+  let most = 0;
+  const clock: Clock = {
+    request: (cb) => { id += 1; waiting.set(id, cb); most = Math.max(most, waiting.size); return id; },
+    cancel: (which) => { waiting.delete(which); },
+  };
+  let now = 0;
+  const frame = (): void => {
+    now += 16;
+    const run = [...waiting.values()];
+    waiting.clear();
+    for (const cb of run) cb(now);
+  };
+  let during: (() => void) | undefined;
+  const view = createViewController({ clock, onChange: () => { const act = during; during = undefined; act?.(); } });
+  view.play();
+  frame();
+  const acts: (() => void)[] = [
+    () => { view.pause(); view.play(); },
+    () => { view.toggle(); view.toggle(); },
+    () => { view.suspendTurn(); view.resumeTurn(); },
+    () => { view.suspendTurn(); view.suspendTurn(); view.resumeTurn(); view.resumeTurn(); },
+    () => { view.holdTurn(); view.releaseTurn(); },
+    () => { view.play(); view.play(); },
+    () => view.set({ turning: true }),
+  ];
+  for (const act of acts) {
+    during = act;
+    frame();
+    frame();
+    act();
+    frame();
+    assert.equal(waiting.size, 1, act.toString());
+  }
+  assert.equal(most, 1);
+});

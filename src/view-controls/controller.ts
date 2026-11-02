@@ -2,6 +2,7 @@
 // buttons and sliders through its methods, a pointer, two fingers, the wheel and the keys through `bind`. It never draws anything: it
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
 import type { DragMode } from "./address.ts";
+import { turnOnlyInSight } from "./sight.ts";
 import { clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
@@ -78,7 +79,7 @@ export interface ViewController {
   /** Start at "fit" or at a scale relative to natural size, and go there now. */
   setStartZoom(zoom: "fit" | number): void;
   set(next: Partial<ViewState>, final?: boolean, reason?: string): void;
-  /** Turn by itself. With `seconds`, stop by itself (as `pause`) after that many seconds of turning; time spent suspended does not count. `toggle` and a bare `play()` turn without a limit. */
+  /** Turn by itself (never after `destroy`). With `seconds`, stop by itself (as `pause`) after that many seconds of turning; time spent suspended does not count. `toggle` and a bare `play()` turn without a limit. */
   play(seconds?: number): void;
   pause(): void;
   toggle(): void;
@@ -97,7 +98,7 @@ export interface ViewController {
   /** Move the view by whole fractions of its size: `panBy(1, 0)` is a quarter of its width to the right. */
   panBy(stepsX: number, stepsY: number): void;
   setDrag(drag: DragMode): void;
-  /** Bind the pointer, pinch, wheel and key hands to `view`. Returns a function that unbinds them. */
+  /** Bind the pointer, pinch, wheel and key hands to `view`, and hold the automatic turn while `view` is off screen or the tab is hidden. Returns a function that unbinds them. */
   bind(view: HTMLElement): () => void;
   destroy(): void;
 }
@@ -119,6 +120,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let suspends = 0;
   let limit = 0;
   let turned = 0;
+  let destroyed = false;
   let fitScale = positive(options.fitScale) ?? 1;
   let start: "fit" | number = positive(options.zoom) ?? "fit";
   let atStart = true;
@@ -229,7 +231,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       emit(final, reason);
     },
     play(seconds) {
-      if (state.turning || !controller.turnable) return;
+      if (destroyed || state.turning || !controller.turnable) return;
       state.turning = true;
       last = 0;
       turned = 0;
@@ -295,6 +297,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       return bindHands(view);
     },
     destroy() {
+      destroyed = true;
       clock.cancel(frame);
       state.turning = false;
       unbind?.();
@@ -472,7 +475,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     // A right press is a pan, not the browser's menu.
     view.addEventListener("contextmenu", onMenu);
     view.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
+    const unwatch = turnOnlyInSight(controller, view);
     const off = (): void => {
+      unwatch();
       view.removeEventListener("pointerdown", onDown);
       view.removeEventListener("pointermove", onMove);
       view.removeEventListener("pointerup", onUp);

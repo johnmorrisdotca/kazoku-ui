@@ -8,6 +8,7 @@ import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewControl
 import { EVENT, TAG } from "./index.ts";
 import { LEVEL_STORAGE_KEY, type Level, PACE_FACTOR, type Pace, PACES, parseLevel, zoomText } from "./levels.ts";
 import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
+import { turnOnlyInSight } from "./sight.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
 
@@ -85,9 +86,8 @@ export class ViewControlsElement extends HTMLElement {
   #sliderHeld = 0;
   #writer = createAddressWriter({ delay: 250 });
   #keys = DEFAULT_KEYS;
-  #seen: IntersectionObserver | undefined;
-  #onScreen = true;
-  #suspended = false;
+  #unwatch: (() => void) | undefined;
+  #offPage = false;
   #level: Level = "basic";
   #pace: Pace = "medium";
   #labels: ViewWords = wordsFor("en");
@@ -164,6 +164,8 @@ export class ViewControlsElement extends HTMLElement {
 
   connectedCallback(): void {
     const c = this.#ensure();
+    if (this.#offPage) c.resumeTurn();
+    this.#offPage = false;
     if (this.#root.querySelector(".bar") === null) this.#build();
     this.#keys = parseKeys(this.getAttribute("address-keys"));
     this.#limits();
@@ -190,28 +192,27 @@ export class ViewControlsElement extends HTMLElement {
     if (this.#view === undefined && this.ownerDocument.readyState === "loading") this.ownerDocument.addEventListener("DOMContentLoaded", () => this.#resolveView(), { once: true });
     this.#ready = true;
     this.#show();
-    this.ownerDocument.addEventListener("visibilitychange", this.#sight);
     this.#watch();
     // Said once the page has had its turn to listen; a page can also read `state` at any time.
     queueMicrotask(() => {
-      if (!this.isConnected) return;
+      // Taken off the page already, perhaps put back: then this controller is gone and a newer microtask speaks for the new one.
+      if (this.#controller !== c) return;
       this.#dispatch(c.state, { final: true, reason: "init" });
       if (this.hasAttribute("autoplay") && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) c.play(Number(this.getAttribute("autoplay-for")));
     });
   }
 
   disconnectedCallback(): void {
-    this.ownerDocument.removeEventListener("visibilitychange", this.#sight);
-    this.#seen?.disconnect();
-    this.#seen = undefined;
-    this.#suspended = false;
-    this.#onScreen = true;
+    this.#unwatch?.();
+    this.#unwatch = undefined;
     this.#unbind?.();
     this.#unbind = undefined;
     this.#controller?.destroy();
     this.#controller = undefined;
+    this.#offPage = false;
     this.#view = undefined;
     this.#ready = false;
+    this.#sliderHeld = 0;
     this.#writer.cancel();
     clearTimeout(this.#sayTimer);
     this.#said = "";
@@ -258,7 +259,18 @@ export class ViewControlsElement extends HTMLElement {
 
   #ensure(): ViewController {
     if (this.#controller === undefined) {
-      this.#controller = createViewController({ onChange: (state, info) => this.#changed(state, info) });
+      const made: ViewController = createViewController({
+        onChange: (state, info) => {
+          // A page may hold on to an old `controller` after a move; only the one in use speaks for the element.
+          if (this.#controller === made) this.#changed(state, info);
+        },
+      });
+      this.#controller = made;
+      // Nothing can see an element that is on no page: it asks for no frame until it is put on one.
+      if (!this.isConnected) {
+        made.suspendTurn();
+        this.#offPage = true;
+      }
     }
     return this.#controller;
   }
@@ -267,35 +279,36 @@ export class ViewControlsElement extends HTMLElement {
     this.#root.innerHTML = HTML;
     adoptStyles(this.#root, STYLES, this.nonce);
     const q = <T extends Element>(selector: string): T => this.#root.querySelector(selector) as T;
-    const c = this.#ensure();
+    // The controller in use when a control is pressed: the element keeps these controls when it is moved, and gets a new controller.
+    const c = (): ViewController => this.#ensure();
     const slider = (id: "yaw" | "tilt"): void => {
       const input = q<HTMLInputElement>(`#${id}`);
       // A hand on the angle slider holds the automatic turn still while it is down; the turn then goes on from where the hand left it.
       const hold = (): void => {
         this.#sliderHeld += 1;
-        if (this.#sliderHeld === 1 && id === "yaw") c.holdTurn();
+        if (this.#sliderHeld === 1 && id === "yaw") c().holdTurn();
       };
       const free = (): void => {
         if (this.#sliderHeld === 0) return;
         this.#sliderHeld = 0;
-        if (id === "yaw") c.releaseTurn();
+        if (id === "yaw") c().releaseTurn();
       };
       input.addEventListener("pointerdown", () => hold());
       input.addEventListener("pointerup", free);
       input.addEventListener("pointercancel", free);
-      input.addEventListener("input", () => c.set({ [id]: Number(input.value) }, false, "slider"));
-      input.addEventListener("change", () => c.set({ [id]: Number(input.value) }, true, "slider"));
+      input.addEventListener("input", () => c().set({ [id]: Number(input.value) }, false, "slider"));
+      input.addEventListener("change", () => c().set({ [id]: Number(input.value) }, true, "slider"));
     };
     slider("yaw");
     slider("tilt");
     const on = (b: string, run: () => void): void => q<HTMLButtonElement>(`[data-b="${b}"]`).addEventListener("click", run);
-    on("play", () => c.toggle());
-    on("front", () => c.front());
-    on("out", () => c.zoomBy(1 / ZOOM_STEP));
-    on("in", () => c.zoomBy(ZOOM_STEP));
-    on("two", () => c.zoomAt(2));
-    on("fit", () => c.fit());
-    on("level", () => c.fit());
+    on("play", () => c().toggle());
+    on("front", () => c().front());
+    on("out", () => c().zoomBy(1 / ZOOM_STEP));
+    on("in", () => c().zoomBy(ZOOM_STEP));
+    on("two", () => c().zoomAt(2));
+    on("fit", () => c().fit());
+    on("level", () => c().fit());
     on("more", () => {
       this.#level = this.#level === "basic" ? "advanced" : "basic";
       remember(this.#storageKey(), this.#level);
@@ -309,12 +322,12 @@ export class ViewControlsElement extends HTMLElement {
         if (this.hasAttribute("address")) this.#save();
       });
     }
-    on("left", () => c.panBy(-1, 0));
-    on("right", () => c.panBy(1, 0));
-    on("up", () => c.panBy(0, -1));
-    on("down", () => c.panBy(0, 1));
-    on("move", () => c.setDrag("move"));
-    on("turn", () => c.setDrag("turn"));
+    on("left", () => c().panBy(-1, 0));
+    on("right", () => c().panBy(1, 0));
+    on("up", () => c().panBy(0, -1));
+    on("down", () => c().panBy(0, 1));
+    on("move", () => c().setDrag("move"));
+    on("turn", () => c().setDrag("turn"));
   }
 
   #storageKey(): string {
@@ -368,31 +381,12 @@ export class ViewControlsElement extends HTMLElement {
     this.#watch();
   }
 
-  /** The automatic turn runs only while the view (else this element) is on screen in a visible tab; otherwise its frame loop is stopped. */
+  /** The controller holds its turn while the view it is bound to cannot be seen; with no view yet, this element stands in for it. */
   #watch(): void {
-    this.#seen?.disconnect();
-    this.#seen = undefined;
-    this.#onScreen = true;
-    if (typeof IntersectionObserver === "function" && this.isConnected) {
-      this.#seen = new IntersectionObserver((entries) => {
-        const last = entries[entries.length - 1];
-        if (last === undefined) return;
-        this.#onScreen = last.isIntersecting;
-        this.#sight();
-      });
-      this.#seen.observe(this.#view ?? this);
-    }
-    this.#sight();
+    this.#unwatch?.();
+    this.#unwatch = undefined;
+    if (this.#view === undefined && this.isConnected) this.#unwatch = turnOnlyInSight(this.#ensure(), this);
   }
-
-  #sight = (): void => {
-    if (this.#controller === undefined) return;
-    const idle = !this.#onScreen || this.ownerDocument.visibilityState === "hidden";
-    if (idle === this.#suspended) return;
-    this.#suspended = idle;
-    if (idle) this.#controller.suspendTurn();
-    else this.#controller.resumeTurn();
-  };
 
   #label(): void {
     const language: Language = languageOf(this.getAttribute("lang") ?? this.closest("[lang]")?.getAttribute("lang") ?? this.ownerDocument.documentElement.lang);
