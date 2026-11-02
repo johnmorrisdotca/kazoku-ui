@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+The third part: the language picker, at `@johnmorrisdotca/kazoku-ui/language-picker` (and `/language-picker/element`, `/language-picker/define`).
+
+- `<kazoku-language-picker languages="en ja">`: a button for each language the page lists, each in its own name (English, 日本語, Français; any other code is named by `Intl.DisplayNames` in its own language). It writes the choice as `lang` on a `target` (the page's `<html>` by default) and sends `kazoku-languagechange` with `{ lang, previous, reason, target }` (reasons `init`, `user`, `set`, `external`). Each button carries its own `lang`.
+- It starts in the language of the address (`address`, `?lang=`, `address-key`), else the store (`storage`, in a try/catch), else `value`, else the reader's browser languages (`ja-JP` is `ja`), else what the target's `lang` says, else the first code. Another writer of the target's `lang` moves it with it.
+- The pure entry (`parseLanguages`, `matchLanguage`, `languageName`, `startingLanguage`, `applyLanguage`, the words) imports on a server. Docs: `docs/language-picker.md`.
+- Under a strict `style-src`, like the others. The demo's English and 日本語 buttons are now a picker, and the view controls and theme switch answer to it.
+- The theme switch and the view controls are unchanged (the theme switch shares its target and store code with the picker; same behaviour).
+
 ## [0.4.0] - 2026-11-01
 
 The second part: the theme switch, at `@johnmorrisdotca/kazoku-ui/theme-switch` (and `/theme-switch/element`, `/theme-switch/define`).

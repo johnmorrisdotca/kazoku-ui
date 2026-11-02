@@ -9,13 +9,13 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
 ```
 
-Parts (each its own subpath; later ones: picture-tile pickers, the English and 日本語 switch, Help, GitHub and npm pills, Save SVG and PNG, the family's backgrounds):
+Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pills, Save SVG and PNG, the family's backgrounds):
 
 | Subpath | What it is |
 |---|---|
@@ -25,6 +25,9 @@ Parts (each its own subpath; later ones: picture-tile pickers, the English and �
 | `@johnmorrisdotca/kazoku-ui/theme-switch` | The theme choices, how one is applied and remembered. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/theme-switch/element` | The `ThemeSwitchElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/theme-switch/define` | Registers `<kazoku-theme-switch>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/language-picker` | The language codes, each language's own name, which one to start in, how one is applied. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/language-picker/element` | The `LanguagePickerElement` class (needs a browser). |
+| `@johnmorrisdotca/kazoku-ui/language-picker/define` | Registers `<kazoku-language-picker>` (once, and only if the tag is free). |
 
 ## View controls
 
@@ -198,17 +201,28 @@ Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan
 
 The attributes, the event, the early-apply function for a server or a head script and the CSS to write are in [docs/theme-switch.md](docs/theme-switch.md). The demo has one in its header.
 
+## Language picker
+
+`<kazoku-language-picker languages="en ja">` is a button for each language the page lists, each in its own name (English, 日本語). It writes `lang` on the page's `<html>` (or a `target`), keeps the choice in the address (`address`, `?lang=ja`) and optionally in `localStorage` (`storage`), and sends `kazoku-languagechange` with `{ lang, previous, reason, target }`. It starts in the address' language, then the remembered one, then the page's `value`, then the reader's browser languages, then the first code. It translates nothing; the page answers the event.
+
+```html
+<kazoku-language-picker languages="en ja" address storage></kazoku-language-picker>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/language-picker/define";</script>
+```
+
+See [docs/language-picker.md](docs/language-picker.md). The demo's own English and 日本語 choice is one.
+
 ## Content-Security-Policy
 
 The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.
 
 ## Size
 
-Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the address write 0.5 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the address write 0.5 KB, the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 48 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, and the theme switch in each browser and size).
+`pnpm check` (lint, types, 55 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size).
 
 ## Not yet
 

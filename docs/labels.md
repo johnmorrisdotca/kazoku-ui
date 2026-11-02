@@ -1,6 +1,6 @@
 # Labels
 
-The labels of the view controls and of the theme switch, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+The labels of the view controls, the theme switch and the language picker, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
 languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
 
 The Japanese is written for the interface and has not yet been read by a native speaker.
@@ -34,3 +34,11 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `light` | Light | ライト | raito, light |
 | `dark` | Dark | ダーク | dāku, dark |
 | `auto` | Auto | 自動 | jidō, automatic (the device decides) |
+
+## Language picker
+
+One label. The languages themselves are never translated: each is written in its own language (English, 日本語, Français).
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Language | 言語 | gengo, language |

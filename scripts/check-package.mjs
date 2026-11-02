@@ -26,6 +26,13 @@ const PARTS = [
     run: `assert.equal(pure.resolveTheme("auto", true), "dark");
   assert.deepEqual(pure.parseModes("dark light"), ["light", "dark"]);`,
   },
+  {
+    name: "language-picker", tag: "kazoku-language-picker", cls: "LanguagePickerElement", define: "defineLanguagePicker",
+    pure: ["applyLanguage", "languageName", "matchLanguage", "parseLanguages", "startingLanguage", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.languageName("ja"), "日本語");
+  assert.deepEqual(pure.parseLanguages("EN, ja_JP fr"), ["en", "ja-jp", "fr"]);
+  assert.equal(pure.startingLanguage({ list: ["en", "ja"], preferred: ["ja-JP"] }), "ja");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
@@ -96,5 +103,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "shared/query.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js"];
+const files = ["language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "shared/query.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);

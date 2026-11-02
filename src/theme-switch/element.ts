@@ -3,6 +3,8 @@
 import { adoptStyles } from "../shared/adopt.ts";
 import { writeParam } from "../shared/query.ts";
 import { watchScheme } from "../shared/scheme.ts";
+import { localStore, remember } from "../shared/store.ts";
+import { resolveTarget } from "../shared/target.ts";
 import { EVENT, TAG } from "./index.ts";
 import { STYLES } from "./styles.ts";
 import { applyTheme, parseModes, parseTheme, readTheme, resolveTheme, THEME_ADDRESS_KEY, THEME_STORAGE_KEY, themeOf, type Scheme, type Theme } from "./theme.ts";
@@ -92,7 +94,7 @@ export class ThemeSwitchElement extends HTMLElement {
     const target = this.#target;
     const remembered = readTheme({
       ...(this.hasAttribute("address") ? { search: globalThis.location?.search ?? "", addressKey: this.#addressKey() } : {}),
-      ...(this.hasAttribute("storage") ? { storage: this.#store(), storageKey: this.#storageKey() } : {}),
+      ...(this.hasAttribute("storage") ? { storage: localStore(), storageKey: this.#storageKey() } : {}),
     });
     this.#choice = remembered ?? parseTheme(this.getAttribute("value")) ?? (target !== undefined && target.hasAttribute("data-theme") ? themeOf(target) : "auto");
     if (target !== undefined) applyTheme(target, this.#choice);
@@ -136,29 +138,12 @@ export class ThemeSwitchElement extends HTMLElement {
     return this.getAttribute("storage") || THEME_STORAGE_KEY;
   }
 
-  #store(): Storage | undefined {
-    try {
-      return globalThis.localStorage;
-    } catch {
-      return undefined;
-    }
-  }
-
   #prefersDark(): boolean {
     return globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches === true;
   }
 
   #resolveTarget(): void {
-    const selector = this.getAttribute("target");
-    let found: Element | null = this.ownerDocument.documentElement;
-    if (selector !== null && selector !== "") {
-      try {
-        found = (this.getRootNode() as Document | ShadowRoot).querySelector(selector) ?? this.ownerDocument.querySelector(selector);
-      } catch {
-        found = null;
-      }
-    }
-    this.#aim(found ?? undefined);
+    this.#aim(resolveTarget(this, this.getAttribute("target")));
   }
 
   #aim(element: Element | undefined): void {
@@ -185,11 +170,7 @@ export class ThemeSwitchElement extends HTMLElement {
     this.#render();
     if (this.hasAttribute("address")) writeParam(this.#addressKey(), theme === "auto" ? null : theme);
     if (this.hasAttribute("storage")) {
-      try {
-        this.#store()?.setItem(this.#storageKey(), theme);
-      } catch {
-        /* a browser that keeps nothing: the choice still holds for this page */
-      }
+      remember(this.#storageKey(), theme);
     }
     if (changed || reason === "user") this.#dispatch(reason);
   }

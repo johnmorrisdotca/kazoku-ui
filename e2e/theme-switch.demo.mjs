@@ -150,7 +150,7 @@ test("the value property and the attribute set it, the labels are English or Jap
   await page.evaluate(() => document.querySelector("kazoku-theme-switch").setAttribute("value", "auto"));
   expect(await theme(page)).toBeNull();
   expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").hasAttribute("theme"))).toBe(false);
-  await page.locator('[data-lang="ja"]').click();
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
   await expect(button(page, "dark")).toHaveText("ダーク");
   expect(await page.evaluate(() => document.querySelector("kazoku-theme-switch").shadowRoot.querySelector(".group").getAttribute("aria-label"))).toBe("テーマ");
 });

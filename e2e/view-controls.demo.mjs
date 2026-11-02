@@ -224,7 +224,7 @@ test("the labels are English or Japanese", async ({ page }) => {
   await ready(page);
   await expect(button(page, "front")).toHaveText("Front");
   await expect(button(page, "play")).toHaveAttribute("aria-label", "Auto-turn");
-  await page.locator('[data-lang="ja"]').click();
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
   await expect(button(page, "front")).toHaveText("正面");
   await expect(button(page, "play")).toHaveAttribute("aria-label", "自動回転");
   await expect(button(page, "fit")).toHaveText("全体");

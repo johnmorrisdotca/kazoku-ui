@@ -1,4 +1,5 @@
 // The demo draws a card with CSS 3D from the events of <kazoku-view-controls>. The element itself draws nothing.
+import "./dist/language-picker/define.js";
 import "./dist/view-controls/define.js";
 import "./dist/theme-switch/define.js";
 
@@ -39,13 +40,10 @@ const SAY = {
   en: "Drag the card to turn it. Zoom in, then drag to move it, or use the arrows. The controls never draw: the page does, from the events.",
   ja: "カードをドラッグすると回ります。拡大してからドラッグで動かすか、矢印を使います。操作部は描画しません。描くのはページです。",
 };
-for (const button of document.querySelectorAll("[data-lang]")) {
-  button.addEventListener("click", () => {
-    const lang = button.dataset.lang;
-    document.documentElement.lang = lang;
-    controls.setAttribute("lang", lang);
-    themeSwitch.setAttribute("lang", lang);
-    document.querySelector('[data-say="intro"]').textContent = SAY[lang];
-    for (const other of document.querySelectorAll("[data-lang]")) other.setAttribute("aria-pressed", String(other === button));
-  });
-}
+const intro = document.querySelector('[data-say="intro"]');
+$("language").addEventListener("kazoku-languagechange", (event) => {
+  const lang = event.detail.lang;
+  controls.setAttribute("lang", lang);
+  themeSwitch.setAttribute("lang", lang);
+  intro.textContent = SAY[lang];
+});

@@ -1,7 +1,7 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
   "version": "0.4.0",
-  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) and a light, dark and auto theme switch, each a framework-free custom element and a plain controller. Zero dependencies.",
+  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch and a language picker, each a framework-free custom element and a plain controller. Zero dependencies.",
   "keywords": [
     "view-controls",
     "3d",
@@ -18,7 +18,9 @@
     "zero-dependencies",
     "browser",
     "theme-switch",
-    "dark-mode"
+    "dark-mode",
+    "language-picker",
+    "i18n"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -33,7 +35,8 @@
   "type": "module",
   "sideEffects": [
     "./dist/view-controls/define.js",
-    "./dist/theme-switch/define.js"
+    "./dist/theme-switch/define.js",
+    "./dist/language-picker/define.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -73,6 +76,21 @@
       "types": "./dist/theme-switch/define.d.ts",
       "import": "./dist/theme-switch/define.js",
       "default": "./dist/theme-switch/define.js"
+    },
+    "./language-picker": {
+      "types": "./dist/language-picker/index.d.ts",
+      "import": "./dist/language-picker/index.js",
+      "default": "./dist/language-picker/index.js"
+    },
+    "./language-picker/element": {
+      "types": "./dist/language-picker/element.d.ts",
+      "import": "./dist/language-picker/element.js",
+      "default": "./dist/language-picker/element.js"
+    },
+    "./language-picker/define": {
+      "types": "./dist/language-picker/define.d.ts",
+      "import": "./dist/language-picker/define.js",
+      "default": "./dist/language-picker/define.js"
     }
   },
   "files": [
