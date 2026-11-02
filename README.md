@@ -9,7 +9,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
@@ -31,6 +31,8 @@ Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and 
 | `@johnmorrisdotca/kazoku-ui/save-image` | The formats, the file name, the size and the functions that render and download a canvas, an SVG or an element as PNG or SVG. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/save-image/element` | The `SaveImageElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/save-image/define` | Registers `<kazoku-save-image>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
 
 ## View controls
@@ -247,6 +249,20 @@ See [docs/address-state.md](docs/address-state.md); the demo's `address.html` sh
 
 What a picture of an element cannot carry (web fonts, `::before`, cross-origin images), the element-free `renderImage` and `saveImage`, and the one `img-src data:` a strict policy needs are in [docs/save-image.md](docs/save-image.md); the demo's `save-image.html` saves all three kinds.
 
+## Shared 3D renderer
+
+A page with many 3D views gets one WebGL context, handed to the focused view; the others are stills made once from the same renderer, kept in a budgeted list. Shared geometries,
+materials, textures and models are counted and freed when the last view lets go. Nothing is drawn while the page rests or the view is out of sight, one animation frame is
+requested at a time, and a canvas never passes 6 million pixels or 4096 a side. Context loss is handled in one place. **three.js is a peer dependency and is never bundled**:
+your page passes `load: () => import("three")`, so it loads only when the first view goes live. How a package uses it, the API and the freeze checks: [docs/renderer.md](docs/renderer.md). Demo: `renderer.html`.
+
+```ts
+import { createSharedRenderer } from "@johnmorrisdotca/kazoku-ui/renderer";
+const renderer = createSharedRenderer({ load: () => import("three") });
+const view = renderer.view(host, item);   // item: { key, build({ three, assets, width, height }) => { scene, camera } }
+host.addEventListener("focus", () => view.focus());
+```
+
 ## One release workflow for the family's packages
 
 `.github/workflows/reusable-release.yml` is the release written once: from main, the tag must equal `package.json`'s version, the repo's check script runs, a version already on npm is skipped, the `v<version>` tag is made if missing, and `npm publish --provenance` runs by trusted publishing (no token). A package repo's `release.yml` calls it:
@@ -269,11 +285,11 @@ The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so 
 
 ## Size
 
-Gzipped, unbundled. View controls: the element and its definition about 6.9 KB, the controller 4.4 KB, the maths 1.4 KB, the address 1.4 KB, the levels 0.4 KB, the labels 0.9 KB and the styles 1.7 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 6.9 KB, the controller 4.4 KB, the maths 1.4 KB, the address 1.4 KB, the levels 0.4 KB, the labels 0.9 KB and the styles 1.7 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared 3D renderer: 8.9 KB (the renderer 4.5, the scheduler 1.2, the assets 1.4, the stills 0.6, the pixel budget 0.8, the index 0.4), the test kit 1.6 KB; three.js is the page's own and is not counted. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 82 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
+`pnpm check` (lint, types, 99 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`, and the shared 3D renderer on `demo/renderer.html`: one WebGL context over fifty focus changes, nothing drawn or requested at rest, the GPU objects and heap flat, the canvas within budget at 5K, context loss, out of sight, the stills' byte budget, and three.js fetched only when a view goes live).
 
 ## Not yet
 

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: shared 3D renderer</title>
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    main { max-width: 1100px; }
+    .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 10px 0; }
+    .cell { display: grid; gap: 4px; }
+    .host { position: relative; height: 120px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; }
+    .host:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .host[data-live="1"] { border-color: var(--accent); }
+    .host.fill { position: fixed; inset: 0; z-index: 20; height: auto; border: 0; border-radius: 0; }
+    .cell small { color: var(--muted); }
+    .stats { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 16px; color: var(--muted); font: 0.8rem/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+    .tray { position: relative; z-index: 21; }
+    @media (max-width: 640px) { .wall { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); } .intro { display: block; } }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">shared 3D renderer</span></h1>
+    <div class="tools">
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html">The view controls</a> · <a href="address.html">Choices kept in the address</a> · <a href="save-image.html">Save as an image</a></p>
+  <p class="intro">Thirty views, one WebGL context. The one you focus (click, or Tab to it) goes live and turns with the controls; the others are stills, made once from the same renderer. Nothing is drawn while it rests, or when it is out of sight.</p>
+  <div class="tray">
+    <kazoku-view-controls id="controls" data-testid="controls"></kazoku-view-controls>
+    <div class="row"><button type="button" class="pill" id="fill" aria-pressed="false" data-testid="fill">Fill the window</button></div>
+  </div>
+  <div class="wall" id="wall" data-testid="wall"></div>
+  <ul class="stats" id="stats" data-testid="stats" aria-label="Renderer numbers"></ul>
+</main>
+<script type="module" src="renderer.js"></script>
+</body>
+</html>

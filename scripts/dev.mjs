@@ -13,8 +13,9 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 createServer(async (request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
   const rel = normalize(path === "/" ? "/index.html" : path).replace(/^([/\\])+/, "");
+  const vendor = rel.startsWith("vendor/three/");
   const base = rel.startsWith("dist/") ? root : join(root, "demo");
-  const file = join(base, rel);
+  const file = vendor ? join(root, "node_modules", "three", "build", rel.slice("vendor/three/".length)) : join(base, rel);
   if (!file.startsWith(root)) { response.writeHead(403).end("no"); return; }
   try {
     response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": "no-store" }).end(await readFile(file));

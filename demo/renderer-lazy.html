@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: renderer, loaded on demand</title>
+  <link rel="stylesheet" href="demo.css" />
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<main>
+  <h1>Kazoku UI <span class="sub">renderer, loaded on demand</span></h1>
+  <p class="intro nav"><a href="renderer.html">The shared 3D renderer</a></p>
+  <p class="intro">The page holds a picture. three.js is fetched only when you press the button.</p>
+  <div class="scene" id="host" data-testid="host"></div>
+  <p><button type="button" class="pill" id="go" data-testid="go">Make it live</button></p>
+</main>
+<script type="module" src="renderer-lazy.js"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
   "version": "0.8.0",
-  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address and a save-as-image button, each a framework-free custom element and a plain controller. Zero dependencies.",
+  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address and a save-as-image button, each a framework-free custom element and a plain controller. Zero dependencies; the shared 3D renderer takes three.js as an optional peer.",
   "keywords": [
     "view-controls",
     "3d",
@@ -26,7 +26,11 @@
     "save-image",
     "png",
     "svg",
-    "download"
+    "download",
+    "webgl",
+    "three",
+    "three.js",
+    "renderer"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -118,6 +122,16 @@
       "types": "./dist/save-image/define.d.ts",
       "import": "./dist/save-image/define.js",
       "default": "./dist/save-image/define.js"
+    },
+    "./renderer": {
+      "types": "./dist/renderer/index.d.ts",
+      "import": "./dist/renderer/index.js",
+      "default": "./dist/renderer/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -128,6 +142,14 @@
   ],
   "engines": {
     "node": ">=22"
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "peerDependenciesMeta": {
+    "three": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
@@ -147,6 +169,7 @@
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.0.0",
     "eslint": "^9.0.0",
+    "three": "0.186.1",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.0.0"
   },
