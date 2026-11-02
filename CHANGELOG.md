@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.7.0] - 2026-11-02
 
 The fifth part: save as an image, at `@johnmorrisdotca/kazoku-ui/save-image` (and `/save-image/element`, `/save-image/define`).
 
