@@ -11,9 +11,12 @@
 <main>
   <header class="top">
     <h1>Kazoku UI <span class="sub">view controls</span></h1>
-    <div class="lang" role="group" aria-label="Language">
-      <button type="button" data-lang="en" aria-pressed="true">English</button>
-      <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+    <div class="tools">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="ja" aria-pressed="false">日本語</button>
+      </div>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
   </header>
   <p class="intro"><a href="csp.html">The same controls under a strict Content-Security-Policy</a></p>

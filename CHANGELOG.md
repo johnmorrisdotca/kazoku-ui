@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+The second part: the theme switch, at `@johnmorrisdotca/kazoku-ui/theme-switch` (and `/theme-switch/element`, `/theme-switch/define`).
+
+- `<kazoku-theme-switch>`: Light, Dark and Auto as 48 px buttons. It writes the choice as `data-theme` on a `target` (the page's `<html>` by default; Auto removes the attribute so the device decides), and sends `kazoku-themechange` with `{ choice, scheme, reason, target }` (reasons `init`, `user`, `set`, `system`, `external`).
+- It remembers the choice in the address (`address`, `address-key`) and in `localStorage` (`storage`, in a try/catch: a browser that keeps nothing still switches). Read in the order address, store, `value`, the target's own `data-theme`.
+- Another writer of the target's `data-theme` moves the switch with it, and a change of the device's colours is an event while on Auto. `modes="light dark"` leaves Auto out. `target` is found in the switch's own tree first, so it works inside a shadow root.
+- The element is light or dark with the page's `data-theme`, not only the device's, so it is dark in a page forced dark on a light device. Labels in English and Japanese. Under a strict `style-src`, like the view controls.
+- The pure entry (`readTheme`, `applyTheme`, `resolveTheme`, `themeOf`, `parseModes`, `parseTheme`, the words) imports on a server. Docs: `docs/theme-switch.md`. The demo has a switch in its header and tells the view controls.
+- The view controls are unchanged.
+
 ## [0.3.1] - 2026-11-01
 
 - The styles now pass a strict Content-Security-Policy. `<kazoku-view-controls>` adopts its styles as a constructable stylesheet (`adoptedStyleSheets`), which `style-src 'self'` allows with no `'unsafe-inline'` and no hash; before, it wrote a `<style>` into its shadow root and a strict `style-src` blocked it. Elements with the same styles share one sheet.

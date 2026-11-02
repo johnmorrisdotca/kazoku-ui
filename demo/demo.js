@@ -1,5 +1,6 @@
 // The demo draws a card with CSS 3D from the events of <kazoku-view-controls>. The element itself draws nothing.
 import "./dist/view-controls/define.js";
+import "./dist/theme-switch/define.js";
 
 const $ = (id) => document.getElementById(id);
 const controls = $("controls");
@@ -14,6 +15,13 @@ function apply(s) {
 }
 
 controls.addEventListener("kazoku-viewchange", (event) => apply(event.detail));
+
+// The view controls follow the page's device colours by themselves; when the reader forces Light or Dark, they are told too. Auto takes the attribute off again.
+const themeSwitch = $("theme");
+themeSwitch.addEventListener("kazoku-themechange", (event) => {
+  if (event.detail.choice === "auto") controls.removeAttribute("theme");
+  else controls.setAttribute("theme", event.detail.choice);
+});
 
 // Options, off by default, switched on in the address: ?anchor=pin (the + and - buttons and keys zoom about the ring), ?key-tilt=wheel, ?stop-turn, ?tilt-step=1.
 const options = new URLSearchParams(location.search);
@@ -36,6 +44,7 @@ for (const button of document.querySelectorAll("[data-lang]")) {
     const lang = button.dataset.lang;
     document.documentElement.lang = lang;
     controls.setAttribute("lang", lang);
+    themeSwitch.setAttribute("lang", lang);
     document.querySelector('[data-say="intro"]').textContent = SAY[lang];
     for (const other of document.querySelectorAll("[data-lang]")) other.setAttribute("aria-pressed", String(other === button));
   });

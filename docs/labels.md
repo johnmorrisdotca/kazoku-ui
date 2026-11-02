@@ -1,6 +1,6 @@
 # Labels
 
-The labels of the view controls, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+The labels of the view controls and of the theme switch, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
 languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
 
 The Japanese is written for the interface and has not yet been read by a native speaker.
@@ -25,3 +25,12 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `drag` | What a drag does | ドラッグの動作 | doraggu no dōsa, what dragging does |
 | `dragMove` | Move | 移動 | idō, move |
 | `dragTurn` | Turn | 回転 | kaiten, turn |
+
+## Theme switch
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Colour theme | テーマ | tēma, theme |
+| `light` | Light | ライト | raito, light |
+| `dark` | Dark | ダーク | dāku, dark |
+| `auto` | Auto | 自動 | jidō, automatic (the device decides) |

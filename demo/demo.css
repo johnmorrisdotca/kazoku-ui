@@ -1,5 +1,7 @@
 :root { --ink: #1b1b1f; --muted: #5b5e68; --bg: #f5f6f8; --surface: #ffffff; --line: #c9ccd3; --accent: #2457d6; --face: #fdfdfb; --face-a: #2457d6; --face-b: #1b1b1f; --edge: #b7bcc8; --back: #e9edf8; --grid: #d5d8df; color-scheme: light dark; }
-@media (prefers-color-scheme: dark) { :root { --ink: #f1f2f6; --muted: #a2a6b3; --bg: #121317; --surface: #1c1d22; --line: #4a4d58; --accent: #8fb0ff; --face: #2a2d36; --face-a: #8fb0ff; --face-b: #f1f2f6; --edge: #555a69; --back: #232632; --grid: #2c2f3a; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink: #f1f2f6; --muted: #a2a6b3; --bg: #121317; --surface: #1c1d22; --line: #4a4d58; --accent: #8fb0ff; --face: #2a2d36; --face-a: #8fb0ff; --face-b: #f1f2f6; --edge: #555a69; --back: #232632; --grid: #2c2f3a; } }
+:root[data-theme="dark"] { --ink: #f1f2f6; --muted: #a2a6b3; --bg: #121317; --surface: #1c1d22; --line: #4a4d58; --accent: #8fb0ff; --face: #2a2d36; --face-a: #8fb0ff; --face-b: #f1f2f6; --edge: #555a69; --back: #232632; --grid: #2c2f3a; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1rem/1.45 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif; }
@@ -7,7 +9,9 @@ main { max-width: 760px; margin: 0 auto; padding: 8px 16px 24px; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 h1 { margin: 0; font-size: 1.25rem; }
 .sub { font-weight: 400; color: var(--muted); }
+.intro a { color: var(--accent); }
 .intro { margin: 2px 0 8px; color: var(--muted); font-size: 0.9rem; }
+.tools { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
 .lang { display: inline-flex; gap: 4px; }
 .lang button { min-height: 48px; min-width: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; -webkit-appearance: none; appearance: none; }
 .lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }

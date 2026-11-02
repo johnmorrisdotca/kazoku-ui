@@ -1,7 +1,7 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
   "version": "0.3.1",
-  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package. First part: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) as a framework-free custom element and a plain controller. Zero dependencies.",
+  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) and a light, dark and auto theme switch, each a framework-free custom element and a plain controller. Zero dependencies.",
   "keywords": [
     "view-controls",
     "3d",
@@ -16,7 +16,9 @@
     "typescript",
     "javascript",
     "zero-dependencies",
-    "browser"
+    "browser",
+    "theme-switch",
+    "dark-mode"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -30,7 +32,8 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "./dist/view-controls/define.js"
+    "./dist/view-controls/define.js",
+    "./dist/theme-switch/define.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -55,6 +58,21 @@
       "types": "./dist/view-controls/define.d.ts",
       "import": "./dist/view-controls/define.js",
       "default": "./dist/view-controls/define.js"
+    },
+    "./theme-switch": {
+      "types": "./dist/theme-switch/index.d.ts",
+      "import": "./dist/theme-switch/index.js",
+      "default": "./dist/theme-switch/index.js"
+    },
+    "./theme-switch/element": {
+      "types": "./dist/theme-switch/element.d.ts",
+      "import": "./dist/theme-switch/element.js",
+      "default": "./dist/theme-switch/element.js"
+    },
+    "./theme-switch/define": {
+      "types": "./dist/theme-switch/define.d.ts",
+      "import": "./dist/theme-switch/define.js",
+      "default": "./dist/theme-switch/define.js"
     }
   },
   "files": [

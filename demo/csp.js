@@ -12,3 +12,4 @@ document.addEventListener("securitypolicyviolation", (event) => {
 show();
 if (new URLSearchParams(location.search).has("fallback")) delete window.CSSStyleSheet.prototype.replaceSync;
 await import("./dist/view-controls/define.js");
+await import("./dist/theme-switch/define.js");

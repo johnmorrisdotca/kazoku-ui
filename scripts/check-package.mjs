@@ -10,6 +10,23 @@ import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Each part: its subpath, its tag, the element class and define function, the names its pure entry must export, and a run on the pure entry. */
+const PARTS = [
+  {
+    name: "view-controls", tag: "kazoku-view-controls", cls: "ViewControlsElement", define: "defineViewControls",
+    pure: ["createViewController", "parseAddress", "formatAddress", "parseKeys", "zoomAbout", "pinchTo", "dragTurn", "wrapYaw", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `const view = pure.createViewController({ size: () => ({ width: 400, height: 300 }) });
+  view.zoomAt(2, { x: 0, y: 0 });
+  assert.equal(view.state.zoom, 2);`,
+  },
+  {
+    name: "theme-switch", tag: "kazoku-theme-switch", cls: "ThemeSwitchElement", define: "defineThemeSwitch",
+    pure: ["applyTheme", "parseModes", "parseTheme", "readTheme", "resolveTheme", "themeOf", "THEMES", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.resolveTheme("auto", true), "dark");
+  assert.deepEqual(pure.parseModes("dark light"), ["light", "dark"]);`,
+  },
+];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
 const scratch = mkdtempSync(join(tmpdir(), "kazoku-package-"));
@@ -50,30 +67,34 @@ run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], 
 writeFileSync(join(project, "check.mjs"), `
 import assert from "node:assert/strict";
 const root = await import("${pkg.name}");
-assert.deepEqual([...root.PARTS], ["view-controls"]);
-const pure = await import("${pkg.name}/view-controls");
-for (const name of ["createViewController", "parseAddress", "formatAddress", "parseKeys", "zoomAbout", "pinchTo", "dragTurn", "wrapYaw", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"]) assert.ok(name in pure, name);
-assert.equal(typeof globalThis.HTMLElement, "undefined", "the pure entry needs no DOM");
-const view = pure.createViewController({ size: () => ({ width: 400, height: 300 }) });
-view.zoomAt(2, { x: 0, y: 0 });
-assert.equal(view.state.zoom, 2);
+assert.deepEqual([...root.PARTS], ${JSON.stringify(PARTS.map((part) => part.name))});
+${PARTS.map((part) => `
+{
+  const pure = await import("${pkg.name}/${part.name}");
+  for (const name of ${JSON.stringify(part.pure)}) assert.ok(name in pure, "${part.name} " + name);
+  assert.equal(typeof globalThis.HTMLElement, "undefined", "the pure entry needs no DOM");
+  ${part.run ?? ""}
+}`).join("")}
 
-// The element and its definition, on a stand-in DOM.
+// The elements and their definitions, on a stand-in DOM.
 globalThis.HTMLElement = class {};
 HTMLElement.prototype.attachShadow = function () { return {}; };
 const taken = new Map();
 globalThis.customElements = { get: (name) => taken.get(name), define: (name, ctor) => taken.set(name, ctor) };
-const element = await import("${pkg.name}/view-controls/element");
-assert.equal(element.TAG, "kazoku-view-controls");
-const define = await import("${pkg.name}/view-controls/define");
-assert.equal(taken.get("kazoku-view-controls"), element.ViewControlsElement, "importing define registers the tag");
-assert.equal(define.defineViewControls(), false, "a second call leaves the tag alone");
-const other = new Map([["kazoku-view-controls", class {}]]);
-assert.equal(define.defineViewControls({ get: (n) => other.get(n), define: () => { throw new Error("must not define a taken tag"); } }), false);
-console.log("ok   every entry imports, the tag is defined once and a taken tag is left alone");
+${PARTS.map((part) => `
+{
+  const element = await import("${pkg.name}/${part.name}/element");
+  assert.equal(element.TAG, "${part.tag}");
+  const define = await import("${pkg.name}/${part.name}/define");
+  assert.equal(taken.get("${part.tag}"), element.${part.cls}, "importing define registers ${part.tag}");
+  assert.equal(define.${part.define}(), false, "a second call leaves the tag alone");
+  const other = new Map([["${part.tag}", class {}]]);
+  assert.equal(define.${part.define}({ get: (n) => other.get(n), define: () => { throw new Error("must not define a taken tag"); } }), false);
+}`).join("")}
+console.log("ok   every entry imports, each tag is defined once and a taken tag is left alone");
 `);
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js"];
-console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f.replace(/^[a-z-]+\//, "")} ${bytes(f)}`).join(", ")} bytes`);
+const files = ["theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "shared/query.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js"];
+console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);

@@ -2,26 +2,29 @@
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-dark.webp">
-<img alt="The demo: a white card with a blue circle and a black triangle, turned a little and tipped, in a frame with a dotted floor. Under it the view controls: Angle and Tilt sliders, Auto-turn and Front buttons, zoom out, 2 times, zoom in and Fit, four arrows to move the zoomed view, and the Move and Turn choice for a drag." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-light.webp" width="720">
+<img alt="The demo: in its header the English and 日本語 choice and the Light, Dark and Auto switch; below, a white card with a blue circle and a black triangle, turned a little and tipped, in a frame with a dotted floor. Under it the view controls: Angle and Tilt sliders, Auto-turn and Front buttons, zoom out, 2 times, zoom in and Fit, four arrows to move the zoomed view, and the Move and Turn choice for a drag." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-light.webp" width="720">
 </picture>
 
 The family's shared interface parts, as their own versioned package: one part per subpath, so a page loads only what it uses. No runtime dependencies, MIT.
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
 ```
 
-Parts (each its own subpath; later ones: picture-tile pickers, theme swatches with light and dark, the English and 日本語 switch, Help, GitHub and npm pills, Save SVG and PNG, the family's backgrounds):
+Parts (each its own subpath; later ones: picture-tile pickers, the English and 日本語 switch, Help, GitHub and npm pills, Save SVG and PNG, the family's backgrounds):
 
 | Subpath | What it is |
 |---|---|
 | `@johnmorrisdotca/kazoku-ui/view-controls` | The controller, the arithmetic, the address and the labels. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/view-controls/element` | The `ViewControlsElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/view-controls/define` | Registers `<kazoku-view-controls>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/theme-switch` | The theme choices, how one is applied and remembered. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/theme-switch/element` | The `ThemeSwitchElement` class (needs a browser). |
+| `@johnmorrisdotca/kazoku-ui/theme-switch/define` | Registers `<kazoku-theme-switch>` (once, and only if the tag is free). |
 
 ## View controls
 
@@ -184,17 +187,28 @@ Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan
 
 `customElements.define` throws when a name is taken, and a page can meet that without any fault: two copies of this package (an app and a widget that each bundle one, or two versions), the script loaded twice, or a page that registered the tag to supply its own element. A throw would stop the importing module and the page's script with it. So `define` calls `customElements.get` first and the first definition wins; `defineViewControls(registry?)` returns whether it defined the tag.
 
+## Theme switch
+
+`<kazoku-theme-switch>` is Light, Dark and Auto as one row of 48 px buttons. It writes `data-theme` on the page's `<html>` (or a `target` you name; Auto takes it off, so the device decides), keeps the choice in the address (`address`) and optionally in `localStorage` (`storage`), and sends `kazoku-themechange`.
+
+```html
+<kazoku-theme-switch address storage></kazoku-theme-switch>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/theme-switch/define";</script>
+```
+
+The attributes, the event, the early-apply function for a server or a head script and the CSS to write are in [docs/theme-switch.md](docs/theme-switch.md). The demo has one in its header.
+
 ## Content-Security-Policy
 
 The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.
 
 ## Size
 
-Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB, the styles 1.6 KB and the style adoption 0.8 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the address write 0.5 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 41 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, and the controls styled under a strict `style-src` with no violation, `demo/csp.html`).
+`pnpm check` (lint, types, 48 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, and the theme switch in each browser and size).
 
 ## Not yet
 
