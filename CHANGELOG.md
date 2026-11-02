@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.0] - 2026-11-02
 
 The bar has one zoom number, and it is always the true one; the auto-turn speed is in sight whenever the view turns; and the automatic turn asks for a frame only while someone can see the view, in every way an element can be used.
 
@@ -13,9 +13,6 @@ The bar has one zoom number, and it is always the true one; the auto-turn speed 
 - **A view that opens off screen** asks for no frame until the observer has said it is seen; before, the first frame could be asked for ahead of that answer.
 - `e2e/autoplay-loop.demo.mjs` counts at `requestAnimationFrame` itself: 0 callbacks, 0 changes and 0 waiting while out of sight or hidden, at most one callback, one change and one waiting request a page frame otherwise.
 - The tests' Chromium runs headless and draws in software (`--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`, in `playwright.config.mjs` and the picture script).
-
-## Unreleased
-
 - **The must-have list as a check**: `templates/check-standard.mjs` (copied unchanged into each package as `scripts/check-standard.mjs`) fails when a package lacks its demo on Pages, an embed page, a documentation site with Japanese twins, the family files or tested usage examples (script tag, ES module, bundlers, React, Vue, Svelte, Angular, iframe, TypeScript). An item that cannot apply is named in `package.json` with a reason. [docs/package-standard.md](docs/package-standard.md); the rule is in spx-stats `docs/package-work.md`.
 
 ## [0.9.1] - 2026-11-02
