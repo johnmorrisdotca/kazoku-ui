@@ -16,7 +16,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: true,
   reporter: "list",
-  use: { baseURL: `http://127.0.0.1:${port}`, reducedMotion: "no-preference", locale: "en-US" },
+  use: { baseURL: `http://127.0.0.1:${port}`, headless: true, reducedMotion: "no-preference", locale: "en-US" },
   webServer: { command: "node scripts/dev.mjs", env: { PORT: String(port) }, url: `http://127.0.0.1:${port}/`, reuseExistingServer: false },
   projects: [
     { name: "chromium-phone", use: { ...devices["Desktop Chrome"], ...phone, ...gl, isMobile: true } },

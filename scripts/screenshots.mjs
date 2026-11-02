@@ -22,7 +22,7 @@ try {
     };
     poll();
   });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ headless: true, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const webp = async (png) => {
     const page = await browser.newPage();
     const base64 = await page.evaluate(async (data) => {
