@@ -244,6 +244,18 @@ See [docs/address-state.md](docs/address-state.md); the demo's `address.html` sh
 
 What a picture of an element cannot carry (web fonts, `::before`, cross-origin images), the element-free `renderImage` and `saveImage`, and the one `img-src data:` a strict policy needs are in [docs/save-image.md](docs/save-image.md); the demo's `save-image.html` saves all three kinds.
 
+## One release workflow for the family's packages
+
+`.github/workflows/reusable-release.yml` is the release written once: from main, the tag must equal `package.json`'s version, the repo's check script runs, a version already on npm is skipped, the `v<version>` tag is made if missing, and `npm publish --provenance` runs by trusted publishing (no token). A package repo's `release.yml` calls it:
+
+```yaml
+jobs:
+  release:
+    uses: johnmorrisdotca/kazoku-ui/.github/workflows/reusable-release.yml@v0.7.2
+```
+
+npm accepts a called workflow: the trusted-publisher entry on npmjs.com names the **calling** file (`release.yml`), and `id-token: write` goes on both. To move a repo over, keep its file name `release.yml`, replace the body with the call, and pin to a released tag. The inputs, the sources and the steps are in [docs/release-workflow.md](docs/release-workflow.md).
+
 ## Content-Security-Policy
 
 The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.

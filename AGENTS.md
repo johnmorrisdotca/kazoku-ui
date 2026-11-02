@@ -7,7 +7,7 @@ export (`@johnmorrisdotca/kazoku-ui/view-controls` is the first). Read [CONTRIBU
 - **A part never draws the page's scene.** The view controls report state; the page draws.
 - **Ports:** this package owns local ports 8100 to 8199 (demo 8100, tests 8101, pictures 8102). Check with `lsof -iTCP:<port> -sTCP:LISTEN` first, stop only your own server by its process id, never `pkill`.
 - **Checks before a push:** `pnpm check`, `pnpm test:demo`.
-- **Do not tag and do not publish.** The first publish needs John's yes. Tags and npm publishing are done by the coordinating session (the Release workflow publishes by trusted publishing).
+- **Do not tag and do not publish.** The first publish needs John's yes. Tags and npm publishing are done by the coordinating session (the Release workflow, `.github/workflows/reusable-release.yml` called by `release.yml`, publishes by trusted publishing; see docs/release-workflow.md).
 - Commits as John Morris <john@johnmorris.ca>, Conventional Commits, subject 50 characters or less, files added by name, no AI attribution.
 - No GitHub issues, pull requests, discussions or comments from an agent.
 - Japanese: whatever you write, give the English beside it in your report; have it read by someone who reads Japanese before it ships.

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+One release workflow for all the family's packages.
+
+- `.github/workflows/reusable-release.yml` (`workflow_call`): from main, the tag equals `package.json`'s version, the repo's check script runs, a version already on npm is skipped, the `v<version>` tag is made if missing, then `npm publish --provenance` by trusted publishing. Inputs: `node-version`, `install-command`, `check-command`, `github-release`.
+- This repo's `release.yml` now only calls it (same file name, so its npmjs.com trusted-publisher entry is unchanged) and still makes the GitHub release with the tarball.
+- `docs/release-workflow.md`: npm trusted publishing accepts a called workflow; the publisher entry names the calling file; how to move another repo over.
+
 ## [0.7.1] - 2026-11-02
 
 The automatic turn no longer runs when nothing can see the view.
