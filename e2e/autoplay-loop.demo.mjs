@@ -37,6 +37,12 @@ const COUNT = () => {
     autoNow += 1;
     seen.autoInFrame = Math.max(seen.autoInFrame, autoNow);
   }, true);
+  // Page frames this file asks for itself, not counted: a zero means something only once the page has been seen to draw, as a slow software frame can hold the first one back.
+  window.__pageFrames = (count) => new Promise((done) => {
+    let left = count;
+    const step = () => { left -= 1; if (left <= 0) done(); else request(step); };
+    request(step);
+  });
   window.__loop = seen;
   window.__reset = () => Object.assign(seen, { frames: 0, auto: 0, mostInFrame: 0, autoInFrame: 0, mostWaiting: seen.waiting });
 };
@@ -44,6 +50,7 @@ const COUNT = () => {
 const during = async (page, ms) => {
   await page.evaluate(() => window.__reset());
   await page.waitForTimeout(ms);
+  await page.evaluate(() => window.__pageFrames(5));
   return page.evaluate(() => ({ ...window.__loop }));
 };
 const BAR = "kazoku-view-controls";
@@ -133,6 +140,7 @@ test("an autoplay view that opens out of sight never asks for a frame until it i
     document.body.append(el);
   });
   await page.waitForTimeout(700);
+  await page.evaluate(() => window.__pageFrames(10));
   const off = await page.evaluate(() => ({ ...window.__loop }));
   expect([off.frames, off.auto]).toEqual([0, 0]);
   expect(await page.evaluate(() => document.getElementById("far-controls").state.turning)).toBe(true);
