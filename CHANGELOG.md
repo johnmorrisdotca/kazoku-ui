@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.1] - 2026-11-02
+
+- **`onContext("restored")`** (KAZOKU-UI-15, found by chikyu-earth). The shared renderer's `onContext` was told `"lost"` and `"unavailable"` but never `"restored"`, although `docs/renderer.md` and the `SharedRendererOptions` type said it was. It is now called when the browser gives the context back, after the focused view draws again. `e2e/renderer.demo.mjs`'s lost-and-restored check reads the events the demo records (`["lost"]`, then `["lost", "restored"]`); it fails on 0.10.0, where the second list is `["lost"]`.
+- **`require-ci-workflow` input of `reusable-release.yml`** (KAZOKU-UI-16, from chizu). A package sets `require-ci-workflow: ci.yml` and its release refuses unless that workflow has succeeded on the exact commit being released, so no package publishes a red commit; chizu can drop its own `ci-green` job. Empty by default, so no existing caller changes. A public repository needs no extra permission (a refused token is retried without it); a private one grants `actions: read`. kazoku-ui's own `release.yml` sets it. `test/reusable-release.test.ts` runs the step's shell against a stand-in `curl`: green, a green rerun after a red run, red, still running, never run, a refused token, and an unreadable answer.
+- **Local ports moved to 8400-8499** (KAZOKU-UI-24). The demo server (8400), the tests (8401) and the picture script (8402) used 8100-8102, which are fuda-cards' block in John's port table, so a test run here could land on a fuda-cards session's server. `playwright.config.mjs`, `scripts/dev.mjs`, `scripts/screenshots.mjs`, `CONTRIBUTING.md` and `AGENTS.md` name the new block.
+
 ## [0.10.0] - 2026-11-02
 
 The bar has one zoom number, and it is always the true one; the auto-turn speed is in sight whenever the view turns; and the automatic turn asks for a frame only while someone can see the view, in every way an element can be used.
