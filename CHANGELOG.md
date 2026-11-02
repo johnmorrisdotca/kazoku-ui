@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.7.3] - 2026-11-02
 
 One agent-instruction template for the family's package repos. Tooling and docs only; the package is unchanged.
 
