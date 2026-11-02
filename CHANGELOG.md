@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.3.1] - 2026-11-01
 
 - The styles now pass a strict Content-Security-Policy. `<kazoku-view-controls>` adopts its styles as a constructable stylesheet (`adoptedStyleSheets`), which `style-src 'self'` allows with no `'unsafe-inline'` and no hash; before, it wrote a `<style>` into its shadow root and a strict `style-src` blocked it. Elements with the same styles share one sheet.
 - A browser without constructable stylesheets gets the `<style>` as before, now carrying the element's `nonce` (`<kazoku-view-controls nonce="...">` or `element.nonce`), so a page with `style-src 'nonce-...'` allows it.
