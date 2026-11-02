@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0] - 2026-11-02
+
+The fourth part: choices kept in the address, at `@johnmorrisdotca/kazoku-ui/address-state`. No element.
+
+- `createAddressState({ defaults, delay, host })`: `get`, `has`, `all`, `set`, `setMany`, `remove`, `subscribe(listener, keys?)`, `flush`, `destroy`. It writes with `replaceState` (no history entry; the path, hash and other parameters kept; a value equal to its default leaves the address), as one write for the changes inside `delay` (250 ms by default; 0 writes at once). A subscriber hears each change made through any state on the page, with `{ key, value, previous, source }`, and the reader going back or forward (`source: "navigation"`). A page that cannot change its address still works.
+- The smaller pieces: `readParams`, `readParam`, `applyParams(search, changes, defaults?)` and `createAddressWriter({ delay, host })` (`write(compute)`, `flush()`, `cancel()`). All of it imports on a server.
+- The view controls now write their address through `createAddressWriter`, the theme switch and the language picker through `createAddressState`: the same addresses, the same quarter-second write for the view controls, nothing changes for a page.
+- Docs: `docs/address-state.md`. The demo's `address.html` keeps a name, a size and dots in the address beside the theme switch and the language picker.
+
 ## [0.5.0] - 2026-11-02
 
 The third part: the language picker, at `@johnmorrisdotca/kazoku-ui/language-picker` (and `/language-picker/element`, `/language-picker/define`).
