@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+The automatic turn no longer runs when nothing can see the view.
+
+- While the `for` element (else the controls) is scrolled out of sight, or the tab is hidden, the frame loop stops: no animation frame is requested and no `kazoku-viewchange` with reason `auto` is sent. `turning` stays true and the turn resumes where it was. It uses `IntersectionObserver` and `visibilitychange`; without `IntersectionObserver` the view counts as on screen.
+- New attribute `autoplay-for` (seconds): the `autoplay` turn stops by itself after that long, counting only time spent turning. Left out, nothing changes.
+- The controller gains `suspendTurn()`, `resumeTurn()` (nesting) and `play(seconds)`. A bare `play()` and the Auto-turn button are unchanged.
+
 ## [0.7.0] - 2026-11-02
 
 The fifth part: save as an image, at `@johnmorrisdotca/kazoku-ui/save-image` (and `/save-image/element`, `/save-image/define`).

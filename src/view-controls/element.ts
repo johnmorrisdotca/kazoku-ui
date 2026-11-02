@@ -56,7 +56,7 @@ const HTML = `
 /**
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
- * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `speed` (degrees a second),
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips),
  * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
@@ -73,6 +73,9 @@ export class ViewControlsElement extends HTMLElement {
   #sliderHeld = 0;
   #writer = createAddressWriter({ delay: 250 });
   #keys = DEFAULT_KEYS;
+  #seen: IntersectionObserver | undefined;
+  #onScreen = true;
+  #suspended = false;
 
   constructor() {
     super();
@@ -167,15 +170,22 @@ export class ViewControlsElement extends HTMLElement {
     if (this.#view === undefined && this.ownerDocument.readyState === "loading") this.ownerDocument.addEventListener("DOMContentLoaded", () => this.#resolveView(), { once: true });
     this.#ready = true;
     this.#show();
+    this.ownerDocument.addEventListener("visibilitychange", this.#sight);
+    this.#watch();
     // Said once the page has had its turn to listen; a page can also read `state` at any time.
     queueMicrotask(() => {
       if (!this.isConnected) return;
       this.#dispatch(c.state, { final: true, reason: "init" });
-      if (this.hasAttribute("autoplay") && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) c.play();
+      if (this.hasAttribute("autoplay") && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) c.play(Number(this.getAttribute("autoplay-for")));
     });
   }
 
   disconnectedCallback(): void {
+    this.ownerDocument.removeEventListener("visibilitychange", this.#sight);
+    this.#seen?.disconnect();
+    this.#seen = undefined;
+    this.#suspended = false;
+    this.#onScreen = true;
     this.#unbind?.();
     this.#unbind = undefined;
     this.#controller?.destroy();
@@ -296,10 +306,36 @@ export class ViewControlsElement extends HTMLElement {
     this.#unbind?.();
     this.#unbind = undefined;
     this.#view = element;
-    if (element === undefined) return;
     // A view takes the keys only if it can be focused: a page that wants arrows and plus and minus on it gives it a tabindex.
-    this.#unbind = this.#ensure().bind(element);
+    if (element !== undefined) this.#unbind = this.#ensure().bind(element);
+    this.#watch();
   }
+
+  /** The automatic turn runs only while the view (else this element) is on screen in a visible tab; otherwise its frame loop is stopped. */
+  #watch(): void {
+    this.#seen?.disconnect();
+    this.#seen = undefined;
+    this.#onScreen = true;
+    if (typeof IntersectionObserver === "function" && this.isConnected) {
+      this.#seen = new IntersectionObserver((entries) => {
+        const last = entries[entries.length - 1];
+        if (last === undefined) return;
+        this.#onScreen = last.isIntersecting;
+        this.#sight();
+      });
+      this.#seen.observe(this.#view ?? this);
+    }
+    this.#sight();
+  }
+
+  #sight = (): void => {
+    if (this.#controller === undefined) return;
+    const idle = !this.#onScreen || this.ownerDocument.visibilityState === "hidden";
+    if (idle === this.#suspended) return;
+    this.#suspended = idle;
+    if (idle) this.#controller.suspendTurn();
+    else this.#controller.resumeTurn();
+  };
 
   #label(): void {
     const language: Language = languageOf(this.getAttribute("lang") ?? this.closest("[lang]")?.getAttribute("lang") ?? this.ownerDocument.documentElement.lang);

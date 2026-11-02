@@ -78,9 +78,14 @@ export interface ViewController {
   /** Start at "fit" or at a scale relative to natural size, and go there now. */
   setStartZoom(zoom: "fit" | number): void;
   set(next: Partial<ViewState>, final?: boolean, reason?: string): void;
-  play(): void;
+  /** Turn by itself. With `seconds`, stop by itself (as `pause`) after that many seconds of turning; time spent suspended does not count. `toggle` and a bare `play()` turn without a limit. */
+  play(seconds?: number): void;
   pause(): void;
   toggle(): void;
+  /** Stop the frame loop while nothing can see the view (it is off screen, the tab is hidden): no frames are asked for and no "auto" change is sent. `state.turning` stays true. Counts, so suspends nest. */
+  suspendTurn(): void;
+  /** Undo one `suspendTurn`; the turn goes on from where it was when the last one is undone. */
+  resumeTurn(): void;
   /** Hold the automatic turn still while a hand (a slider being dragged) has the angle; `releaseTurn` lets it carry on from where the hand left it. Counts, so holds nest. */
   holdTurn(): void;
   releaseTurn(): void;
@@ -111,6 +116,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let frame = 0;
   let last = 0;
   let holds = 0;
+  let suspends = 0;
+  let limit = 0;
+  let turned = 0;
   let fitScale = positive(options.fitScale) ?? 1;
   let start: "fit" | number = positive(options.zoom) ?? "fit";
   let atStart = true;
@@ -162,7 +170,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   };
 
   const tick = (now: number): void => {
-    if (!state.turning) return;
+    if (!state.turning || suspends > 0) return;
     frame = clock.request(tick);
     if (holds > 0) {
       last = 0;
@@ -172,7 +180,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     last = now;
     if (dt === 0) return;
     state.yaw = wrapYaw(state.yaw + controller.speed * dt);
+    turned += dt;
     emit(false, "auto");
+    if (limit > 0 && turned >= limit) controller.pause();
   };
 
   const controller: ViewController = {
@@ -218,11 +228,13 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       }
       emit(final, reason);
     },
-    play() {
+    play(seconds) {
       if (state.turning || !controller.turnable) return;
       state.turning = true;
       last = 0;
-      frame = clock.request(tick);
+      turned = 0;
+      limit = positive(seconds) ?? 0;
+      if (suspends === 0) frame = clock.request(tick);
       emit(true, "play");
     },
     pause() {
@@ -234,6 +246,17 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     toggle() {
       if (state.turning) controller.pause();
       else controller.play();
+    },
+    suspendTurn() {
+      suspends += 1;
+      if (suspends === 1) clock.cancel(frame);
+    },
+    resumeTurn() {
+      if (suspends === 0) return;
+      suspends -= 1;
+      if (suspends > 0 || !state.turning) return;
+      last = 0;
+      frame = clock.request(tick);
     },
     holdTurn() {
       holds += 1;

@@ -108,6 +108,8 @@ myPlayButton.onclick = () => view.toggle();
 myZoomIn.onclick = () => view.zoomBy(1.4);
 ```
 
+The automatic turn is idle whenever nothing can see the view: while the `for` element (else the controls) is scrolled out of sight, and while the tab is hidden. Its frame loop is stopped, so no animation frame is asked for and no `kazoku-viewchange` event with reason `auto` is sent; `state.turning` stays true, and the turn goes on from where it was when the view is back (the first frame back only restarts the clock). A page does not need to pause it for these. Without the element, `view.suspendTurn()` and `view.resumeTurn()` do the same for your own visibility test (they nest), and `view.play(seconds)` stops the turn by itself after that many seconds of turning.
+
 Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`. `anchor`, `keyTilt`, `stopTurn` and `tiltStep` are also members you can change at any time. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
 
 ### Buttons and links inside the view
@@ -175,6 +177,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `stop-turn` | A press on the view, the wheel over it or a key it handles stops the automatic turn. Off by default, so the turn carries on. Buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees (`1` gives whole degrees). 0 by default: not rounded. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
+| `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
 | `speed` | Degrees a second (30). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
@@ -251,7 +254,7 @@ Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, 
 
 ## Checks
 
-`pnpm check` (lint, types, 72 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
+`pnpm check` (lint, types, 75 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
 
 ## Not yet
 

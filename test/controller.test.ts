@@ -346,3 +346,62 @@ test("tiltStep rounds the tilt of a drag, and 0 leaves it as it is", () => {
     hands.release();
   }
 });
+
+test("a suspended turn asks for no frames and sends no change, and goes on when resumed", () => {
+  const { view, clock, seen } = make();
+  view.play();
+  clock.step(16);
+  clock.step(1000);
+  const sent = seen.length;
+  view.suspendTurn();
+  assert.equal(clock.pending(), false);
+  assert.equal(view.state.turning, true);
+  clock.step(1000);
+  clock.step(1000);
+  assert.equal(seen.length, sent);
+  view.resumeTurn();
+  assert.equal(clock.pending(), true);
+  const yaw = view.state.yaw;
+  clock.step(5000);
+  assert.equal(view.state.yaw, yaw, "the first frame back only starts the clock");
+  clock.step(1000);
+  assert.equal(view.state.yaw, yaw + 3, "a frame advances at most a tenth of a second");
+});
+
+test("suspends nest, and playing while suspended waits for the resume", () => {
+  const { view, clock } = make();
+  view.suspendTurn();
+  view.suspendTurn();
+  view.play();
+  assert.equal(clock.pending(), false);
+  view.resumeTurn();
+  assert.equal(clock.pending(), false);
+  view.resumeTurn();
+  assert.equal(clock.pending(), true);
+  view.resumeTurn();
+  view.pause();
+  view.suspendTurn();
+  view.resumeTurn();
+  assert.equal(clock.pending(), false, "a paused view has no loop to resume");
+});
+
+test("play with seconds stops by itself after that many seconds of turning, and a plain play has no limit", () => {
+  const { view, clock, seen } = make({ speed: 30 });
+  view.play(1);
+  clock.step(16);
+  clock.step(100);
+  view.suspendTurn();
+  clock.step(60_000);
+  view.resumeTurn();
+  clock.step(16);
+  for (let i = 0; i < 9; i += 1) clock.step(100);
+  assert.equal(view.state.turning, true, "the time off screen does not count");
+  clock.step(100);
+  clock.step(100);
+  assert.equal(view.state.turning, false);
+  assert.equal(clock.pending(), false);
+  assert.equal(seen.at(-1)?.reason, "pause");
+  view.play();
+  for (let i = 0; i < 30; i += 1) clock.step(100);
+  assert.equal(view.state.turning, true);
+});
