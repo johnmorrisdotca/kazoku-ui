@@ -14,3 +14,4 @@ if (new URLSearchParams(location.search).has("fallback")) delete window.CSSStyle
 await import("./dist/view-controls/define.js");
 await import("./dist/theme-switch/define.js");
 await import("./dist/language-picker/define.js");
+await import("./dist/save-image/define.js");

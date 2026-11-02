@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: save as an image</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">save as an image</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="address.html" data-say="address">Choices kept in the address</a></p>
+  <p class="intro" data-say="intro">Each button saves what its picture shows: a canvas, an SVG and a piece of the page. The SVG can be saved as SVG too.</p>
+  <div class="targets">
+    <section class="target"><h2 data-say="canvas">A canvas</h2>
+      <canvas id="canvas" width="360" height="200" data-testid="canvas" role="img" aria-label="A canvas with a circle"></canvas>
+      <kazoku-save-image id="save-canvas" for="canvas" name="canvas-sample" data-testid="save-canvas"></kazoku-save-image></section>
+    <section class="target"><h2 data-say="svg">An SVG</h2>
+      <svg id="vector" class="art" viewBox="0 0 150 210" width="150" height="210" data-testid="vector" role="img" aria-label="A card with a circle and a triangle"><rect x="2" y="2" width="146" height="206" rx="12" class="card-face"/><circle cx="75" cy="86" r="42" class="a"/><path d="M75 52l36 62H39z" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg>
+      <kazoku-save-image id="save-vector" for="vector" name="svg-sample" data-testid="save-vector"></kazoku-save-image></section>
+    <section class="target"><h2 data-say="element">A piece of the page</h2>
+      <div id="sheet" class="sheet" data-testid="sheet"><h3 data-say="sheetTitle">Match day</h3><p data-say="sheetText">Kazoku Rovers against the Visitors, Saturday at seven.</p><span class="chip">19:00</span></div>
+      <kazoku-save-image id="save-sheet" for="sheet" name="sheet-sample" background="#ffffff" data-testid="save-sheet"></kazoku-save-image></section>
+  </div>
+  <section class="panel" aria-live="polite">
+    <div class="saved"><img id="preview" alt="" hidden data-testid="preview" /><output id="result" data-testid="result" data-say="none">Nothing saved yet.</output></div>
+  </section>
+</main>
+<script type="module" src="save-image.js"></script>
+</body>
+</html>

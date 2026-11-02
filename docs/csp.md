@@ -24,7 +24,8 @@ reports a `securitypolicyviolation`; the controls then show unstyled.
 |---|---|---|
 | `script-src` | `'self'` (or where you serve the package from) | the package is plain modules; it never uses `eval` or inline script |
 | `style-src` | `'self'`, and `'nonce-...'` only to support browsers without constructable stylesheets | the elements add no external stylesheet and no inline style of their own |
-| `connect-src`, `img-src`, `font-src` | nothing | the package loads nothing from the network |
+| `img-src` | `data:`, only to save an SVG or an element as a PNG | the picture is drawn through an image with a `data:` URL ([save-image.md](save-image.md)); a canvas needs nothing |
+| `connect-src`, `font-src` | nothing | the package loads nothing from the network |
 
 No part sets a `style` attribute through markup. The controller sets `touch-action` on the view through the CSSOM (`element.style.touchAction`), which a strict `style-src` allows;
 only `style="..."` in markup and `setAttribute("style", ...)` are blocked.

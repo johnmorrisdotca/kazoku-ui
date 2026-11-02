@@ -9,13 +9,13 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
 ```
 
-Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pills, Save SVG and PNG, the family's backgrounds):
+Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pills, the family's backgrounds):
 
 | Subpath | What it is |
 |---|---|
@@ -28,6 +28,9 @@ Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and 
 | `@johnmorrisdotca/kazoku-ui/language-picker` | The language codes, each language's own name, which one to start in, how one is applied. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/language-picker/element` | The `LanguagePickerElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/language-picker/define` | Registers `<kazoku-language-picker>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/save-image` | The formats, the file name, the size and the functions that render and download a canvas, an SVG or an element as PNG or SVG. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/save-image/element` | The `SaveImageElement` class (needs a browser). |
+| `@johnmorrisdotca/kazoku-ui/save-image/define` | Registers `<kazoku-save-image>` (once, and only if the tag is free). |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
 
 ## View controls
@@ -227,17 +230,28 @@ state.subscribe(({ key, value }) => redraw(key, value));
 
 See [docs/address-state.md](docs/address-state.md); the demo's `address.html` shows it.
 
+## Save image
+
+`<kazoku-save-image for="art">` is Save PNG and Save SVG for a canvas, an SVG or any element: a canvas at its own pixel size; an SVG as a stand-alone SVG (the styles it is drawn in written into it) or a PNG at `scale` (2 by default); any other element as a PNG, drawn with its computed styles. `name` is the file name, `background` the colour behind a PNG, `manual` makes the picture and the `kazoku-save` event (`{ blob, format, width, height, filename, reason }`) but downloads nothing. `kazoku-saveerror` says why it could not.
+
+```html
+<kazoku-save-image for="jersey" name="senshu-jersey"></kazoku-save-image>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/save-image/define";</script>
+```
+
+What a picture of an element cannot carry (web fonts, `::before`, cross-origin images), the element-free `renderImage` and `saveImage`, and the one `img-src data:` a strict policy needs are in [docs/save-image.md](docs/save-image.md); the demo's `save-image.html` saves all three kinds.
+
 ## Content-Security-Policy
 
 The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.
 
 ## Size
 
-Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Address state: 2.1 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 67 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, and the address state, back and forward and no history added, on `demo/address.html`).
+`pnpm check` (lint, types, 72 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
 
 ## Not yet
 

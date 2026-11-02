@@ -1,6 +1,6 @@
 # Labels
 
-The labels of the view controls, the theme switch and the language picker, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+The labels of the view controls, the theme switch, the language picker and the save-image buttons, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
 languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
 
 The Japanese is written for the interface and has not yet been read by a native speaker.
@@ -42,3 +42,13 @@ One label. The languages themselves are never translated: each is written in its
 | Key | English | 日本語 | Reading and meaning |
 |---|---|---|---|
 | `group` | Language | 言語 | gengo, language |
+
+## Save image
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Save image | 画像を保存 | gazō o hozon, save the picture |
+| `png` | Save PNG | PNGで保存 | PNG de hozon, save as PNG |
+| `svg` | Save SVG | SVGで保存 | SVG de hozon, save as SVG |
+| `saved` | Saved | 保存しました | hozon shimashita, it was saved |
+| `failed` | Could not save | 保存できませんでした | hozon dekimasen deshita, it could not be saved |

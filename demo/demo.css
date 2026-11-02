@@ -59,3 +59,18 @@ kazoku-view-controls { margin-top: 6px; }
 .nav { margin: 4px 0 0; font-size: 0.9rem; }
 .nav a { color: var(--accent); }
 output[data-testid="address"] { min-width: 0; overflow-wrap: anywhere; font: 0.85rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+.targets { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 8px; }
+.target { padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.target h2 { margin: 0 0 8px; font-size: 1rem; }
+.target canvas { display: block; width: 100%; height: auto; max-height: 220px; border-radius: 8px; background: var(--bg); }
+.target svg.art { display: block; width: 150px; height: 210px; max-width: 100%; margin: 0 auto; }
+.target kazoku-save-image { margin-top: 8px; }
+.sheet { padding: 14px; border: 2px solid var(--accent); border-radius: 16px; background: var(--face); color: var(--ink); }
+.sheet h3 { margin: 0 0 6px; font-size: 1.1rem; }
+.sheet p { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+.sheet .chip { display: inline-block; padding: 4px 12px; border-radius: 16px; background: var(--face-a); color: var(--surface); font-weight: 700; }
+.saved { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.saved img { max-width: 180px; max-height: 120px; border: 1px solid var(--line); border-radius: 8px; background: repeating-conic-gradient(var(--grid) 0 25%, transparent 0 50%) 0 / 16px 16px; }
+.card-face { fill: var(--face); stroke: var(--edge); stroke-width: 2; }
+.art .a { fill: var(--face-a); }
+.art .b { fill: var(--face-b); }

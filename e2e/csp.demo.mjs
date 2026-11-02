@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 // The view controls on pages whose Content-Security-Policy allows no inline style (demo/csp.html: `style-src 'self'`; demo/csp-nonce.html: `style-src 'self' 'nonce-kazoku'`).
@@ -30,6 +31,11 @@ const pickerStyled = (page) => page.evaluate(() => {
   if (root?.querySelector("button") == null) return {};
   return { height: getComputedStyle(root.querySelector("button")).minHeight, adopted: root.adoptedStyleSheets.length, styleElements: root.querySelectorAll("style").length };
 });
+const saverStyled = (page) => page.evaluate(() => {
+  const root = document.querySelector("kazoku-save-image").shadowRoot;
+  if (root?.querySelector("button") == null) return {};
+  return { height: getComputedStyle(root.querySelector("button")).minHeight, adopted: root.adoptedStyleSheets.length, styleElements: root.querySelectorAll("style").length };
+});
 const blocked = (page) => page.evaluate(() => Number(document.body.dataset.violations));
 
 test("a strict style-src: the controls are styled from an adopted stylesheet and nothing is blocked", async ({ page }) => {
@@ -37,6 +43,7 @@ test("a strict style-src: the controls are styled from an adopted stylesheet and
   await expect.poll(() => styled(page)).toMatchObject({ height: "48px", appearance: "none", adopted: 1, styleElements: 0 });
   await expect.poll(() => switchStyled(page)).toMatchObject({ height: "48px", adopted: 1, styleElements: 0 });
   await expect.poll(() => pickerStyled(page)).toMatchObject({ height: "48px", adopted: 1, styleElements: 0 });
+  await expect.poll(() => saverStyled(page)).toMatchObject({ height: "48px", adopted: 1, styleElements: 0 });
   await page.waitForTimeout(300);
   expect(await blocked(page)).toBe(0);
   expect(errors).toEqual([]);
@@ -55,6 +62,15 @@ test("a strict style-src: the controls still work", async ({ page }) => {
   expect(await blocked(page)).toBe(0);
 });
 
+test("a strict policy that allows data: images still lets a piece of the page be saved as a PNG", async ({ page }) => {
+  await visit(page, "/csp.html");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.locator("kazoku-save-image button[data-v=png]").click()]);
+  const bytes = readFileSync(await download.path());
+  expect(download.suggestedFilename()).toBe("scene.png");
+  expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  expect(await blocked(page)).toBe(0);
+});
+
 test("two elements share one adopted stylesheet", async ({ page }) => {
   await visit(page, "/csp.html");
   const same = await page.evaluate((tag) => {
@@ -70,6 +86,7 @@ test("without constructable stylesheets, a nonce lets the <style> route through 
   await expect.poll(() => styled(page)).toMatchObject({ height: "48px", appearance: "none", adopted: 0, styleElements: 1 });
   await expect.poll(() => switchStyled(page)).toMatchObject({ height: "48px", adopted: 0, styleElements: 1 });
   await expect.poll(() => pickerStyled(page)).toMatchObject({ height: "48px", adopted: 0, styleElements: 1 });
+  await expect.poll(() => saverStyled(page)).toMatchObject({ height: "48px", adopted: 0, styleElements: 1 });
   await page.waitForTimeout(300);
   expect(await blocked(page)).toBe(0);
   expect(errors).toEqual([]);

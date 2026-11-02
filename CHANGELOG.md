@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+The fifth part: save as an image, at `@johnmorrisdotca/kazoku-ui/save-image` (and `/save-image/element`, `/save-image/define`).
+
+- `<kazoku-save-image for="id">`: Save PNG and Save SVG buttons (48 px, light and dark, English and Japanese) for a canvas, an SVG or any element. A canvas is saved as a PNG at its own pixel size. An SVG is saved as a stand-alone SVG (namespaces, size, `viewBox` and the styles it is drawn in written into it) or as a PNG; any other element as a PNG drawn through a `foreignObject` with its computed styles, a canvas inside it drawn in as a picture.
+- Attributes `formats`, `name`, `scale` (2 by default, held to 8192 pixels a side and 36 million in all), `background` (the colour behind a PNG), `manual` (make the picture and the event, download nothing), `no-inline-styles`, `lang`, `theme`. `element.save(format)` and `element.target`.
+- Events `kazoku-save` (`{ blob, format, width, height, filename, reason }`) and `kazoku-saveerror` (`{ format, error, reason }`), and a status line for a screen reader.
+- The element-free functions (`renderImage`, `saveImage`, `downloadBlob`, `serializeSvg`, `serializeElement`, `svgToPng`, `filenameFor`, `parseFormats`, `pixelSize`) import on a server. Docs: `docs/save-image.md`, with what a picture of an element cannot carry (web fonts, `::before`, cross-origin images).
+- Under a strict policy it needs `img-src data:` for an SVG or element PNG (a canvas needs nothing); `demo/csp.html` now has `img-src data:` and a save button.
+- The demo has `save-image.html`: a canvas, an SVG and a piece of the page, each saved and shown back. Existing elements are unchanged.
+
 ## [0.6.0] - 2026-11-02
 
 The fourth part: choices kept in the address, at `@johnmorrisdotca/kazoku-ui/address-state`. No element.

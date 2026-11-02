@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="content-security-policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'" />
+  <meta http-equiv="content-security-policy" content="default-src 'none'; script-src 'self'; img-src data:; style-src 'self'; connect-src 'self'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: strict style-src</title>
@@ -16,6 +16,7 @@
   <kazoku-view-controls id="controls" for="scene" data-testid="controls"></kazoku-view-controls>
   <kazoku-theme-switch id="theme" data-testid="theme"></kazoku-theme-switch>
   <kazoku-language-picker id="language" data-testid="language"></kazoku-language-picker>
+  <kazoku-save-image id="saver" for="scene" name="scene" data-testid="saver"></kazoku-save-image>
   <output class="readout" id="status" data-testid="status" aria-live="off"></output>
 </main>
 <script type="module" src="csp.js"></script>
