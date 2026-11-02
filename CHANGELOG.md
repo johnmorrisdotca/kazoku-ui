@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The styles now pass a strict Content-Security-Policy. `<kazoku-view-controls>` adopts its styles as a constructable stylesheet (`adoptedStyleSheets`), which `style-src 'self'` allows with no `'unsafe-inline'` and no hash; before, it wrote a `<style>` into its shadow root and a strict `style-src` blocked it. Elements with the same styles share one sheet.
+- A browser without constructable stylesheets gets the `<style>` as before, now carrying the element's `nonce` (`<kazoku-view-controls nonce="...">` or `element.nonce`), so a page with `style-src 'nonce-...'` allows it.
+- What a page needs is in `docs/csp.md`. The demo has `csp.html` (`style-src 'self'`) and `csp-nonce.html`, both with `?fallback` to force the `<style>` route, and `e2e/csp.demo.mjs` plays them in Chromium and WebKit.
+- Defaults and the look are unchanged.
+
 ## [0.3.0] - 2026-11-01
 
 - Zoom about a point of your own: the `anchor` attribute (`x,y`), the `element.anchor` setter and the controller's `anchor` member and option take a point in CSS pixels from the view's middle at Fit. The + and - buttons, the 2x button and the + and - keys zoom about it, and it stays fixed on screen within a pixel; wheel, pinch and double tap still zoom about the pointer. With no anchor they zoom about the middle, as before. `zoomAt` and `zoomBy` with no point use it.

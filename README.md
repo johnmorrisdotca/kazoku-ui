@@ -9,7 +9,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
@@ -184,13 +184,17 @@ Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan
 
 `customElements.define` throws when a name is taken, and a page can meet that without any fault: two copies of this package (an app and a widget that each bundle one, or two versions), the script loaded twice, or a page that registered the tag to supply its own element. A throw would stop the importing module and the page's script with it. So `define` calls `customElements.get` first and the first definition wins; `defineViewControls(registry?)` returns whether it defined the tag.
 
+## Content-Security-Policy
+
+The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so a page with `style-src 'self'` and no `'unsafe-inline'` needs no hash and no allowance. A browser without it gets a `<style>` carrying the element's `nonce`. What a page needs is in [docs/csp.md](docs/csp.md), and the demo's `csp.html` runs under a strict policy.
+
 ## Size
 
-Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
+Gzipped, unbundled: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB, the styles 1.6 KB and the style adoption 0.8 KB (`pnpm test:package` prints them). Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 36 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion).
+`pnpm check` (lint, types, 41 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, and the controls styled under a strict `style-src` with no violation, `demo/csp.html`).
 
 ## Not yet
 

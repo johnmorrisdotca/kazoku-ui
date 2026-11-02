@@ -75,5 +75,5 @@ console.log("ok   every entry imports, the tag is defined once and a taken tag i
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "view-controls/element.js", "view-controls/define.js"];
-console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f.replace("view-controls/", "")} ${bytes(f)}`).join(", ")} bytes`);
+const files = ["view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js"];
+console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f.replace(/^[a-z-]+\//, "")} ${bytes(f)}`).join(", ")} bytes`);

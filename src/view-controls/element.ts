@@ -1,5 +1,6 @@
 // <kazoku-view-controls>: the view controls as a framework-free custom element. It never draws the scene. It binds the pointer, pinch, wheel and keys
 // to the element named by `for`, and tells the page what the view is now with a `kazoku-viewchange` event; the page applies it to its canvas, WebGL, SVG or CSS 3D.
+import { adoptStyles } from "../shared/adopt.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
@@ -227,7 +228,8 @@ export class ViewControlsElement extends HTMLElement {
   }
 
   #build(): void {
-    this.#root.innerHTML = `<style>${STYLES}</style>${HTML}`;
+    this.#root.innerHTML = HTML;
+    adoptStyles(this.#root, STYLES, this.nonce);
     const q = <T extends Element>(selector: string): T => this.#root.querySelector(selector) as T;
     const c = this.#ensure();
     const slider = (id: "yaw" | "tilt"): void => {

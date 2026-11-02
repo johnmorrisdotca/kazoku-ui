@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="content-security-policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'nonce-kazoku'; connect-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: style-src with a nonce</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top"><h1>Kazoku UI <span class="sub">style-src with a nonce</span></h1></header>
+  <p class="intro">This page allows no inline style: <code>style-src 'self' 'nonce-kazoku'</code>. The view controls still draw in full. Add <code>?fallback</code> to hide the constructable-stylesheet API and see the <code>&lt;style&gt;</code> route.</p>
+  <div class="scene" id="scene" tabindex="0" role="group" aria-label="View"></div>
+  <kazoku-view-controls id="controls" for="scene" nonce="kazoku" data-testid="controls"></kazoku-view-controls>
+  <output class="readout" id="status" data-testid="status" aria-live="off"></output>
+</main>
+<script type="module" src="csp.js"></script>
+</body>
+</html>
