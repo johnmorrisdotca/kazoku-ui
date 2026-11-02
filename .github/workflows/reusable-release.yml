@@ -26,6 +26,10 @@ on:
         description: A package with live 3D sets this to its freeze test (for example `pnpm test:freeze`); it is run in headless Chromium, drawing in software, before anything is published. Empty for a package with no WebGL.
         type: string
         default: ""
+      require-ci-workflow:
+        description: "The file name of the repo's CI workflow (for example `ci.yml`). When set, the release refuses unless that workflow has succeeded on this exact commit, so no package publishes a red commit. Empty (the default) checks nothing. Reading the runs needs no permission on a public repository; a private one's caller must also grant `actions: read`."
+        type: string
+        default: ""
       github-release:
         description: Also make a GitHub release with the packed tarball (notes from scripts/release-notes.mjs when the repo has it, else generated)
         type: boolean
@@ -43,6 +47,30 @@ jobs:
             refs/heads/main|refs/tags/v*) ;;
             *) echo "::error::Run the release from main (or push a v<version> tag), not from $GITHUB_REF"; exit 1 ;;
           esac
+      - name: CI has succeeded on this commit
+        if: inputs.require-ci-workflow != ''
+        env:
+          CI_WORKFLOW: ${{ inputs.require-ci-workflow }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Any completed, successful run of the workflow on this commit counts (a green rerun beats an earlier red one).
+          URL="https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/$CI_WORKFLOW/runs?head_sha=$GITHUB_SHA&per_page=100"
+          RUNS="$RUNNER_TEMP/ci-runs.json"
+          ask() { curl -sS -o "$RUNS" -w '%{http_code}' -H 'Accept: application/vnd.github+json' "$@" "$URL"; }
+          CODE="$(ask -H "Authorization: Bearer $GH_TOKEN" || true)"
+          # A token without `actions: read` may be refused where a public repository's runs are open to anyone: ask again without it.
+          [ "$CODE" = 200 ] || CODE="$(ask || true)"
+          if [ "$CODE" != 200 ]; then
+            echo "::error::Could not read the runs of $CI_WORKFLOW (HTTP $CODE). A private repository's release.yml needs actions: read in its permissions."
+            exit 1
+          fi
+          echo "The runs of $CI_WORKFLOW on $GITHUB_SHA:"
+          jq -r '.workflow_runs[] | "  \(.status) \(.conclusion) \(.html_url)"' "$RUNS"
+          if [ "$(jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | length' "$RUNS")" -lt 1 ]; then
+            echo "::error::$CI_WORKFLOW has not succeeded on $GITHUB_SHA. Wait for it to pass (or fix it), then run the release again."
+            exit 1
+          fi
+          rm -f "$RUNS"
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7

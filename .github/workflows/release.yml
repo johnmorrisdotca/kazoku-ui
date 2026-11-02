@@ -16,3 +16,4 @@ jobs:
     uses: ./.github/workflows/reusable-release.yml
     with:
       github-release: true
+      require-ci-workflow: ci.yml
