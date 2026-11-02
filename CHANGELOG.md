@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.1] - 2026-11-02
+
+No 3D release without a freeze test (John, 2026-11-02, after a graphics-driver kernel panic during a test run). Test kit and release workflow; the parts themselves are unchanged.
+
+- **`SOFTWARE_GL_ARGS`** in `@johnmorrisdotca/kazoku-ui/testing`: the Chromium launch arguments that draw WebGL in software (ANGLE on SwiftShader), for every package's Playwright config. This repository's own config uses them for both Chromium projects, and its WebKit projects skip `renderer.demo.mjs` off CI (WebKit has no software switch).
+- **`freeze-command`** input of `reusable-release.yml`: a package with live 3D passes its freeze test (`pnpm test:freeze`), which runs in headless Chromium before anything is published.
+- The rule is written in `docs/renderer.md` ("The rule: no 3D release without a freeze test") and in `docs/release-workflow.md`.
+
 ## [0.9.0] - 2026-11-02
 
 The sixth and seventh parts: the shared 3D renderer, at `@johnmorrisdotca/kazoku-ui/renderer`, and the freeze checks for a 3D package's e2e, at `@johnmorrisdotca/kazoku-ui/testing`.

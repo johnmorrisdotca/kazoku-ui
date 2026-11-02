@@ -5,7 +5,7 @@ import { createAssetCache, disposeDeep, type Timers } from "../src/renderer/cach
 import { MAX_PIXELS, MAX_SIDE, pixelRatioFor } from "../src/renderer/pixels.ts";
 import { createScheduler, type FrameClock, type Job } from "../src/renderer/scheduler.ts";
 import { createStillCache, type Still } from "../src/renderer/stills.ts";
-import { COUNT_SCRIPT, gpuObjects, GPU_KINDS, withinPixelBudget, type GlCounts } from "../src/testing/index.ts";
+import { COUNT_SCRIPT, gpuObjects, GPU_KINDS, SOFTWARE_GL_ARGS, withinPixelBudget, type GlCounts } from "../src/testing/index.ts";
 
 /** A frame clock the test steps by hand; it also counts the requests. */
 function fakeClock() {
@@ -261,4 +261,6 @@ test("the test kit's counts add up, and its script installs on a page without th
   assert.equal(withinPixelBudget({ pixels: 5_900_000, side: 4000, count: 1 }), true);
   assert.equal(withinPixelBudget({ pixels: 24_000_000, side: 5926, count: 1 }), false);
   assert.doesNotThrow(() => new Function(COUNT_SCRIPT));
+  // tests draw in software, never on the machine's graphics card
+  assert.ok(SOFTWARE_GL_ARGS.includes("--use-angle=swiftshader") && SOFTWARE_GL_ARGS.includes("--enable-unsafe-swiftshader"));
 });

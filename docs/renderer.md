@@ -92,6 +92,15 @@ the page, 0 draws and 0 frame requests at rest, the GPU objects, the cache and t
 budget when the focused view fills a 5K screen at ratio 2, no frame while out of sight and the context let go after `releaseMs`, a lost and restored context, the stills
 within their byte budget, and one frame request at a time while turning.
 
+## The rule: no 3D release without a freeze test
+
+John, 2026-11-02, after a kernel panic in a Mac's graphics driver during a test run: every package and app with live 3D (WebGL) has both of these, and a release does not go out without them.
+
+1. **A freeze test**, in its release: `e2e/freeze.demo.*` and a `test:freeze` script. It plays the page in headless Chromium and fails on: more than one animation frame asked for at a time, a draw when nothing moves or the view is out of sight, WebGL contexts (live ones) or GPU objects (buffers, vertex arrays, textures, programs) that grow over a run of changes, and a canvas past 6 million pixels or 4096 a side on a 5K screen at a ratio of 2. Count live contexts, not contexts ever made (a context let go takes what it held with it). Examples to copy: uchusen-rockets and hako-devices `e2e/freeze.demo.ts`, senshu-jerseys `e2e/freeze.demo.mjs`, and this repo's `e2e/renderer.demo.mjs`. The release workflow runs it before publishing when the repo's `release.yml` passes `freeze-command: pnpm test:freeze` to `reusable-release.yml`.
+2. **Tests draw in software, never on the machine's graphics card.** Every Chromium project in `playwright.config` has `launchOptions: { args: [...SOFTWARE_GL_ARGS] }` (this kit exports it). WebKit has no software switch: off CI its projects `testIgnore` the pages that draw WebGL, and CI plays them. One browser at a time on a developer's machine, closed when finished.
+
+A package with no WebGL (CSS 3D transforms and SVG are not WebGL) needs neither.
+
 ## Not in this part
 
 The focus policy (which view is live: one focused card, none when many are on screen) and each item's scene and still framing stay in the package. Models (GLB) are loaded by the

@@ -11,6 +11,12 @@
 //   expect(after.draws - before.draws).toBe(0);           // at rest
 //   expect(gpuObjects(after)).toBe(gpuObjects(before));   // nothing leaked
 
+/**
+ * The launch arguments that make headless Chromium draw WebGL in software (ANGLE on SwiftShader), never on the machine's graphics card. Every package's Playwright
+ * config gives them to its Chromium projects: `use: { launchOptions: { args: [...SOFTWARE_GL_ARGS] } }`. A test run on a Mac's own GPU once panicked its graphics driver.
+ */
+export const SOFTWARE_GL_ARGS: readonly string[] = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
+
 /** The GL object kinds counted. */
 export const GPU_KINDS = ["Buffer", "Texture", "VertexArray", "Program", "Framebuffer", "Renderbuffer"] as const;
 export type GpuKind = (typeof GPU_KINDS)[number];

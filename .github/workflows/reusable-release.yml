@@ -22,6 +22,10 @@ on:
         description: The repo's check script, run before anything is published
         type: string
         default: pnpm check
+      freeze-command:
+        description: A package with live 3D sets this to its freeze test (for example `pnpm test:freeze`); it is run in headless Chromium, drawing in software, before anything is published. Empty for a package with no WebGL.
+        type: string
+        default: ""
       github-release:
         description: Also make a GitHub release with the packed tarball (notes from scripts/release-notes.mjs when the repo has it, else generated)
         type: boolean
@@ -81,6 +85,11 @@ jobs:
       - name: The repo's check
         if: env.ON_NPM == 'no'
         run: ${{ inputs.check-command }}
+      - name: The freeze test (packages with live 3D)
+        if: env.ON_NPM == 'no' && inputs.freeze-command != ''
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          ${{ inputs.freeze-command }}
       - name: Tag the commit, if the tag is missing
         if: env.TAG_EXISTS == 'no'
         run: |

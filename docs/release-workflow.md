@@ -24,7 +24,7 @@ Run by hand from main (Actions → Release → Run workflow), or by pushing a `v
 1. Refuses to run from any branch but `main` (or a version tag).
 2. Checks that a pushed tag equals `v` plus `package.json`'s version, and that an existing `v<version>` tag is on this commit.
 3. Asks npm whether `name@version` is already published. If it is, it skips the install, the check and the publish.
-4. Runs the repo's check script.
+4. Runs the repo's check script, and then its freeze test when it names one (`freeze-command`).
 5. Tags `v<version>` if the tag is missing (this also repairs a version that is on npm but untagged).
 6. `npm publish --access public --provenance --ignore-scripts` by trusted publishing: no token, no secret.
 7. With `github-release: true`, makes a GitHub release with the packed tarball (notes from the repo's `scripts/release-notes.mjs` when it has one, else generated).
@@ -54,6 +54,7 @@ jobs:
 | `node-version` | `24` | 22.14 or later. |
 | `install-command` | `pnpm install --frozen-lockfile` | |
 | `check-command` | `pnpm check` | Must pass before anything is published. |
+| `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`): run in headless Chromium that draws in software, before anything is published. Every package with WebGL sets it. |
 | `github-release` | `false` | Also make a GitHub release with the tarball. |
 
 It expects pnpm with a `packageManager` field in `package.json` (the `pnpm/action-setup` step reads it). A repo on npm needs a variant; ask before copying.
