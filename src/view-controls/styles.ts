@@ -52,9 +52,13 @@ button[aria-expanded="true"] { border-color: var(--_ink); box-shadow: inset 0 0 
 button:disabled { opacity: 0.4; cursor: default; }
 svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { display: none; }
-.zoom button.two { min-width: 56px; }
 .zoom button.level { min-width: 64px; padding: 0 8px; font-variant-numeric: tabular-nums; }
 .pace .lbl { margin-inline-end: 4px; }
+/* One small button: the word over the speed, so it takes little room. It comes in on Auto-turn's left, so Auto-turn stays under the pointer that just pressed it. The angle's running number makes the room, so the turning bar is never wider than the still one and adds no row; it stays for a screen reader. */
+.pace-now { flex-direction: column; gap: 0; padding: 0 10px; line-height: 1.1; }
+.pace-now .lbl { font-size: 0.7em; font-weight: 400; }
+:host([data-turning][data-level="basic"]) .field.angle { flex-basis: 110px; }
+:host([data-turning][data-level="basic"]) .field.angle output { position: absolute; width: 1px; min-width: 0; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .drag { margin-inline-start: 8px; }
 .more { margin-inline-start: auto; }
 /* A compact bar on a phone: two rows to start with (angle, Auto-turn and More; the zoom), more rows when the reader asks for more; labels read only by a screen reader. */
@@ -72,6 +76,8 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
   .zoom { grid-area: zoom; justify-self: end; flex-wrap: nowrap; }
   .zoom button { padding: 0 8px; }
   .zoom button.level { padding: 0 6px; }
+  /* In the free room left of the zoom buttons, so showing it adds no row. */
+  .pace-now { grid-area: zoom; justify-self: start; }
   .pan { grid-area: pan; justify-content: center; }
   .drag { margin-inline-start: 4px; }
 }

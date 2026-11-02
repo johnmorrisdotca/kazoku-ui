@@ -8,6 +8,7 @@ export interface ViewWords {
   front: string;
   zoom: string;
   zoomOut: string;
+  /** Not shown any more: the bar has no "2×" button since the readout came, as it read like one. Kept so a page's own `words` still type-check. */
   zoomTwo: string;
   zoomIn: string;
   fit: string;

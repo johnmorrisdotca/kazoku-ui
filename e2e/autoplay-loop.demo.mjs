@@ -6,7 +6,7 @@ const COUNT = () => {
   // The frame's callbacks all run before any task, so a message posted by the first of them marks the end of the page frame. (The time they are given does not: a slow frame can repeat it.)
   let framesNow = 0;
   let autoNow = 0;
-  const endOfFrame = new MessageChannel();
+  const endOfFrame = new window.MessageChannel();
   endOfFrame.port1.onmessage = () => { framesNow = 0; autoNow = 0; };
   const request = window.requestAnimationFrame.bind(window);
   const cancel = window.cancelAnimationFrame.bind(window);
@@ -192,7 +192,7 @@ test("a plain controller bound to a view stops out of sight and in a hidden tab 
     document.querySelector("kazoku-view-controls").remove();
     const { createViewController } = await import("/dist/view-controls/controller.js");
     const view = document.getElementById("scene");
-    const c = createViewController({ onChange: (state, info) => { if (info.reason === "auto") view.dispatchEvent(new CustomEvent("kazoku-viewchange", { detail: { reason: "auto" }, bubbles: true })); } });
+    const c = createViewController({ onChange: (state, info) => { if (info.reason === "auto") view.dispatchEvent(new window.CustomEvent("kazoku-viewchange", { detail: { reason: "auto" }, bubbles: true })); } });
     c.bind(view);
     c.play();
     window.__plain = c;
@@ -206,7 +206,7 @@ test("a plain controller bound to a view stops out of sight and in a hidden tab 
   await expect.poll(() => page.evaluate(() => window.__loop.auto), { timeout: 8000 }).toBeGreaterThan(0);
   await page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
-    document.dispatchEvent(new Event("visibilitychange"));
+    document.dispatchEvent(new window.Event("visibilitychange"));
   });
   await page.waitForTimeout(50);
   const hidden = await during(page, 500);

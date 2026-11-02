@@ -37,6 +37,7 @@ const HTML = `
 <div class="bar" part="bar" role="group">
   <div class="field angle" part="field angle"><label data-w="angle" for="yaw"></label><input id="yaw" type="range" min="-180" max="180" step="1" value="0" part="slider" /><output for="yaw" data-o="yaw">0°</output></div>
   <div class="field tilt adv" part="field tilt"><label data-w="tilt" for="tilt"></label><input id="tilt" type="range" min="-30" max="30" step="1" value="0" part="slider" /><output for="tilt" data-o="tilt">0°</output></div>
+  <button type="button" class="pace-now" data-b="pace-now" part="button" hidden><span class="lbl" data-w="speed"></span><span data-o="pace"></span></button>
   <button type="button" class="play" data-b="play" aria-pressed="false" part="button">${ICON.play}${ICON.pause}<span class="text" data-w="autoTurn"></span></button>
   <div class="group pace adv" role="group" data-g="pace"><span class="lbl" data-w="speed" aria-hidden="true"></span>
     <button type="button" data-b="slow" aria-pressed="false" part="button"><span data-w="slow"></span></button>
@@ -48,7 +49,6 @@ const HTML = `
     <button type="button" data-b="out" part="button">${ICON.minus}</button>
     <button type="button" class="level" data-b="level" part="button"><span data-o="zoom">1×</span></button>
     <button type="button" data-b="in" part="button">${ICON.plus}</button>
-    <button type="button" class="two adv" data-b="two" part="button">2×</button>
     <button type="button" data-b="fit" part="button"><span data-w="fit"></span></button>
   </div>
   <div class="group pan adv" role="group" data-g="pan" hidden>
@@ -70,7 +70,7 @@ const HTML = `
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
  * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips),
- * `controls` (`basic`, the default, or `advanced`: which controls are shown; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
+ * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
@@ -238,7 +238,11 @@ export class ViewControlsElement extends HTMLElement {
       c.turnable = value === null;
       this.#show();
     } else if (name === "address-keys") this.#keys = parseKeys(value);
-    else this.#limits();
+    else {
+      this.#limits();
+      // A limit that moved past the view takes the view with it, and the readout and the buttons say so.
+      c.set({});
+    }
   }
 
   #option(name: string): void {
@@ -306,7 +310,6 @@ export class ViewControlsElement extends HTMLElement {
     on("front", () => c().front());
     on("out", () => c().zoomBy(1 / ZOOM_STEP));
     on("in", () => c().zoomBy(ZOOM_STEP));
-    on("two", () => c().zoomAt(2));
     on("fit", () => c().fit());
     on("level", () => c().fit());
     on("more", () => {
@@ -314,14 +317,14 @@ export class ViewControlsElement extends HTMLElement {
       remember(this.#storageKey(), this.#level);
       this.#show();
     });
-    for (const pace of PACES) {
-      on(pace, () => {
-        this.#pace = pace;
-        this.#speed();
-        this.#show();
-        if (this.hasAttribute("address")) this.#save();
-      });
-    }
+    const choosePace = (pace: Pace): void => {
+      this.#pace = pace;
+      this.#speed();
+      this.#show();
+      if (this.hasAttribute("address")) this.#save();
+    };
+    for (const pace of PACES) on(pace, () => choosePace(pace));
+    on("pace-now", () => choosePace(PACES[(PACES.indexOf(this.#pace) + 1) % PACES.length] as Pace));
     on("left", () => c().panBy(-1, 0));
     on("right", () => c().panBy(1, 0));
     on("up", () => c().panBy(0, -1));
@@ -397,7 +400,6 @@ export class ViewControlsElement extends HTMLElement {
     set(".bar", words.group);
     set('[data-b="play"]', words.autoTurn);
     set('[data-b="out"]', words.zoomOut);
-    set('[data-b="two"]', words.zoomTwo);
     set('[data-b="in"]', words.zoomIn);
     set('[data-g="zoom"]', words.zoom);
     set('[data-g="pan"]', words.pan);
@@ -427,10 +429,19 @@ export class ViewControlsElement extends HTMLElement {
     const advanced = this.#level === "advanced";
     const words = this.#labels;
     const zoom = zoomText(s.zoom);
-    q<HTMLElement>('[data-o="zoom"]').textContent = zoom;
-    q<HTMLButtonElement>('[data-b="level"]').setAttribute("aria-label", `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
+    // A frame of the automatic turn comes through here: what has not changed is not written.
+    const write = (node: Element, text: string): void => {
+      if (node.textContent !== text) node.textContent = text;
+    };
+    const say = (node: Element, label: string): void => {
+      if (node.getAttribute("aria-label") !== label) node.setAttribute("aria-label", label);
+    };
+    write(q('[data-o="zoom"]'), zoom);
+    say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
     for (const pace of PACES) q<HTMLButtonElement>(`[data-b="${pace}"]`).setAttribute("aria-pressed", String(this.#pace === pace));
+    write(q('[data-o="pace"]'), words[this.#pace]);
+    say(q('[data-b="pace-now"]'), `${words.speed}: ${words[this.#pace]}`);
     const more = q<HTMLButtonElement>('[data-b="more"]');
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;
@@ -442,6 +453,8 @@ export class ViewControlsElement extends HTMLElement {
     const flat = !c.turnable;
     for (const selector of [".angle", ".play"]) q<HTMLElement>(selector).hidden = flat;
     for (const selector of [".tilt", ".front", '[data-g="drag"]', '[data-g="pace"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
+    // The speed is always in sight while the view turns: one small button in basic, which steps through the three; advanced always has the three.
+    q<HTMLElement>(".pace-now").hidden = flat || advanced || !s.turning;
     this.toggleAttribute("data-turning", s.turning);
   }
 

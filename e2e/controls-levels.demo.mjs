@@ -28,12 +28,12 @@ test("the controls start basic: turn, Auto-turn, zoom, Fit and More, and nothing
   expect(errors).toEqual([]);
 });
 
-test("More shows tilt, speed, Front, 2 times and, once zoomed, the pan pad; and shows them as the page's own style", async ({ page }) => {
+test("More shows tilt, speed, Front and, once zoomed, the pan pad; and shows them as the page's own style", async ({ page }) => {
   await ready(page);
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "slow", "medium", "fast", "front", "out", "level", "in", "two", "fit", "more"]);
-  await button(page, "two").click();
+  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "slow", "medium", "fast", "front", "out", "level", "in", "fit", "more"]);
+  await button(page, "in").click();
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
   const plain = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id));
   expect(plain).toEqual([]);
@@ -162,5 +162,200 @@ test("the labels are English or Japanese", async ({ page }) => {
 test("a flat view shows no speed, tilt or Front even when advanced", async ({ page }) => {
   await ready(page, "?controls=advanced");
   await page.evaluate(() => document.querySelector("kazoku-view-controls").setAttribute("flat", ""));
-  expect(await shown(page)).toEqual(["out", "level", "in", "two", "fit", "more"]);
+  expect(await shown(page)).toEqual(["out", "level", "in", "fit", "more"]);
+});
+
+/** What the readout says now, against the state the page is given. */
+const readsTrue = async (page, label) => {
+  const expected = async () => {
+    const { zoom } = await stateOf(page);
+    return `${Number(zoom.toFixed(1))}×`;
+  };
+  await expect.poll(async () => (await button(page, "level").textContent()) === (await expected()), { message: `${label}: the readout is the state's zoom` }).toBe(true);
+  const said = await button(page, "level").getAttribute("aria-label");
+  expect(said, label).toBe(`Zoom level ${await expected()}, back to Fit`);
+};
+const zoomOf = async (page) => (await stateOf(page)).zoom;
+
+for (const level of ["basic", "advanced"]) {
+  test(`in ${level}, the readout is the only zoom number on the bar`, async ({ page }) => {
+    await ready(page, `?controls=${level}`);
+    await button(page, "play").click();
+    await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 3 }), BAR);
+    const zoomNumbers = await page.evaluate((tag) => [...document.querySelector(tag).shadowRoot.querySelectorAll("button, output, span")].filter((el) => el.getClientRects().length > 0 && el.children.length === 0 && /\d\s*[×x]/.test(el.textContent)).map((el) => el.textContent), BAR);
+    expect(zoomNumbers).toEqual(["3×"]);
+    await expect(button(page, "two")).toHaveCount(0);
+    await page.evaluate((tag) => document.querySelector(tag).fit(), BAR);
+    await expect(button(page, "out")).toBeDisabled();
+    await expect(button(page, "level")).toHaveText("1×");
+  });
+}
+
+test("the readout is the true zoom however the zoom changed", async ({ page }) => {
+  await ready(page, "?zoom=2.4");
+  const bar = page.locator(BAR);
+  const scene = page.locator("#scene");
+  await expect(button(page, "level")).toHaveText("2.4×");
+  await readsTrue(page, "the address");
+  await button(page, "in").click();
+  expect(await zoomOf(page)).toBeCloseTo(3.36, 5);
+  await readsTrue(page, "zoom in");
+  await button(page, "out").click();
+  await readsTrue(page, "zoom out");
+  await button(page, "fit").click();
+  await expect(button(page, "level")).toHaveText("1×");
+  await readsTrue(page, "Fit");
+  // The wheel with Ctrl held, as a trackpad's pinch comes.
+  await scene.evaluate((el) => { const r = el.getBoundingClientRect(); el.dispatchEvent(new WheelEvent("wheel", { clientX: r.left + 50, clientY: r.top + 50, deltaY: -60, ctrlKey: true, bubbles: true, cancelable: true })); });
+  expect(await zoomOf(page)).toBeGreaterThan(1.5);
+  await readsTrue(page, "the wheel");
+  // Two fingers.
+  await scene.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    const send = (type, id, cx) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: "touch", isPrimary: id === 1, clientX: cx, clientY: y, bubbles: true, cancelable: true, button: 0, buttons: 1 }));
+    send("pointerdown", 1, x - 40);
+    send("pointerdown", 2, x + 40);
+    send("pointermove", 2, x + 110);
+    send("pointerup", 2, x + 110);
+    send("pointerup", 1, x - 40);
+  });
+  await readsTrue(page, "a pinch");
+  // The keys.
+  await scene.focus();
+  await page.keyboard.press("+");
+  await readsTrue(page, "the plus key");
+  await page.keyboard.press("-");
+  await readsTrue(page, "the minus key");
+  await page.keyboard.press("0");
+  await expect(button(page, "level")).toHaveText("1×");
+  await readsTrue(page, "the 0 key");
+  // A double press goes in to 2x where it was pressed.
+  const box = await scene.boundingBox();
+  await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(button(page, "level")).toHaveText("2×");
+  await readsTrue(page, "a double press");
+  // The readout itself is Fit.
+  await button(page, "level").click();
+  await expect(button(page, "level")).toHaveText("1×");
+  // The page's own calls.
+  await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 4.2 }), BAR);
+  await expect(button(page, "level")).toHaveText("4.2×");
+  await readsTrue(page, "set");
+  // A limit that moves past the view takes the view with it.
+  await bar.evaluate((el) => el.setAttribute("zoom-max", "2.5"));
+  expect(await zoomOf(page)).toBe(2.5);
+  await expect(button(page, "level")).toHaveText("2.5×");
+  await expect(button(page, "in")).toBeDisabled();
+  await readsTrue(page, "a lower zoom-max");
+  // The zoom attribute and the fit scale move the view, and the readout with it.
+  await bar.evaluate((el) => { el.removeAttribute("zoom-max"); el.setAttribute("zoom", "3"); });
+  await expect(button(page, "level")).toHaveText("3×");
+  await readsTrue(page, "the zoom attribute");
+  await bar.evaluate((el) => el.setFitScale(2));
+  await expect(button(page, "level")).toHaveText("1.5×");
+  await readsTrue(page, "the fit scale");
+});
+
+test("after the element moved, the buttons drive the view the readout speaks for", async ({ page }) => {
+  await ready(page);
+  const told = await page.evaluate((tag) => {
+    const el = document.querySelector(tag);
+    el.parentElement.insertBefore(el, el.nextSibling);
+    window.__told = [];
+    el.addEventListener("kazoku-viewchange", (event) => window.__told.push(event.detail.zoom));
+    return true;
+  }, BAR);
+  expect(told).toBe(true);
+  await button(page, "in").click();
+  await expect(button(page, "level")).toHaveText("1.4×");
+  expect((await stateOf(page)).zoom).toBeCloseTo(1.4, 5);
+  expect(await page.evaluate(() => window.__told.at(-1))).toBeCloseTo(1.4, 5);
+  await readsTrue(page, "moved, then zoom in");
+});
+
+test("basic shows one small speed button only while it turns; it steps through the speeds, keeps turning and is kept in the address", async ({ page }) => {
+  await ready(page);
+  const speed = () => page.evaluate((tag) => document.querySelector(tag).controller.speed, BAR);
+  const now = button(page, "pace-now");
+  await expect(now).toBeHidden();
+  await button(page, "play").click();
+  await expect(now).toBeVisible();
+  expect(await shown(page)).toEqual(["yaw", "pace-now", "play", "out", "level", "in", "fit", "more"]);
+  await expect(now).toHaveText("SpeedMedium");
+  await expect(now).toHaveAttribute("aria-label", "Speed: Medium");
+  await now.click();
+  await expect(now).toHaveAttribute("aria-label", "Speed: Fast");
+  expect(await speed()).toBe(60);
+  expect((await stateOf(page)).turning).toBe(true);
+  await expect(page).toHaveURL(/speed=fast/);
+  await now.click();
+  await expect(now).toHaveAttribute("aria-label", "Speed: Slow");
+  expect(await speed()).toBe(15);
+  await expect(page).toHaveURL(/speed=slow/);
+  await now.click();
+  await expect(now).toHaveAttribute("aria-label", "Speed: Medium");
+  await expect(page).not.toHaveURL(/speed=/);
+  await button(page, "play").click();
+  await expect(now).toBeHidden();
+  expect(await speed()).toBe(30);
+});
+
+test("a page opened on a speed shows it as soon as it turns, and a page's own speed attribute still works", async ({ page }) => {
+  await ready(page, "?speed=fast");
+  await button(page, "play").click();
+  await expect(button(page, "pace-now")).toHaveAttribute("aria-label", "Speed: Fast");
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("speed", "5"), BAR);
+  expect(await page.evaluate((tag) => document.querySelector(tag).controller.speed, BAR)).toBe(10);
+});
+
+test("advanced has the three speeds and not the small button, and a flat view has neither", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  await button(page, "play").click();
+  await expect(button(page, "pace-now")).toBeHidden();
+  await expect(button(page, "fast")).toBeVisible();
+  await button(page, "more").click();
+  await expect(button(page, "pace-now")).toBeVisible();
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("flat", ""), BAR);
+  await expect(button(page, "pace-now")).toBeHidden();
+});
+
+test("the speed button adds no row to the bar and leaves Auto-turn under the pointer, in English and Japanese", async ({ page }) => {
+  await ready(page);
+  const height = () => page.locator(`${BAR} .bar`).evaluate((el) => el.getBoundingClientRect().height);
+  const playAt = async () => { const box = await button(page, "play").boundingBox(); return [box.x, box.y]; };
+  for (const language of ["en", "ja"]) {
+    if (language === "ja") await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+    const still = await height();
+    const where = await playAt();
+    await button(page, "play").click();
+    await expect(button(page, "pace-now")).toBeVisible();
+    expect(await height(), language).toBe(still);
+    expect(await playAt(), `${language}: Auto-turn has not moved, so a second press stops it`).toEqual(where);
+    const crossing = await page.locator(BAR).evaluate((el) => {
+      const r = (s) => el.shadowRoot.querySelector(s).getBoundingClientRect();
+      const a = r(".pace-now");
+      const b = r(".zoom");
+      return a.right > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom;
+    });
+    expect(crossing, `${language}: the speed button sits clear of the zoom buttons`).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    await button(page, "play").click();
+  }
+});
+
+test("at any width from a tablet up, turning does not make the bar taller", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone's width is the test above");
+  await ready(page);
+  const height = () => page.locator(`${BAR} .bar`).evaluate((el) => el.getBoundingClientRect().height);
+  for (const width of [1280, 1000, 900, 800, 768, 720, 680]) {
+    await page.setViewportSize({ width, height: 900 });
+    const still = await height();
+    await button(page, "play").click();
+    await expect(button(page, "pace-now")).toBeVisible();
+    expect(await height(), `at ${width}`).toBeLessThanOrEqual(still);
+    await button(page, "play").click();
+    await expect(button(page, "pace-now")).toBeHidden();
+  }
 });

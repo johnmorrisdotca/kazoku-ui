@@ -11,6 +11,10 @@ test("the zoom readout shows one decimal at most", () => {
   assert.deepEqual([1, 1.4, 2.4, 1.96, 5, 1.04].map(zoomText), ["1×", "1.4×", "2.4×", "2×", "5×", "1×"]);
 });
 
+test("below 1 the readout keeps two figures, so a small zoom never reads as nothing", () => {
+  assert.deepEqual([0.5, 0.25, 0.04, 0.123].map(zoomText), ["0.5×", "0.25×", "0.04×", "0.12×"]);
+});
+
 test("a level or a pace is one of its words, else nothing", () => {
   assert.equal(parseLevel("advanced"), "advanced");
   assert.equal(parseLevel("basic"), "basic");

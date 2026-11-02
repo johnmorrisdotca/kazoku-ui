@@ -37,8 +37,8 @@ Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and 
 
 ## View controls
 
-- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button. More (or `controls="advanced"`) adds the tilt slider, the auto-turn **speed** (Slow, Medium, Fast), Front, 2 times, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
-- The zoom readout is the view's `zoom` (1× is Fit). A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `Medium`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, all three speeds (Slow, Medium, Fast), Front, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
+- The zoom readout is the view's `zoom` (1× is Fit, whatever `fit-scale` is), one decimal, the one zoom number on the bar: it follows the buttons, the wheel, a pinch, a double press, Fit, the keys, the address, `set` and a changed limit. A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
 - Auto-turn with play and pause; its speed is Slow (half the `speed` attribute), Medium (the `speed` attribute, 30 degrees a second) or Fast (twice it), kept in the address as `?speed=slow` or `?speed=fast`.
 - Zoom is about the pointer (and Ctrl or Command with the wheel, or a trackpad's pinch).
 - Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch.
@@ -182,7 +182,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
 | `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |
-| `controls` | `basic` (the default) or `advanced`: which controls are shown (see above). Written in the page's markup it is where the reader starts; what the reader chose with More is remembered under `kazoku-view-controls` in `localStorage` (or the key `storage` names) and wins. Setting the attribute later changes the level at once. The host carries `data-level` with the level now. |
+| `controls` | `basic` (the default) or `advanced`: which controls are shown (see above; the zoom readout in both, the speed in both while the view turns). Written in the page's markup it is where the reader starts; what the reader chose with More is remembered under `kazoku-view-controls` in `localStorage` (or the key `storage` names) and wins. Setting the attribute later changes the level at once. The host carries `data-level` with the level now. |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |

@@ -24,7 +24,7 @@ const ready = async (page, query = "") => {
 
 test("the controls are visible without scrolling, a finger wide, and in the page's own style", async ({ page }) => {
   const errors = await ready(page, "?controls=advanced");
-  await button(page, "two").click();
+  await button(page, "in").click();
   const report = await page.evaluate(() => {
     const root = document.querySelector("kazoku-view-controls").shadowRoot;
     const vh = window.innerHeight;
@@ -34,8 +34,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle, tilt, auto-turn, three speeds, front, five zoom buttons (out, the readout, in, 2x, Fit), four arrows, two drag buttons, More.
-  expect(report.count).toBe(19);
+  // Angle, tilt, auto-turn, three speeds, front, four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
+  expect(report.count).toBe(18);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);
@@ -60,8 +60,8 @@ test("it never turns on its own until asked, and a toggle during the turn keeps 
   await advances("turning");
   await button(page, "in").click();
   await advances("after zoom in");
-  await button(page, "two").click();
-  await advances("after 2x");
+  await button(page, "in").click();
+  await advances("after zooming in again");
   await button(page, "turn").click();
   await advances("after the Turn choice");
   await button(page, "move").click();
@@ -122,7 +122,7 @@ test("zoom about the pointer keeps what is under it there", async ({ page }) => 
 test("the buttons zoom, the pan pad appears when zoomed and moves the view, and a drag moves it", async ({ page }) => {
   await ready(page, "?controls=advanced");
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
-  await button(page, "two").click();
+  await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 2 }), BAR);
   expect((await stateOf(page)).zoom).toBe(2);
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
   const width = (await page.locator("#scene").boundingBox()).width;
@@ -394,8 +394,9 @@ test("with an anchor, the buttons and keys zoom about it and it stays where it i
   await button(page, "out").click();
   expect((await stateOf(page)).zoom).toBeCloseTo(1, 5);
   await fixed("plus then minus");
-  await button(page, "two").click();
-  await fixed("2x");
+  await button(page, "in").click();
+  await button(page, "in").click();
+  await fixed("twice in");
   await page.locator("#scene").focus();
   await page.keyboard.press("+");
   await page.keyboard.press("-");
