@@ -23,7 +23,7 @@ const ready = async (page, query = "") => {
 };
 
 test("the controls are visible without scrolling, a finger wide, and in the page's own style", async ({ page }) => {
-  const errors = await ready(page);
+  const errors = await ready(page, "?controls=advanced");
   await button(page, "two").click();
   const report = await page.evaluate(() => {
     const root = document.querySelector("kazoku-view-controls").shadowRoot;
@@ -34,8 +34,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle, tilt, auto-turn, front, four zoom buttons, four arrows, two drag buttons.
-  expect(report.count).toBe(14);
+  // Angle, tilt, auto-turn, three speeds, front, five zoom buttons (out, the readout, in, 2x, Fit), four arrows, two drag buttons, More.
+  expect(report.count).toBe(19);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);
@@ -45,7 +45,7 @@ test("the controls are visible without scrolling, a finger wide, and in the page
 });
 
 test("it never turns on its own until asked, and a toggle during the turn keeps the angle advancing", async ({ page }) => {
-  await ready(page);
+  await ready(page, "?controls=advanced");
   await page.waitForTimeout(300);
   expect((await stateOf(page)).turning).toBe(false);
   expect((await stateOf(page)).yaw).toBe(0);
@@ -120,7 +120,7 @@ test("zoom about the pointer keeps what is under it there", async ({ page }) => 
 });
 
 test("the buttons zoom, the pan pad appears when zoomed and moves the view, and a drag moves it", async ({ page }) => {
-  await ready(page);
+  await ready(page, "?controls=advanced");
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
   await button(page, "two").click();
   expect((await stateOf(page)).zoom).toBe(2);
@@ -381,7 +381,7 @@ test("a page that opens zoomed in leaves the plain address plain and a fresh pag
 });
 
 test("with an anchor, the buttons and keys zoom about it and it stays where it is within a pixel", async ({ page }) => {
-  const errors = await ready(page, "?anchor=pin");
+  const errors = await ready(page, "?anchor=pin&controls=advanced");
   const pin = await centreOf(page, "#pin");
   const fixed = async (label) => {
     const now = await centreOf(page, "#pin");

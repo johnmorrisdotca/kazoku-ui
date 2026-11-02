@@ -51,8 +51,8 @@ test("a strict style-src: the controls are styled from an adopted stylesheet and
 
 test("a strict style-src: the controls still work", async ({ page }) => {
   await visit(page, "/csp.html");
-  await page.locator(`${BAR} [data-b="two"]`).click();
-  expect(await page.evaluate((tag) => document.querySelector(tag).state.zoom, BAR)).toBe(2);
+  await page.locator(`${BAR} [data-b="in"]`).click();
+  expect(await page.evaluate((tag) => document.querySelector(tag).state.zoom, BAR)).toBe(1.4);
   await page.locator(`${BAR} [data-b="play"]`).click();
   await expect(page.locator(`${BAR} [data-b="play"]`)).toHaveAttribute("aria-pressed", "true");
   await page.locator("kazoku-language-picker button[data-v=ja]").click();

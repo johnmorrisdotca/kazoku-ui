@@ -2,7 +2,7 @@
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-dark.webp">
-<img alt="The demo: in its header the English and 日本語 choice and the Light, Dark and Auto switch; below, a white card with a blue circle and a black triangle, turned a little and tipped, in a frame with a dotted floor. Under it the view controls: Angle and Tilt sliders, Auto-turn and Front buttons, zoom out, 2 times, zoom in and Fit, four arrows to move the zoomed view, and the Move and Turn choice for a drag." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-light.webp" width="720">
+<img alt="The demo: in its header the English and 日本語 choice and the Light, Dark and Auto switch; below, a white card with a blue circle and a black triangle, turned a little and tipped, in a frame with a dotted floor. Under it the view controls: an Angle slider, an Auto-turn button, zoom out, the zoom readout, zoom in and Fit, and a small More button." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/hero-light.webp" width="720">
 </picture>
 
 The family's shared interface parts, as their own versioned package: one part per subpath, so a page loads only what it uses. No runtime dependencies, MIT.
@@ -35,9 +35,10 @@ Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and 
 
 ## View controls
 
-- Angle and tilt sliders, Auto-turn with play and pause, Front.
-- Zoom out, 2 times, zoom in and Fit. Zoom is about the pointer (and Ctrl or Command with the wheel, or a trackpad's pinch).
-- The four-arrow pan pad (shown once zoomed in) and the Move or Turn choice for what a drag does.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button. More (or `controls="advanced"`) adds the tilt slider, the auto-turn **speed** (Slow, Medium, Fast), Front, 2 times, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
+- The zoom readout is the view's `zoom` (1× is Fit). A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
+- Auto-turn with play and pause; its speed is Slow (half the `speed` attribute), Medium (the `speed` attribute, 30 degrees a second) or Fast (twice it), kept in the address as `?speed=slow` or `?speed=fast`.
+- Zoom is about the pointer (and Ctrl or Command with the wheel, or a trackpad's pinch).
 - Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
@@ -178,10 +179,12 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees (`1` gives whole degrees). 0 by default: not rounded. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
-| `speed` | Degrees a second (30). |
+| `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |
+| `controls` | `basic` (the default) or `advanced`: which controls are shown (see above). Written in the page's markup it is where the reader starts; what the reader chose with More is remembered under `kazoku-view-controls` in `localStorage` (or the key `storage` names) and wins. Setting the attribute later changes the level at once. The host carries `data-level` with the level now. |
+| `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&speed=fast`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
@@ -191,7 +194,7 @@ Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-lin
 
 ### The address
 
-Only what a reader chose is kept: angle, tilt, zoom and the drag choice. The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
+Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`speed=slow` or `speed=fast`; Medium leaves the address, and another value of `speed`, a page's own, is left alone). The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
 
 ### Why the tag is only defined when it is free
 
@@ -266,11 +269,11 @@ The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so 
 
 ## Size
 
-Gzipped, unbundled. View controls: the element and its definition about 5.0 KB, the controller 4.3 KB, the maths 1.4 KB, the address 1.2 KB, the labels 0.7 KB and the styles 1.6 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 6.9 KB, the controller 4.4 KB, the maths 1.4 KB, the address 1.4 KB, the levels 0.4 KB, the labels 0.9 KB and the styles 1.7 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 77 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
+`pnpm check` (lint, types, 82 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`).
 
 ## Not yet
 

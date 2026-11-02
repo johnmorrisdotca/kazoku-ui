@@ -25,6 +25,13 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `drag` | What a drag does | ドラッグの動作 | doraggu no dōsa, what dragging does |
 | `dragMove` | Move | 移動 | idō, move |
 | `dragTurn` | Turn | 回転 | kaiten, turn |
+| `zoomLevel` | Zoom level | ズーム倍率 | zūmu bairitsu, zoom ratio |
+| `zoomReset` | back to Fit | 全体に戻す | zentai ni modosu, put back to the whole |
+| `more` | More | 詳細 | shōsai, details |
+| `speed` | Speed | 速さ | hayasa, speed |
+| `slow` | Slow | ゆっくり | yukkuri, slowly |
+| `medium` | Medium | ふつう | futsū, normal |
+| `fast` | Fast | はやい | hayai, fast |
 
 ## Theme switch
 

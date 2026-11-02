@@ -5,3 +5,4 @@ export { clamp, clampPan, DEFAULT_LIMITS, dragTurn, PAN_STEP, pinchTo, TILT_ACRO
 export { languageOf, WORDS, wordsFor, type Language, type ViewWords } from "./words.ts";
 export const EVENT = "kazoku-viewchange";
 export const TAG = "kazoku-view-controls";
+export { LEVEL_STORAGE_KEY, PACE_FACTOR, PACES, parseLevel, parsePace, zoomText, type Level, type Pace } from "./levels.ts";

@@ -19,6 +19,13 @@ export interface ViewWords {
   drag: string;
   dragMove: string;
   dragTurn: string;
+  zoomLevel: string;
+  zoomReset: string;
+  more: string;
+  speed: string;
+  slow: string;
+  medium: string;
+  fast: string;
 }
 
 export type Language = "en" | "ja";
@@ -43,6 +50,13 @@ export const WORDS: Record<Language, ViewWords> = {
     drag: "What a drag does",
     dragMove: "Move",
     dragTurn: "Turn",
+    zoomLevel: "Zoom level",
+    zoomReset: "back to Fit",
+    more: "More",
+    speed: "Speed",
+    slow: "Slow",
+    medium: "Medium",
+    fast: "Fast",
   },
   ja: {
     group: "表示の操作",
@@ -63,6 +77,13 @@ export const WORDS: Record<Language, ViewWords> = {
     drag: "ドラッグの動作",
     dragMove: "移動",
     dragTurn: "回転",
+    zoomLevel: "ズーム倍率",
+    zoomReset: "全体に戻す",
+    more: "詳細",
+    speed: "速さ",
+    slow: "ゆっくり",
+    medium: "ふつう",
+    fast: "はやい",
   },
 };
 

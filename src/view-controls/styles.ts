@@ -48,22 +48,30 @@ button { -webkit-appearance: none; appearance: none; box-sizing: border-box; dis
 button:hover:not(:disabled) { border-color: var(--_ink); }
 button:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
 button[aria-pressed="true"] { background: var(--_ink); color: var(--_surface); border-color: var(--_ink); }
+button[aria-expanded="true"] { border-color: var(--_ink); box-shadow: inset 0 0 0 1px var(--_ink); }
 button:disabled { opacity: 0.4; cursor: default; }
 svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { display: none; }
 .zoom button.two { min-width: 56px; }
+.zoom button.level { min-width: 64px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.pace .lbl { margin-inline-end: 4px; }
 .drag { margin-inline-start: 8px; }
-/* A compact bar on a phone: three rows (angle, tilt and zoom, the pad when zoomed), labels read only by a screen reader. */
+.more { margin-inline-start: auto; }
+/* A compact bar on a phone: two rows to start with (angle, Auto-turn and More; the zoom), more rows when the reader asks for more; labels read only by a screen reader. */
 @media (max-width: 640px) {
-  .bar { display: grid; grid-template-columns: minmax(0, 1fr) 48px auto; grid-template-areas: "angle play front" "tilt zoom zoom" "pan pan pan"; gap: 0 8px; padding: 2px 8px; }
+  .bar { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; grid-template-areas: "angle play more" "tilt tilt front" "pace pace pace" "zoom zoom zoom" "pan pan pan"; gap: 0 8px; padding: 2px 8px; }
   .field.angle { grid-area: angle; }
   .field.tilt { grid-area: tilt; }
-  .field label, .field output { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .play { grid-area: play; padding: 0; }
-  .play .text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .field label, .field output, .play .text, .more .text, .pace .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .play, .more { padding: 0; }
+  .play { grid-area: play; }
+  .more { grid-area: more; }
   .front { grid-area: front; padding: 0 12px; }
+  .pace { grid-area: pace; justify-self: end; flex-wrap: nowrap; }
+  .pace button { padding: 0 12px; }
   .zoom { grid-area: zoom; justify-self: end; flex-wrap: nowrap; }
   .zoom button { padding: 0 8px; }
+  .zoom button.level { padding: 0 6px; }
   .pan { grid-area: pan; justify-content: center; }
   .drag { margin-inline-start: 4px; }
 }
