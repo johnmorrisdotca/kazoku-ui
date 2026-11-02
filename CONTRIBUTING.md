@@ -14,7 +14,7 @@ Thank you for helping. Ideas and fixes are welcome; write to john@johnmorris.ca 
 - **No marks.** No brand, league, federation or sponsor mark, and never John's SPX, SPXN or SPXIS marks.
 - **Test what you change.** Unit tests in `test/` (the maths, the address, the controller with a clock the test turns by hand), and the demo in a real browser in `e2e/`.
 - **Needs Node 22 or later**; the tests run the TypeScript source with `node --test`, which needs 22.18 or later.
-- **Ports.** This package owns local ports 8100 to 8199 and nothing outside them: the demo on 8100, the tests' on 8101, the picture script's on 8102. Check with `lsof -iTCP:<port> -sTCP:LISTEN` first, and stop a server by its process id, never by name.
+- **Ports.** This package owns local ports 8400 to 8499 and nothing outside them: the demo on 8400, the tests' on 8401, the picture script's on 8402. Check with `lsof -iTCP:<port> -sTCP:LISTEN` first, and stop a server by its process id, never by name.
 
 ## Pull requests
 
@@ -27,5 +27,5 @@ pnpm check          # lint, types, tests, the build and the packed package
 pnpm test:package   # pack it as npm does, install it in an empty project, import every entry
 pnpm test:demo      # build the demo and play it in Chromium and WebKit at a phone's width and a desk's
 pnpm screenshots    # the README's hero picture, into docs/images
-pnpm dev            # the demo on http://127.0.0.1:8100/
+pnpm dev            # the demo on http://127.0.0.1:8400/
 ```

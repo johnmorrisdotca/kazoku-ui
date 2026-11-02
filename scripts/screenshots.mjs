@@ -1,5 +1,5 @@
 // Takes the README's still hero picture into docs/images as webp (made in the browser, so no tool beyond Chromium): the demo at a desk's width, turned a little, light and dark.
-// It serves the demo on port 8102, or TEST_PORT, and stops the server it started. It needs the site built (`pnpm screenshots` builds first).
+// It serves the demo on port 8402, or TEST_PORT, and stops the server it started. It needs the site built (`pnpm screenshots` builds first).
 // IMAGES_OUT writes somewhere else than docs/images; PNG=1 writes png beside the webp (to look at them).
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -10,7 +10,7 @@ import { chromium } from "@playwright/test";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const out = process.env.IMAGES_OUT ?? `${root}docs/images`;
 mkdirSync(out, { recursive: true });
-const port = Number(process.env.TEST_PORT ?? 8102);
+const port = Number(process.env.TEST_PORT ?? 8402);
 const server = spawn(process.execPath, ["scripts/dev.mjs"], { cwd: root, env: { ...process.env, PORT: String(port) }, stdio: "ignore" });
 try {
   await new Promise((resolve, reject) => {
