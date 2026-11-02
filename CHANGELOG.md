@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.0] - 2026-11-02
+
+The sixth and seventh parts: the shared 3D renderer, at `@johnmorrisdotca/kazoku-ui/renderer`, and the freeze checks for a 3D package's e2e, at `@johnmorrisdotca/kazoku-ui/testing`.
+
+- **One WebGL context per page.** `createSharedRenderer({ load: () => import("three") })` makes one renderer and moves its canvas to the focused view's host (`view.focus()`); every other view shows a still. Thirty views and fifty changes of focus make one context and one canvas. three.js is an optional peer (`peerDependencies`, `peerDependenciesMeta`) and is never imported or bundled by this package: the page passes the dynamic import, so three loads only when the first view goes live (a demo page checks it).
+- **Shared assets with reference counts** (`createAssetCache`, and `assets.acquire(key, make, dispose)` inside an item's `build`): made once per key, freed after a short linger when the last view lets go; `disposeDeep` frees a loaded model.
+- **Stills** (`view.showStill()`): rendered once from the same renderer, one at a time, into a PNG blob in an `<img>`; items with the same key share one; a least-recently-used list with a byte budget (32 MB decoded) frees the rest, and an evicted still is made again when needed.
+- **Drawing on demand** (`createScheduler`): one frame loop for every view, nothing drawn or requested at rest, exactly one frame requested at a time (a change event inside a draw adds none), a per-frame budget (2 draws, 10 ms) with the focused view first, and no frames while the view is out of sight or the tab hidden. After `releaseMs` (30 s) out of sight the context is let go and made again when the view is seen.
+- **Pixel budget in one place** (`pixelRatioFor`): 6 million pixels, 4096 a side, ratio 2; a 5K screen at ratio 2 is drawn inside it, not at 24 MP.
+- **Context loss** (`webglcontextlost` and `webglcontextrestored`) is handled in one place: drawing stops and the still shows, then the view draws again; `onContext` is told.
+- **`/testing`**: `COUNT_SCRIPT` (an init script that counts WebGL contexts, GPU objects made and deleted, draws and animation frames), `readCounts`, `gpuObjects`, `canvasSize`, `withinPixelBudget`. It names no test framework.
+- Demo `renderer.html` (thirty views on one renderer, Fill the window) and `renderer-lazy.html`; `e2e/renderer.demo.mjs` asserts contexts = 1 over fifty focus changes, 0 draws and 0 frame requests at rest, flat GPU objects, cache and heap over fifty more, the canvas within budget on a 5120x2880 screen at ratio 2, a lost and restored context, out of sight, the stills' byte budget, and three.js fetched only on demand. Docs: `docs/renderer.md`. Size: 8.9 KB gzipped for the renderer and 1.6 KB for the kit.
+
 ## [0.8.0] - 2026-11-02
 
 The view controls show the zoom, control the auto-turn speed, and come in two levels so the bar stays simple.
