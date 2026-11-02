@@ -56,7 +56,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 | Drawing on demand | One scheduler for every view. A page at rest asks the browser for nothing: no animation frame, no draw. Exactly one frame is requested at a time, whoever asks and whenever, including from inside a draw. A frame has a budget: at most 2 draws and 10 ms before a new draw starts, the focused view first. |
 | Out of sight | The live view's host is watched (`IntersectionObserver`) and the tab's visibility too: out of sight or in a hidden tab no frame is requested. After `releaseMs` (30 s) out of sight the context itself is let go (`forceContextLoss`), so the GPU memory is free; the views keep their stills, and the context is made again when the view is seen. |
 | Pixel budget | `pixelRatioFor(width, height, deviceRatio)`: at most 6 million pixels, 4096 on a side, ratio 2. A 5K screen at ratio 2 is drawn at about 1.5 and scaled up by CSS, not at 24 MP. All three limits are options. |
-| Context loss | `webglcontextlost` is prevented (so the browser may restore it), drawing stops, the still is shown, and `onContext("lost")` is called; on `webglcontextrestored` the view draws again. Calling `view.focus()` on a view whose context never came back builds a new one. |
+| Context loss | `webglcontextlost` is prevented (so the browser may restore it), drawing stops, the still is shown, and `onContext("lost")` is called; on `webglcontextrestored` the view draws again and `onContext("restored")` is called. Calling `view.focus()` on a view whose context never came back builds a new one. |
 
 ## API
 

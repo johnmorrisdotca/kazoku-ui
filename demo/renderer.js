@@ -9,8 +9,10 @@ const params = new URLSearchParams(location.search);
 const number = (name) => (params.has(name) && Number.isFinite(Number(params.get(name))) ? Number(params.get(name)) : undefined);
 const rad = (degrees) => (degrees * Math.PI) / 180;
 
+const contextEvents = [];
 const renderer = createSharedRenderer({
   load: () => Promise.resolve(THREE),
+  onContext: (state) => contextEvents.push(state),
   ...(number("stills") === undefined ? {} : { stillBytes: number("stills") }),
   ...(number("release") === undefined ? {} : { releaseMs: number("release") }),
   ...(number("linger") === undefined ? {} : { lingerMs: number("linger") }),
@@ -125,5 +127,5 @@ function show() {
 setInterval(show, 500);
 show();
 
-window.kazokuDemo = { renderer, views, controls, focusView, show };
+window.kazokuDemo = { contextEvents, renderer, views, controls, focusView, show };
 focusView(views[0]);

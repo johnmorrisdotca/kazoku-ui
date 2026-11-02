@@ -199,6 +199,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
       applySize(focused);
       scheduler.invalidate(focused.job);
     }
+    options.onContext?.("restored");
   };
 
   function ensureGL(): Promise<GLRenderer> {

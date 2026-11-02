@@ -168,8 +168,11 @@ test("a lost context shows the still, a restored one draws again, and it is stil
   await page.evaluate(() => { window.__lose = document.querySelector(".host canvas").getContext("webgl2").getExtension("WEBGL_lose_context"); window.__lose.loseContext(); });
   await expect.poll(async () => (await demo(page)).lost).toBe(true);
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('[data-testid="host-0"] img')).visibility)).toBe("visible");
+  // onContext is told of both: "lost" now, and (KAZOKU-UI-15) "restored" once the context comes back.
+  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost"]);
   await page.evaluate(() => window.__lose.restoreContext());
   await expect.poll(async () => (await demo(page)).lost).toBe(false);
+  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost", "restored"]);
   const before = (await demo(page)).draws;
   await page.evaluate(() => window.kazokuDemo.renderer.focused.invalidate());
   await expect.poll(async () => (await demo(page)).draws).toBeGreaterThan(before);
