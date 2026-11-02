@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.5.0] - 2026-11-02
 
 The third part: the language picker, at `@johnmorrisdotca/kazoku-ui/language-picker` (and `/language-picker/element`, `/language-picker/define`).
 
