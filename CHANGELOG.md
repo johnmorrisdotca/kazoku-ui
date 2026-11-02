@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.0] - 2026-11-02
+
+The view controls show the zoom, control the auto-turn speed, and come in two levels so the bar stays simple.
+
+- **Zoom readout.** A button between zoom out and zoom in shows the zoom (`1×`, `2.4×`); tapping it goes back to Fit. A screen reader is told "Zoom level 2.4×" once the zoom has settled (a polite status, not on load, not for every step of a pinch).
+- **Auto-turn speed.** Slow, Medium and Fast: half, once and twice the `speed` attribute (30 degrees a second). It never stops or restarts the turn. Kept in the address as `?speed=slow` or `?speed=fast` (key renameable with `address-keys="speed:pace"`); Medium leaves the address, and a page's own `speed` value is left alone. `parseAddress` and `formatAddress` take and give an optional `pace`.
+- **`controls="basic|advanced"`.** Basic is the default and shows the angle slider, Auto-turn, zoom out and in with the readout, Fit and a small More button. Advanced (More, or the attribute) adds tilt, speed, Front, 2 times, the pan pad and Move or Turn. The reader's choice is remembered in `localStorage` (`kazoku-view-controls`, or the key `storage` names) and beats the attribute written in the markup; the host carries `data-level`.
+- **Changed default.** The default bar is simpler than 0.7: tilt, Front, 2 times, the pan pad and Move or Turn are behind More. A page that wants them from the start sets `controls="advanced"`.
+- New pure exports from `view-controls`: `parseLevel`, `parsePace`, `zoomText`, `PACES`, `PACE_FACTOR`, `LEVEL_STORAGE_KEY`. New labels `zoomLevel`, `zoomReset`, `more`, `speed`, `slow`, `medium`, `fast` in English and Japanese (the Japanese is to be read by a native speaker).
+
 ## [0.7.3] - 2026-11-02
 
 One agent-instruction template for the family's package repos. Tooling and docs only; the package is unchanged.
