@@ -1,0 +1,27 @@
+# The documentation's checks: the API reference is current, every guide has its Japanese page, every link and picture is there, and every example in the
+# README and the guides runs (Node for the scripts, headless Chromium in software for the HTML). Free on a public repository.
+name: Docs
+on:
+  push:
+    branches: [main]
+    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml']
+  pull_request:
+    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm docs:check
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:readme

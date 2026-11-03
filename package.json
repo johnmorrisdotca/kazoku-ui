@@ -163,7 +163,10 @@
     "site": "pnpm build && node scripts/site.mjs",
     "test:demo": "pnpm site && playwright test",
     "test:freeze": "pnpm site && playwright test e2e/renderer.demo.mjs --project=chromium-desk",
-    "screenshots": "pnpm site && node scripts/screenshots.mjs"
+    "screenshots": "pnpm site && node scripts/screenshots.mjs",
+    "docs:api": "pnpm build && node scripts/docs.mjs api",
+    "docs:check": "pnpm build && node scripts/docs.mjs check",
+    "test:readme": "pnpm build && node scripts/check-readme-examples.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

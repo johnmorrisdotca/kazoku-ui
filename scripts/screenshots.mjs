@@ -75,6 +75,30 @@ try {
     if (process.env.PNG) writeFileSync(`${out}/layouts-${scheme}.png`, png);
     await context.close();
   }
+  // The pictures of the guides (docs/guides): the layouts on a phone, the header's switches, the address, save-image, the renderer and the builder, light and dark.
+  const GUIDE = [
+    { name: "layouts-phone", viewport: { width: 390, height: 900 }, url: "/layouts.html", selector: ".layouts", ready: () => [...document.querySelectorAll("kazoku-view-controls")].every((el) => el.shadowRoot?.querySelector(".bar")), prepare: () => { for (const el of document.querySelectorAll("kazoku-view-controls")) el.set({ yaw: -28, tilt: 10, zoom: 1.6 }); } },
+    { name: "switches", viewport: { width: 820, height: 300 }, url: "/", selector: ".top", ready: () => document.querySelector("kazoku-theme-switch")?.shadowRoot?.querySelector("button") && document.querySelector("kazoku-language-picker")?.shadowRoot?.querySelector("button") },
+    { name: "address", viewport: { width: 820, height: 700 }, url: "/address.html?size=l&dots=on", selector: "main", ready: () => document.querySelector("kazoku-theme-switch")?.shadowRoot?.querySelector("button") },
+    { name: "save-image", viewport: { width: 1000, height: 700 }, url: "/save-image.html", selector: ".targets", ready: () => [...document.querySelectorAll("kazoku-save-image")].every((el) => el.shadowRoot?.querySelector("button")) },
+    { name: "renderer", viewport: { width: 1000, height: 900 }, url: "/renderer.html", selector: "main", ready: () => document.querySelector('.host[data-live="1"]') && document.querySelectorAll(".host img").length > 8, settle: 1500 },
+    { name: "builder", viewport: { width: 1100, height: 900 }, url: "/builder.html?kazoku-view-controls.layout=horizontal&kazoku-view-controls.level=advanced", selector: "main", ready: () => document.querySelector("#stage kazoku-view-controls")?.shadowRoot?.querySelector(".bar") },
+  ];
+  for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
+    for (const guide of GUIDE) {
+      const context = await browser.newContext({ viewport: guide.viewport, deviceScaleFactor: guide.viewport.width < 500 ? 2 : 1.5, colorScheme: scheme, reducedMotion: "reduce" });
+      const page = await context.newPage();
+      await page.goto(`http://127.0.0.1:${port}${guide.url}`);
+      await page.waitForFunction(guide.ready, null, { timeout: 20000 });
+      if (guide.prepare) await page.evaluate(guide.prepare);
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(guide.settle ?? 300);
+      const png = await page.locator(guide.selector).first().screenshot();
+      writeFileSync(`${out}/${guide.name}-${scheme}.webp`, await webp(png));
+      if (process.env.PNG) writeFileSync(`${out}/${guide.name}-${scheme}.png`, png);
+      await context.close();
+    }
+  }
   // The family's thumbnail: the demo's card, turned and tipped, over the view controls that turn it, on the family's
   // paper and its black cloth; the icon is the card alone. The dotted floor, the header and the words around are left out.
   const stage = async (page, withControls) => {

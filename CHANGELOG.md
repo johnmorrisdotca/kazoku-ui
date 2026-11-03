@@ -4,6 +4,13 @@
 
 - The README opens with the package's thumbnail, and the demo carries it as its link preview (og:image) and publishes the card, a dark card and an icon on Pages at `thumbnail.png`, `thumbnail-dark.png` and `icon.png`.
 
+### Documentation
+
+- **Fourteen guides, each with a Japanese page, and a generated API reference.** `docs/guides/` has getting started, view controls, layouts and the zoom slider, the view controller and its arithmetic, the theme switch, the language picker, address state, save image, the shared renderer, frameworks and CSP, accessibility and labels, architecture, troubleshooting and upgrading; each has its Japanese page of the same name in `docs/guides/ja/`. `docs/API.md` is written from the built declarations (`pnpm docs:api`). The README is rewritten into sections around the same material, and no longer says the package is unpublished.
+- **Every example runs, and the documentation is checked.** `pnpm test:readme` runs each `ts`, `js` and `html` block of the README and the guides (Node for the scripts, headless Chromium in software for the HTML); `pnpm docs:check` fails when `docs/API.md` is out of date, a guide has no Japanese page or a different set of code blocks, a link or picture is missing, or an export is named nowhere. Both run in `.github/workflows/docs.yml`.
+- **Twelve more pictures** in `docs/images/` (the layouts on a phone, the header's switches, address state, save image, the shared renderer and the builder, light and dark), made by `pnpm screenshots`. The hero and the layouts pictures were taken again, because the demo's links now include the builder.
+- New demo page: `demo/builder.html`, to choose a part, set its options, see it live and copy the code, in English and in Japanese, with `e2e/builder.demo.mjs`.
+
 ## [0.12.0] - 2026-11-03
 
 The view controls in four layouts, chosen by one attribute, and the zoom as a slider with marks. A page that names no layout looks exactly as before.

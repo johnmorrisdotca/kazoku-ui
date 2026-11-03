@@ -11,13 +11,136 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
+
+## In 30 seconds
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
 ```
 
-Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pills, the family's backgrounds):
+```html
+<div id="scene" tabindex="0" style="height: 200px">Your scene</div>
+<kazoku-view-controls for="scene" address></kazoku-view-controls>
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/view-controls/define";
+
+  document.querySelector("kazoku-view-controls").addEventListener("kazoku-viewchange", (event) => {
+    const { yaw, tilt, zoom, panX, panY } = event.detail;
+    document.getElementById("scene").style.transform = `translate(${panX}px, ${panY}px) scale(${zoom}) rotateX(${tilt}deg) rotateY(${yaw}deg)`;
+  });
+</script>
+```
+
+And the pure functions, with no page at all:
+
+```js
+import { formatAddress, parseAddress, zoomMarks, zoomText } from "@johnmorrisdotca/kazoku-ui/view-controls";
+
+console.log(formatAddress("?x=1", { yaw: 40, tilt: 10, zoom: 2, drag: "turn" })); // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
+console.log(JSON.stringify(parseAddress("?yaw=40&zoom=2"))); // {"yaw":40,"zoom":2}
+console.log(zoomMarks(1, 5).map((mark) => mark.zoom).join(" ")); // 1 2 3 5
+console.log(zoomText(2.44)); // 2.4×
+```
+
+## Who it is for
+
+- A page or a package that shows a 3D or zoomable view (a card, a globe, a rocket, a map) and wants the reader to turn, tip, zoom and move it, without writing the controls again.
+- A site with a language choice and a Light, Dark or Auto switch that should look and behave the same across every page and every package of a family.
+- A page that wants Save PNG and Save SVG for a canvas, an SVG or a piece of the page.
+- A page of many 3D views that must stay inside one WebGL context and a pixel budget.
+- A framework app: the parts are plain custom elements with plain modules beside them.
+
+## Features
+
+- **No runtime dependencies, one part to a subpath.** A page loads only what it uses.
+- **View controls** in four layouts, with a zoom slider, a readout, Auto-turn, Centre, keys, touch and the address.
+- **Theme switch** (Light, Dark, Auto) and **language picker** (each language in its own name) that write `data-theme` and `lang` and tell the page.
+- **Save image** for a canvas, an SVG or any element, as PNG or SVG.
+- **Address state**, with no element: choices kept in the link with `replaceState`.
+- **A shared 3D renderer** and its **freeze checks**: one WebGL context, shared assets, stills, a pixel budget.
+- **Labels in English and Japanese**, light and dark, 48 px touch targets, reduced motion respected.
+- **A strict Content-Security-Policy is fine:** styles are adopted as constructable stylesheets.
+
+## Install
+
+```sh
+npm install @johnmorrisdotca/kazoku-ui
+```
+
+```sh
+pnpm add @johnmorrisdotca/kazoku-ui
+```
+
+Node 22 or later builds and tests it; the parts run in any current browser. Each part is its own subpath, and the `define` file of an element registers its tag, once, and only if the tag is free.
+
+## Use it in your project
+
+In a bundler or a framework, import the `define` file of each element you use once, in code that runs in the browser, and import the pure modules wherever you like:
+
+```ts no-run
+import "@johnmorrisdotca/kazoku-ui/view-controls/define";
+import "@johnmorrisdotca/kazoku-ui/theme-switch/define";
+import { createAddressState } from "@johnmorrisdotca/kazoku-ui/address-state";
+import type { ViewChangeDetail } from "@johnmorrisdotca/kazoku-ui/view-controls/element";
+
+export const state = createAddressState({ defaults: { size: "m" } });
+export const draw = (detail: ViewChangeDetail) => console.log(detail.yaw, detail.zoom);
+```
+
+## Use it anywhere
+
+On a page with no bundler, an import map tells the browser where each subpath lives, and the `dist` folder is served as it is:
+
+```html
+<script type="importmap">
+{ "imports": {
+  "@johnmorrisdotca/kazoku-ui/theme-switch/define": "/node_modules/@johnmorrisdotca/kazoku-ui/dist/theme-switch/define.js"
+} }
+</script>
+<kazoku-theme-switch address storage></kazoku-theme-switch>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/theme-switch/define";</script>
+```
+
+## Examples
+
+A theme switch and a language picker side by side, with the page answering their events:
+
+```html
+<kazoku-theme-switch address storage></kazoku-theme-switch>
+<kazoku-language-picker languages="en ja" address storage></kazoku-language-picker>
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/theme-switch/define";
+  import "@johnmorrisdotca/kazoku-ui/language-picker/define";
+
+  document.addEventListener("kazoku-themechange", ({ detail }) => console.log(detail.choice, detail.scheme));
+  document.addEventListener("kazoku-languagechange", ({ detail }) => console.log(detail.lang));
+</script>
+```
+
+Save a canvas as a PNG:
+
+```html
+<canvas id="art" width="360" height="200"></canvas>
+<kazoku-save-image for="art" name="my-picture"></kazoku-save-image>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/save-image/define";</script>
+```
+
+The same idea in code, with the address and the theme as plain functions:
+
+```js
+import { applyParams } from "@johnmorrisdotca/kazoku-ui/address-state";
+import { resolveTheme } from "@johnmorrisdotca/kazoku-ui/theme-switch";
+import { filenameFor } from "@johnmorrisdotca/kazoku-ui/save-image";
+
+console.log(applyParams("?a=1&size=m", { size: "l", a: null }, { size: "m" })); // ?size=l
+console.log(resolveTheme("auto", true)); // dark
+console.log(filenameFor("My Card/x", "png")); // My Card-x.png
+```
+
+## Parts
+
+Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pills, the family's backgrounds.
 
 | Subpath | What it is |
 |---|---|
@@ -68,7 +191,7 @@ The `layout` attribute says where the controls sit; `controls` (`basic` or `adva
 | `vertical` | A column beside the view, `--kazoku-column-width` wide (16rem). Auto-turn and More at the top, so More does not move when it opens; then the Angle slider, the zoom slider, and − readout + and Fit. On a narrow screen put it under the view and give it `width: auto`. | Auto-turn, More, Angle, the zoom slider, − readout +, Fit | Tilt, the speeds, Front, the pan pad, in the column |
 | `compact` | The least room, for a card or a phone: **one row** of Auto-turn, −, the readout, + and More (icons, named for a screen reader). It never takes a second row until More is pressed; while it turns, the speed is in More, and Centre is there with Fit. | Auto-turn, − readout +, More | Everything else, one press away, under the row: the zoom slider and Fit, Angle, Tilt, the speeds, Front, the pan pad |
 
-```html
+```html no-check
 <!-- Horizontal: under the view -->
 <div id="view" tabindex="0">...your scene...</div>
 <kazoku-view-controls for="view" layout="horizontal"></kazoku-view-controls>
@@ -138,7 +261,7 @@ export function Viewer({ draw }) {
 
 `createViewController` is the same hands and state with no markup of its own, for a page that draws its own buttons. It touches the DOM only in `bind`.
 
-```js
+```js no-run
 import { createViewController } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
 const view = createViewController({
@@ -166,7 +289,7 @@ The hands capture the pointer on the `for` element, so a press on a button or li
 
 The zoom buttons and keys have no pointer, so they zoom about the view's middle. If your scene's middle is not the view's (a piece standing to one side, say), tell the controls where it is:
 
-```js
+```js no-run
 controls.anchor = { x: 60, y: -30 }; // pixels from the view's middle when it is at Fit
 ```
 
@@ -188,7 +311,7 @@ Arrow Up tips like a drag up (`tilt` gets larger). A page whose wheel and keys s
 
 Zoom 1 is Fit, whatever size that is on the page. A page that draws its scene at `fitScale` (for example 0.4 of natural size when it fits the view) and wants to open at natural size sets `zoom="1"` and tells the controls the scale:
 
-```js
+```js no-run
 const controls = document.querySelector("kazoku-view-controls");
 controls.setAttribute("zoom", "1"); // natural size
 controls.setFitScale(measure()); // the scale the scene is drawn at when it fits, for example 0.4
@@ -280,7 +403,7 @@ See [docs/language-picker.md](docs/language-picker.md). The demo's own English a
 
 Choices kept in the address, without an element: `createAddressState({ defaults })` with `get`, `set`, `remove`, `subscribe` and `flush`, writing with `replaceState` (no history entry, one write for the changes of a quarter of a second, a value at its default leaves the address, other parameters and the hash kept), and hearing back and forward. The theme switch, the language picker and the view controls keep their choices through it.
 
-```js
+```js no-run
 import { createAddressState } from "@johnmorrisdotca/kazoku-ui/address-state";
 
 const state = createAddressState({ defaults: { size: "m" } });
@@ -308,7 +431,7 @@ materials, textures and models are counted and freed when the last view lets go.
 requested at a time, and a canvas never passes 6 million pixels or 4096 a side. Context loss is handled in one place. **three.js is a peer dependency and is never bundled**:
 your page passes `load: () => import("three")`, so it loads only when the first view goes live. How a package uses it, the API and the freeze checks: [docs/renderer.md](docs/renderer.md). Demo: `renderer.html`.
 
-```ts
+```ts no-check
 import { createSharedRenderer } from "@johnmorrisdotca/kazoku-ui/renderer";
 const renderer = createSharedRenderer({ load: () => import("three") });
 const view = renderer.view(host, item);   // item: { key, build({ three, assets, width, height }) => { scene, camera } }
@@ -343,8 +466,104 @@ Gzipped, unbundled. View controls: the element and its definition about 9.3 KB, 
 
 `pnpm check` (lint, types, 122 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, the frame loop counted at `requestAnimationFrame` (nothing out of sight or hidden, one callback a page frame otherwise, a moved element too), the zoom readout against the state after every way of zooming, the speed button adding no row, each layout's controls, rows and sizes (compact one row on a phone, turning adding no row), the zoom slider by keys, mouse and touch, its marks for several ranges and always the true zoom, the layouts page, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`, and the shared 3D renderer on `demo/renderer.html`: one WebGL context over fifty focus changes, nothing drawn or requested at rest, the GPU objects and heap flat, the canvas within budget at 5K, context loss, out of sight, the stills' byte budget, and three.js fetched only when a view goes live).
 
-## Not yet
+## Theming
 
-Not published to npm yet. The Japanese labels have not yet been read by a native speaker. The demo's scene is a CSS 3D card; the package has no opinion about what draws.
+Every part follows the page's colours: `data-theme="light"` or `"dark"` on the page forces them, and without it the device decides. `theme="light"` or `theme="dark"` on one element gives it a look of its own. The colours are custom properties on the element: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`; the parts are `bar`, `field`, `slider` and `button` (and `group` for the others).
 
-Licence: MIT. No brand, league or sponsor mark is in this package.
+```html
+<style>
+  kazoku-theme-switch, kazoku-language-picker { --kazoku-accent: #2457d6; --kazoku-line: #c9cdd6; }
+</style>
+<kazoku-theme-switch></kazoku-theme-switch>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/theme-switch/define";</script>
+```
+
+## Accessibility
+
+Controls are on or right beside the view and visible without scrolling; changing a control never stops or resets the turn; every control is 48 px; the choices are radio groups with one tab stop and the arrow keys; the zoom is announced politely once it has settled; each language button carries its own `lang`; reduced motion gets no automatic turn. The rules and the labels are in [Accessibility and labels](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/accessibility-and-labels.md).
+
+## Limits
+
+- **The Japanese labels have not yet been read by a native speaker.**
+- **The demo's scene is a CSS 3D card;** the package has no opinion about what draws.
+- **A picture of an element** (save image) cannot carry web fonts, `::before` or `::after`, or a cross-origin image: draw those into a canvas and save the canvas.
+- **Several visible live 3D views at once are not supported** by the shared renderer: that is its point.
+- **WebKit has no software GL switch,** so off CI its tests skip the pages that draw WebGL.
+- **Early development (0.x):** a minor version can add to the interface. [Upgrading](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/upgrading.md) lists what asks something of you.
+
+## Browser and runtime support
+
+The elements need custom elements, shadow DOM and constructable stylesheets (Chrome, Edge, Firefox and Safari 16.4 or later; older Safari falls back to a `<style>` that carries the element's `nonce`). The demo is played in Chromium and WebKit, at a phone's width and a desk's. Node 22 or later builds and tests it (22.18 or later to run the TypeScript tests directly); the pure modules import on a server. To load an element only where it can run:
+
+```js no-run
+if ("customElements" in window) {
+  await import("@johnmorrisdotca/kazoku-ui/theme-switch/define");
+}
+```
+
+## Languages
+
+Every label is in English and in Japanese, and a unit test holds that every key is in both. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`. The language picker names each language in its own language. The guides have a Japanese page each, in [docs/guides/ja](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/ja).
+
+## Roadmap
+
+Parts that arrive later: picture-tile pickers, Help, GitHub and npm pills and the family's backgrounds, each a new subpath that changes nothing that exists. Next for what is here: the Japanese labels read by a native speaker, and the family's other packages moving to the shared parts.
+
+## Architecture
+
+One part, one subpath; the pure code, the element and the registration are three files; a part never draws the page's scene; the shared internals (styles, adoption, scheme, store, target) are not exported. See the [architecture guide](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/architecture.md).
+
+## Demos
+
+[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/builder-dark.webp">
+<img alt="The builder: the part chosen in a row of buttons, its options beside the live preview, and the code to copy under them" src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/builder-light.webp">
+</picture>
+
+## Documentation
+
+| Guide | What it covers |
+|---|---|
+| [Getting started](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/getting-started.md) | The parts in a few minutes |
+| [View controls](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/view-controls.md) | Every attribute, the event, the keys, the address |
+| [Layouts and the zoom slider](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/layouts-and-zoom.md) | The four layouts and the slider's scale |
+| [The view controller and its arithmetic](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/view-controller.md) | The controller without the element |
+| [Theme switch](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/theme-switch.md) | Light, Dark and Auto |
+| [Language picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/language-picker.md) | Each language in its own name |
+| [Address state](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/address-state.md) | Choices kept in the link |
+| [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
+| [The shared renderer](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/renderer.md) | One WebGL context, and the freeze checks |
+| [Frameworks and CSP](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/frameworks-and-csp.md) | React, Vue, Svelte, Angular, servers, strict policies |
+| [Accessibility and labels](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/accessibility-and-labels.md) | The rules and the words |
+| [Architecture](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/architecture.md) | The parts and the rules |
+| [Troubleshooting and FAQ](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/troubleshooting.md) | A bar that does nothing, an unknown tag |
+| [Upgrading](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/upgrading.md) | What each version asks of you |
+
+Each guide has a Japanese page of the same name in [docs/guides/ja](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/ja). The reference for every export is [docs/API.md](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md), written from the built declarations. The repository's own notes: [theme switch](docs/theme-switch.md), [language picker](docs/language-picker.md), [address state](docs/address-state.md), [save image](docs/save-image.md), [renderer](docs/renderer.md), [the drag rule](docs/drag-rule.md), [CSP](docs/csp.md), [labels](docs/labels.md), [the package standard](docs/package-standard.md).
+
+## Development
+
+```sh
+pnpm check          # lint, types, tests, the build and the packed package
+pnpm test:package   # pack it as npm does, install it in an empty project, import every entry
+pnpm test:demo      # build the demo and play it in Chromium and WebKit
+pnpm test:readme    # every example of the README and the guides, run in Node and in a browser
+pnpm docs:api       # rewrite docs/API.md from the built declarations
+pnpm docs:check     # the reference is current, every guide has its Japanese page, every link and picture is there
+pnpm screenshots    # the pictures of the README and the guides (docs/images)
+pnpm dev            # the demo on http://127.0.0.1:8400/
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md): no runtime dependencies, one part to a subpath, a part never draws the page's scene, labels in both languages, no marks, and tests for what you change. Add a line to `CHANGELOG.md` under **Unreleased** for a change a user would notice. `templates/` and `docs/package-standard.md` are what the family's other packages copy unchanged.
+
+## Changes
+
+Every release, dated, is in [CHANGELOG.md](CHANGELOG.md).
+
+## Licence
+
+MIT. No brand, league or sponsor mark is in this package.

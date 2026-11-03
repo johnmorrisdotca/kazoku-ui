@@ -1,0 +1,127 @@
+---
+title: 表示の操作
+section: how-to
+order: 2
+description: view-controls要素のすべて。ユーザーが得られるもの、全属性、送られるイベント、キーとジェスチャー、アドレスの扱いを説明します。
+---
+
+[English](../view-controls.md)
+
+`<kazoku-view-controls>`は、3Dやズームできるビューに、回転、傾き、ズーム、移動の操作を与えます。シーンそのものは描きません。ユーザーが選んだことをひとつのイベントで知らせ、ページ側が、キャンバス、WebGL、SVG、CSS 3Dのどれかにそれを反映します。
+
+![デスクトップ幅のデモ。少し回して傾けたカードの下にバーがある](../../images/hero-light.webp)
+
+## ユーザーが得られるもの
+
+- **2つのレベルで、バーを簡潔に保ちます。** 既定の`controls="basic"`では、角度のスライダー、自動回転、ズームの縮小と拡大（**数値表示**つき。`2.4×`のように出て、押すと全体表示に戻ります）、全体表示、小さな「詳細」ボタンが出ます。「詳細」を押すと、傾き、3段階の速さ、正面、矢印パッドが加わり、その選択は記憶されます。
+- ドラッグで回転します（等倍のとき。指では傾かないので、ページのスクロールは使えます）。ズームしているときのドラッグは、ビューを動かします。ピンチ、またはCtrlかCommandを押しながらのホイールで、ポインターを中心にズームします。
+- **どの操作も、回転を止めたり、リセットしたりしません。** ズーム、傾き、移動、全体表示、正面のどれでも、自動回転は続きます。
+- ビュー上のキー：矢印キーで回転と傾き、`+`と`-`でズーム、`0`かHomeで正面と全体表示です。
+- 英語と日本語のラベル、ライトとダーク、48 pxのタッチターゲット、スマートフォンでは小さなバー、動きの軽減を求めるユーザーには自動回転なし。
+- ズームしたり動かしたりすると、**中央**ボタン（`中央`）が現れ、押すとオブジェクトが全体表示で真ん中に戻ります。
+
+## 使い方
+
+```html
+<div id="scene" tabindex="0" style="height: 260px">Your scene</div>
+<kazoku-view-controls for="scene" address controls="basic"></kazoku-view-controls>
+
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/view-controls/define";
+
+  const scene = document.getElementById("scene");
+  const bar = document.querySelector("kazoku-view-controls");
+  bar.addEventListener("kazoku-viewchange", (event) => {
+    const { yaw, tilt, zoom, panX, panY, final } = event.detail;
+    scene.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom}) rotateX(${tilt}deg) rotateY(${yaw}deg)`;
+    if (final) scene.dataset.settled = "yes";
+  });
+</script>
+```
+
+要素は、ビューの上か、すぐそばに置いて、ビューといっしょに画面に出るようにします。`for`は、操作（ポインター、ピンチ、ホイール、キー）を結びつける要素を指します。キーを使うには、その要素に`tabindex`を付けてください。`element.view = someElement`で指定することもできます。
+
+## イベント
+
+`kazoku-viewchange`は要素から送られ、バブリングして、シャドウルートも越えます。`event.detail`は、コントローラーの`onChange`が受け取るものと同じオブジェクトです。
+
+| フィールド | 意味 |
+|---|---|
+| `yaw` | 度。-180から180。垂直軸のまわりの回転。右にドラッグすると大きくなります。 |
+| `tilt` | 度。`tilt-max`（30）の正負に制限。大きいほど上側が奥へ傾きます（上にドラッグ）。 |
+| `zoom` | 1から5（`zoom-min`、`zoom-max`）。1が全体表示。シーンは`zoom * fitScale`で描きます。 |
+| `panX`、`panY` | ズームした絵を、ビューの中心から動かしたCSSピクセル。等倍では0。 |
+| `turning` | 自動回転が動いている間は真。 |
+| `drag` | `"move"`か`"turn"`：ズーム中のふつうのドラッグの働き。 |
+| `final` | ドラッグ、ピンチ、スライダー、自動回転の途中の段階では偽、確定したときは真。重い描画は`final`のときに、軽い変形はイベントのたびに行います。 |
+| `reason` | 変化の原因：`init`、`auto`、`drag`、`pinch`、`wheel`、`key`、`slider`、`zoom`、`pan`、`front`、`fit`、`fit-scale`、`play`、`pause`、`set`。 |
+
+`init`イベントは、要素が接続された少しあとに1回だけ送られ、開始時のビュー（属性とアドレスから決まったもの）を伝えます。`element.state`は、いつでも現在のビューです。定数`TAG`と`EVENT`が、タグとイベントの名前です。
+
+## 属性
+
+| 属性 | 働き |
+|---|---|
+| `for` | 操作を結びつけるビューのid。`element.view = someElement`でも指定できます。 |
+| `lang` | `en`か`ja`。なければ、いちばん近い上位の`lang`、それもなければ英語。 |
+| `yaw`、`tilt` | 開始時の角度と傾き。 |
+| `zoom` | 開始時のズーム。`fit`（既定）か、1がシーンの自然な大きさになる倍率。その数を`fit-scale`で割った値で開きます。 |
+| `fit-scale` | 全体表示のとき（イベントの`zoom`が1のとき）にページがシーンを描く倍率。既定は1。シーンを測ったあとで`element.setFitScale(n)`を呼んでも指定できます。 |
+| `ignore` | ビューの中で、押してもドラッグにせず、クリックをそのまま通す対象のCSSセレクター。既定は`button, a, input, select, textarea, label, [data-kazoku-ignore]`。 |
+| `anchor` | `x,y`：`+`、`-`のボタン、2倍ボタン、キーがズームの中心にする点。全体表示のときのビューの中心からのCSSピクセルで指定します。 |
+| `key-tilt` | `drag`（既定：上矢印は上へのドラッグと同じ向きに傾ける）か`wheel`（ホイールを上に回したときの向きに傾ける）。 |
+| `stop-turn` | 押す、ホイール、キーのどれかで自動回転を止めます。既定ではオフで、ボタンとスライダーは回転を止めません。 |
+| `tilt-step` | ドラッグの傾きを、この度数の倍数に丸めます。既定は0で、丸めません。 |
+| `object-size` | `w,h`：ビューより小さいとき、全体表示でのオブジェクトの大きさ（CSSピクセル）。移動しても、オブジェクトの少なくとも4分の1は見えたままです。 |
+| `grab-radius` | 地球儀など回せるものを正確につかむための設定。全体表示での画面上の半径（CSSピクセル）か`fit`。ドラッグすると、触れた点がポインターの下に保たれます。 |
+| `autoplay` | 最初から自動で回します。動きの軽減を求めるユーザーには回しません。 |
+| `autoplay-for` | `autoplay`の回転が、この秒数だけ回ったあと自分で止まります。 |
+| `speed` | 「ふつう」での1秒あたりの度数（30）。「ゆっくり」は半分、「はやい」は2倍。 |
+| `controls` | `basic`（既定）か`advanced`。ユーザーが「詳細」で選んだ内容は`localStorage`に記憶され、優先されます。 |
+| `layout` | `classic`（既定）、`horizontal`、`vertical`、`compact`：[レイアウトとズームスライダー](layouts-and-zoom.md)を参照。 |
+| `storage` | レベルを記憶する`localStorage`のキー（`kazoku-view-controls`）。 |
+| `flat` | ビューは回りません。角度、傾き、自動回転、正面はなく、ドラッグは移動になります。 |
+| `tilt-max`、`zoom-min`、`zoom-max` | 上限と下限（30、1、5）。 |
+| `address` | 選んだ内容をページのアドレスに残します（`?yaw=40&tilt=10&zoom=2&drag=turn&speed=fast`）。 |
+| `address-keys` | 別のキー名：`yaw:a,zoom:z`。 |
+| `theme` | `light`か`dark`。なければページの配色。 |
+| `overlay` | 位置を指定した親の下部に重ねます。 |
+
+メソッドは、`play()`、`pause()`、`front()`、`fit()`、`centre()`、`set({ yaw, tilt, zoom, panX, panY, drag })`、`setFitScale(n)`、そして裏にある[コントローラー](view-controller.md)の`controller`です。`element.words = { front: "Home" }`でラベルを置き換えられます。色はカスタムプロパティ`--kazoku-ink`、`--kazoku-surface`、`--kazoku-line`、`--kazoku-accent`で、パーツは`bar`、`field`、`slider`、`button`です。
+
+## アドレス
+
+残るのは、ユーザーが選んだものだけです。角度、傾き、ズーム、ドラッグの選択、自動回転の速さ（`speed=slow`か`speed=fast`。「ふつう」はアドレスに残りません）。移動はその画面のピクセルで、回転はその瞬間のものなので、どちらも残りません。開始時の値は、アドレスに残りません。
+
+```js
+import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";
+
+const choices = { yaw: 40, tilt: 10, zoom: 2, drag: "turn" };
+console.log(formatAddress("?x=1", choices));
+console.log(JSON.stringify(parseAddress("?yaw=40&tilt=x&zoom=2")));
+console.log(JSON.stringify(DEFAULT_KEYS));
+console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
+// ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
+// {"yaw":40,"zoom":2}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"speed"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"speed"}
+```
+
+## シーンの自然な大きさで開く
+
+ズーム1は、ページ上でそれがどんな大きさでも、全体表示です。シーンを`fitScale`で描いていて（ビューに収まるときの自然な大きさの0.4倍など）、自然な大きさで開きたいページは、`zoom="1"`にして、要素に倍率を教えます。
+
+```js no-run
+const controls = document.querySelector("kazoku-view-controls");
+controls.setAttribute("zoom", "1"); // natural size
+controls.setFitScale(0.4); // the scale the scene is drawn at when it fits
+// the event's zoom is now 2.5; draw at event.detail.zoom * controls.fitScale
+```
+
+## タグは空いているときだけ定義する理由
+
+`customElements.define`は、名前がすでに使われていると例外を投げます。ページに非がなくても起こります。このパッケージのコピーが2つある場合、スクリプトが2回読み込まれた場合、ページが自前の要素のために先にタグを登録していた場合などです。そこで`defineViewControls`（`define`のインポートが実行するもの）は、先に`customElements.get`を呼び、最初に登録されたものが優先されます。自分で登録したいときのために、クラス`ViewControlsElement`は`view-controls/element`にあります。
+
+## 関連
+
+要素なしでビューを動かす方法：[ビューのコントローラーと計算](view-controller.md)。ポインターの下の面がポインターに付いてくるという決まりは、リポジトリの[ドラッグの決まり](../../drag-rule.md)にあります（英語）。
