@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-03
+
 - **Exact grab** (KAZOKU-UI-28, from chikyu-earth's MODULES-200). `grab-radius` on `<kazoku-view-controls>` (and `grabRadius` on `createViewController`, `degreesPerPixel` and a `grabRadius` argument to `dragTurn`): the on-screen radius of a globe or turnable piece in CSS pixels at Fit, or `fit` for half the smaller side of the view. A drag then turns the view by the angle that keeps the touched point under the pointer, on both axes, and the radius grows with the zoom. Left out, nothing changes: the fixed angle across the view (180 degrees across the width, 60 down the height) that moved a globe's ground about 1.5 pixels for each pixel of drag sideways and half a pixel up and down.
 - **A Centre button** (KAZOKU-UI-33). Once the view is zoomed or moved, a Centre button (中央) puts the object back in the middle at Fit and the default angle, with a quarter of a second's move (at once under reduced motion; a hand on the view stops it): `element.centre()`, `controller.centre(animate)`, the `centre` word in both languages, `between()` in the maths. The keys Home and 0 do the same without the move. `object-size` (`objectSize`) holds a pan so that at least a quarter of an object smaller than the view stays in view.
 - **The drag rule**, written down in `docs/drag-rule.md`: the surface under the pointer follows the pointer, the arrow keys agree, Auto-turn goes the object's real way.
