@@ -76,3 +76,36 @@ output[data-testid="address"] { min-width: 0; overflow-wrap: anywhere; font: 0.8
 .art .b { fill: var(--face-b); }
 
 #globe { position: absolute; inset: 0; margin: auto; width: 300px; height: 300px; pointer-events: none; }
+/* layouts.html: the layouts side by side. */
+.wide main { max-width: 1240px; }
+.ranges { margin: 4px 0 10px; }
+.layouts { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); align-items: start; }
+.layout { min-width: 0; padding: 12px 14px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.layout h2 { margin: 0 0 2px; font-size: 1rem; }
+.layout h2 .sub { font-size: 0.9rem; }
+.layout .say { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+.layout .scene.small { height: 240px; background: var(--bg); }
+.layout .card { width: 110px; height: 154px; }
+.layout .edge-l { transform: rotateY(-90deg) translateZ(55px); }
+.layout .edge-r { transform: rotateY(90deg) translateZ(55px); }
+.layout .edge-t { transform: rotateX(90deg) translateZ(77px); }
+.layout .edge-b { transform: rotateX(-90deg) translateZ(77px); }
+.stage.beside { display: flex; gap: 12px; align-items: flex-start; }
+.stage.beside .scene { flex: 1 1 auto; min-width: 0; height: 280px; }
+.stage.beside kazoku-view-controls { margin-top: 0; flex: none; }
+.snippet { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+.snippet pre { flex: 1 1 auto; margin: 0; }
+.code { min-width: 0; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font: 0.8rem/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+.copy { flex: none; }
+.picks { display: none; }
+@media (max-width: 1099px) {
+  .picks { display: flex; margin: 0 0 10px; }
+  .layouts[data-show="horizontal"] .layout:not([data-layout="horizontal"]), .layouts[data-show="vertical"] .layout:not([data-layout="vertical"]), .layouts[data-show="compact"] .layout:not([data-layout="compact"]), .layouts[data-show="classic"] .layout:not([data-layout="classic"]) { display: none; }
+}
+@media (max-width: 640px) {
+  .stage.beside { flex-direction: column; align-items: stretch; }
+  .stage.beside .scene { height: min(260px, 34vh); }
+  .stage.beside kazoku-view-controls { width: auto; }
+  .layout .scene.small { height: min(220px, 30vh); }
+  .ranges .name { min-width: 0; }
+}

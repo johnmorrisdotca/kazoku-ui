@@ -9,7 +9,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
@@ -44,8 +44,47 @@ Parts (each its own subpath; later ones: picture-tile pickers, Help, GitHub and 
 - Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
+- **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 1×, 2× and the ends: see [Layouts](#layouts).
 - Labels in English and Japanese; light and dark; 48 px touch targets; a compact bar on a phone; no automatic turn for a reader who prefers reduced motion.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, the Move or Turn choice, Fit and Front all leave Auto-turn running (Front only sets the angle to 0 and the turn goes on from there). A hand on the angle slider, or turning the view by dragging it, holds the turn still while it is down and the turn carries on from where the hand left it. Only the Auto-turn button pauses it.
+
+### Layouts
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/layouts-dark.webp">
+<img alt="The four layouts side by side, each under a turned card. Horizontal: an Angle slider with Auto-turn and More on one row, and under it a Zoom slider marked 1×, 2×, 3× and 5× with zoom out, the readout 1.6×, zoom in and Fit. Vertical: a column beside the view with Auto-turn and More at the top, then the Angle slider, the Zoom slider with its marks, and zoom out, 1.6×, zoom in and Fit. Compact: one short row of Auto-turn, zoom out, 1.6×, zoom in and More, here opened to show the zoom slider and Fit, the angle and tilt, the three speeds, Front and the pan pad. Classic: the bar as before. Each has its code and a Copy button." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/layouts-light.webp" width="720">
+</picture>
+
+Try them on the [layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html): every layout live, side by side, each with its code to copy, and a choice of zoom range to see the slider's marks change.
+
+The `layout` attribute says where the controls sit; `controls` (`basic` or `advanced`, and the reader's More) still says what is shown, the same in every layout. A page that names no layout keeps the bar it had.
+
+| `layout` | What it looks like | Basic shows | More adds |
+|---|---|---|---|
+| `classic` (the default) | The bar of 0.10 and before, unchanged: one wrapping row at a desk, two rows on a phone. No zoom slider. | Angle, Auto-turn, − readout +, Fit, More | Tilt, Slow, Medium, Fast, Front; the pan pad once zoomed in |
+| `horizontal` | A tidy bar under the view: the turn on one row (Angle, Auto-turn, More), the **zoom slider** on the next (Zoom, − readout +, Fit). One row when the bar is 900 px or wider. Under 560 px the labels are read by a screen reader only, and the readout is Fit. | Angle, Auto-turn, the zoom slider, − readout +, Fit, More | Tilt and Front, then the speeds, between the two rows; the pan pad last |
+| `vertical` | A column beside the view, `--kazoku-column-width` wide (16rem). Auto-turn and More at the top, so More does not move when it opens; then the Angle slider, the zoom slider, and − readout + and Fit. On a narrow screen put it under the view and give it `width: auto`. | Auto-turn, More, Angle, the zoom slider, − readout +, Fit | Tilt, the speeds, Front, the pan pad, in the column |
+| `compact` | The least room, for a card or a phone: **one row** of Auto-turn, −, the readout, + and More (icons, named for a screen reader). It never takes a second row until More is pressed; while it turns, the speed is in More. | Auto-turn, − readout +, More | Everything else, one press away, under the row: the zoom slider and Fit, Angle, Tilt, the speeds, Front, the pan pad |
+
+```html
+<!-- Horizontal: under the view -->
+<div id="view" tabindex="0">...your scene...</div>
+<kazoku-view-controls for="view" layout="horizontal"></kazoku-view-controls>
+
+<!-- Vertical: beside the view -->
+<div style="display: flex; gap: 12px">
+  <div id="view" tabindex="0" style="flex: 1">...your scene...</div>
+  <kazoku-view-controls for="view" layout="vertical"></kazoku-view-controls>
+</div>
+
+<!-- Compact: one row; with overlay it floats over the bottom corner of a positioned card -->
+<div style="position: relative">
+  <div id="view" tabindex="0">...your scene...</div>
+  <kazoku-view-controls for="view" layout="compact" overlay></kazoku-view-controls>
+</div>
+```
+
+**The zoom slider** (horizontal, vertical and compact) runs from `zoom-min` to `zoom-max` on a logarithmic scale, so a press of − or + moves it the same distance anywhere along it. It has marks, labelled, at both ends and at the common zooms between them that have room for a label: 1× to 5× gives 1×, 2×, 3×, 5×; 0.5× to 4× gives 0.5×, 1×, 2×, 4×; 1× to 10× gives 1×, 2×, 4×, 10×. The readout beside it is the true zoom, and the slider always shows it too, whatever moved the view (the buttons, the wheel, a pinch, a double press, Fit, the keys on the view, the address, `set`, the limits). A drag or a press that ends within 8 px of a mark goes to it; anywhere else it stays where it was let go. − and + still step by 1.4×. Keys on the slider: the arrows step by 1.1× and stop on a mark they would pass, Page Up and Page Down go to the next mark, Home and End to the ends. A screen reader hears its value as the readout says it (`2.4×`), and its name is Zoom. Without the element, `zoomMarks(min, max)`, `zoomPosition`, `zoomAtPosition`, `zoomStep`, `zoomToMark` and `zoomSnap` are the same scale in `@johnmorrisdotca/kazoku-ui/view-controls`.
 
 ### In plain HTML
 
@@ -193,16 +232,17 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
 | `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |
 | `controls` | `basic` (the default) or `advanced`: which controls are shown (see above; the zoom readout in both, the speed in both while the view turns). Written in the page's markup it is where the reader starts; what the reader chose with More is remembered under `kazoku-view-controls` in `localStorage` (or the key `storage` names) and wins. Setting the attribute later changes the level at once. The host carries `data-level` with the level now. |
+| `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: where the controls sit (see [Layouts](#layouts)). Can change at any time. Anything else is `classic`. The host carries `data-layout` with the layout in use. |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
 | `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&speed=fast`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
-| `overlay` | Sit over the bottom of a positioned parent. |
+| `overlay` | Sit over the bottom of a positioned parent. With `layout="compact"` the row floats 8 px in from the bottom start corner instead of spanning the bottom. |
 
 Methods: `play()`, `pause()`, `front()`, `fit()`, `set({ yaw, tilt, zoom, panX, panY, drag })`, `setFitScale(n)`, and `controller` (the `createViewController` object behind it). `element.words = { front: "Home" }` replaces labels.
-Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line`, `--kazoku-accent`; the parts are `bar`, `field`, `slider` and `button`.
+Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line`, `--kazoku-accent`; the parts are `bar`, `field`, `slider` and `button`, and the zoom slider's `zoom-slider` (on its field and its input).
 
 ### The address
 
@@ -295,11 +335,11 @@ The styles are adopted as a constructable stylesheet (`adoptedStyleSheets`), so 
 
 ## Size
 
-Gzipped, unbundled. View controls: the element and its definition about 7.3 KB, the controller 4.6 KB, the sight watch 0.6 KB, the maths 1.4 KB, the address 1.4 KB, the levels 0.4 KB, the labels 0.9 KB and the styles 2.0 KB. Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared 3D renderer: 8.9 KB (the renderer 4.5, the scheduler 1.2, the assets 1.4, the stills 0.6, the pixel budget 0.8, the index 0.4), the test kit 1.6 KB; three.js is the page's own and is not counted. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
+Gzipped, unbundled. View controls: the element and its definition about 8.7 KB, the controller 4.6 KB, the sight watch 0.6 KB, the maths 1.4 KB, the address 1.4 KB, the levels and layouts 0.6 KB, the zoom scale 1.5 KB, the labels 0.9 KB and the styles 3.7 KB (the four layouts and the slider). Theme switch: the element and its definition 3.3 KB, the choices 1.0 KB, the labels 0.3 KB and the styles 0.3 KB. Language picker: the element and its definition 2.8 KB, the codes and names 1.7 KB, the labels 0.3 KB. Save image: the element and its definition 3.0 KB, the rendering 3.6 KB, the formats and file names 1.0 KB, the labels 0.4 KB. Address state: 2.1 KB. Shared 3D renderer: 8.9 KB (the renderer 4.5, the scheduler 1.2, the assets 1.4, the stills 0.6, the pixel budget 0.8, the index 0.4), the test kit 1.6 KB; three.js is the page's own and is not counted. Shared by parts: the style adoption 0.8 KB, the base styles 1.0 KB, the page's colours 0.5 KB and the target and the store 0.6 KB. `pnpm test:package` prints them. Nothing is loaded from the network.
 
 ## Checks
 
-`pnpm check` (lint, types, 104 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, the frame loop counted at `requestAnimationFrame` (nothing out of sight or hidden, one callback a page frame otherwise, a moved element too), the zoom readout against the state after every way of zooming, the speed button adding no row, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`, and the shared 3D renderer on `demo/renderer.html`: one WebGL context over fifty focus changes, nothing drawn or requested at rest, the GPU objects and heap flat, the canvas within budget at 5K, context loss, out of sight, the stills' byte budget, and three.js fetched only when a view goes live).
+`pnpm check` (lint, types, 122 unit tests of the maths, the address, the controller and the package, the build and the packed package), and `pnpm test:demo` (the demo in Chromium and WebKit at a phone's width and a desk's: the controls in the first screen, a toggle during Auto-turn leaves the angle advancing, the frame loop counted at `requestAnimationFrame` (nothing out of sight or hidden, one callback a page frame otherwise, a moved element too), the zoom readout against the state after every way of zooming, the speed button adding no row, each layout's controls, rows and sizes (compact one row on a phone, turning adding no row), the zoom slider by keys, mouse and touch, its marks for several ranges and always the true zoom, the layouts page, a button or link inside the view still clicks while a drag turns it, the opening zoom and fit scale, zoom about the pointer, zoom about an anchor (`?anchor=pin`), Arrow Up either way (`?key-tilt=wheel`), `?stop-turn`, `?tilt-step=1`, pan when zoomed, touch, the address, the labels, reduced motion, the controls styled under a strict `style-src` with no violation, `demo/csp.html`, the theme switch and the language picker in each browser and size, the address state, back and forward and no history added, on `demo/address.html`, and the save buttons: each file read back from disk, on `demo/save-image.html`, and the shared 3D renderer on `demo/renderer.html`: one WebGL context over fifty focus changes, nothing drawn or requested at rest, the GPU objects and heap flat, the canvas within budget at 5K, context loss, out of sight, the stills' byte budget, and three.js fetched only when a view goes live).
 
 ## Not yet
 

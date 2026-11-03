@@ -1,4 +1,5 @@
-// Takes the README's still hero picture into docs/images as webp (made in the browser, so no tool beyond Chromium): the demo at a desk's width, turned a little, light and dark.
+// Takes the README's still pictures into docs/images as webp (made in the browser, so no tool beyond Chromium), light and dark: the hero (the demo at a desk's width, turned a little),
+// the layouts side by side (layouts.html at a desk's width) and the layouts on a phone (horizontal, vertical and compact, one under another).
 // It serves the demo on port 8402, or TEST_PORT, and stops the server it started. It needs the site built (`pnpm screenshots` builds first).
 // IMAGES_OUT writes somewhere else than docs/images; PNG=1 writes png beside the webp (to look at them).
 import { spawn } from "node:child_process";
@@ -51,6 +52,23 @@ try {
     const png = await page.locator("main").screenshot();
     writeFileSync(`${out}/hero-${scheme}.webp`, await webp(png));
     if (process.env.PNG) writeFileSync(`${out}/hero-${scheme}.png`, png);
+    await context.close();
+  }
+  for (const scheme of ["light", "dark"]) {
+    // Every layout side by side, the zoom a little in so the slider shows its fill, and More open on compact so its second step shows too.
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1.5, colorScheme: scheme, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto(`http://127.0.0.1:${port}/layouts.html`);
+    await page.waitForFunction(() => [...document.querySelectorAll("kazoku-view-controls")].every((el) => el.shadowRoot?.querySelector(".bar")));
+    await page.evaluate(() => {
+      for (const el of document.querySelectorAll("kazoku-view-controls")) el.set({ yaw: -28, tilt: 10, zoom: 1.6 });
+      document.querySelector('[data-testid="controls-compact"]').setAttribute("controls", "advanced");
+      document.activeElement?.blur();
+    });
+    await page.waitForTimeout(200);
+    const png = await page.locator(".layouts").screenshot();
+    writeFileSync(`${out}/layouts-${scheme}.webp`, await webp(png));
+    if (process.env.PNG) writeFileSync(`${out}/layouts-${scheme}.png`, png);
     await context.close();
   }
   await browser.close();

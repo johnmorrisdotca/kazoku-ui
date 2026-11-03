@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: view controls layouts</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body class="wide">
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">view controls layouts</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html">The view controls</a> · <a href="https://github.com/johnmorrisdotca/kazoku-ui#layouts">The layouts in the README</a></p>
+  <p class="intro">One element, four layouts, chosen by the <code>layout</code> attribute. Each one below is live: drag a card, press the buttons, slide the zoom. More shows the rest in every layout.</p>
+  <div class="row picks"><span class="name" id="pick-name">Layout</span>
+    <div class="seg" role="group" aria-labelledby="pick-name" data-testid="picks">
+      <button class="pill" type="button" data-pick="horizontal" aria-pressed="true">Horizontal</button>
+      <button class="pill" type="button" data-pick="vertical" aria-pressed="false">Vertical</button>
+      <button class="pill" type="button" data-pick="compact" aria-pressed="false">Compact</button>
+      <button class="pill" type="button" data-pick="classic" aria-pressed="false">Classic</button>
+    </div>
+  </div>
+  <div class="row ranges"><span class="name" id="range-name">Zoom range</span>
+    <div class="seg" role="group" aria-labelledby="range-name" data-testid="ranges">
+      <button class="pill" type="button" data-range="1-5" aria-pressed="true">1× to 5×</button>
+      <button class="pill" type="button" data-range="0.5-4" aria-pressed="false">0.5× to 4×</button>
+      <button class="pill" type="button" data-range="1-10" aria-pressed="false">1× to 10×</button>
+      <button class="pill" type="button" data-range="0.25-16" aria-pressed="false">0.25× to 16×</button>
+    </div>
+  </div>
+  <pre class="code" data-testid="import"><code>import "@johnmorrisdotca/kazoku-ui/view-controls/define";</code></pre>
+
+  <div class="layouts" data-testid="layouts" data-show="horizontal">
+    <section class="layout" data-layout="horizontal" aria-labelledby="h-horizontal">
+      <h2 id="h-horizontal"><code>layout="horizontal"</code></h2>
+      <p class="say">A tidy bar under the view: the turn on one row, the zoom slider on the next; one row when it is wide.</p>
+      <div class="stage">
+        <div class="scene small" id="view-horizontal" tabindex="0" role="group" aria-label="Horizontal example"></div>
+        <kazoku-view-controls for="view-horizontal" layout="horizontal" storage="kazoku-demo-horizontal" data-testid="controls-horizontal"></kazoku-view-controls>
+      </div>
+      <div class="snippet"><pre class="code"><code data-code="horizontal"></code></pre><button class="pill copy" type="button" data-copy="horizontal">Copy</button></div>
+    </section>
+
+    <section class="layout" data-layout="vertical" aria-labelledby="h-vertical">
+      <h2 id="h-vertical"><code>layout="vertical"</code></h2>
+      <p class="say">A column beside the view. Auto-turn and More stay at the top; the turn, then the zoom.</p>
+      <div class="stage beside">
+        <div class="scene small" id="view-vertical" tabindex="0" role="group" aria-label="Vertical example"></div>
+        <kazoku-view-controls for="view-vertical" layout="vertical" storage="kazoku-demo-vertical" data-testid="controls-vertical"></kazoku-view-controls>
+      </div>
+      <div class="snippet"><pre class="code"><code data-code="vertical"></code></pre><button class="pill copy" type="button" data-copy="vertical">Copy</button></div>
+    </section>
+
+    <section class="layout" data-layout="compact" aria-labelledby="h-compact">
+      <h2 id="h-compact"><code>layout="compact"</code></h2>
+      <p class="say">One short row for a card or a phone: Auto-turn, the zoom and More. More opens the slider, the angle and the rest.</p>
+      <div class="stage">
+        <div class="scene small" id="view-compact" tabindex="0" role="group" aria-label="Compact example"></div>
+        <kazoku-view-controls for="view-compact" layout="compact" storage="kazoku-demo-compact" data-testid="controls-compact"></kazoku-view-controls>
+      </div>
+      <div class="snippet"><pre class="code"><code data-code="compact"></code></pre><button class="pill copy" type="button" data-copy="compact">Copy</button></div>
+    </section>
+
+    <section class="layout" data-layout="classic" aria-labelledby="h-classic">
+      <h2 id="h-classic"><code>layout="classic"</code> <span class="sub">(the default)</span></h2>
+      <p class="say">The bar of 0.10 and before, unchanged: a page that names no layout keeps it.</p>
+      <div class="stage">
+        <div class="scene small" id="view-classic" tabindex="0" role="group" aria-label="Classic example"></div>
+        <kazoku-view-controls for="view-classic" storage="kazoku-demo-classic" data-testid="controls-classic"></kazoku-view-controls>
+      </div>
+      <div class="snippet"><pre class="code"><code data-code="classic"></code></pre><button class="pill copy" type="button" data-copy="classic">Copy</button></div>
+    </section>
+  </div>
+</main>
+<template id="card">
+  <div class="zoomer">
+    <div class="grid"></div>
+    <div class="persp">
+      <div class="card">
+        <div class="face front">
+          <svg viewBox="0 0 150 210" aria-hidden="true"><circle cx="75" cy="86" r="42" class="a"/><path d="M75 52l36 62H39z" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg>
+        </div>
+        <div class="face back">
+          <svg viewBox="0 0 150 210" aria-hidden="true"><rect x="34" y="40" width="82" height="82" rx="14" class="a"/><circle cx="75" cy="81" r="20" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg>
+        </div>
+        <div class="face edge-l"></div><div class="face edge-r"></div><div class="face edge-t"></div><div class="face edge-b"></div>
+      </div>
+    </div>
+  </div>
+</template>
+<script type="module" src="layouts.js"></script>
+</body>
+</html>
