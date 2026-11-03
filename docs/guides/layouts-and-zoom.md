@@ -14,7 +14,7 @@ The `layout` attribute of `<kazoku-view-controls>` says where the controls sit. 
 | `layout` | What it looks like | Basic shows | More adds |
 |---|---|---|---|
 | `classic` (the default) | The original bar: one wrapping row at a desk, two rows on a phone. No zoom slider. | Angle, Auto-turn, zoom readout, Fit, More | Tilt, Slow, Medium, Fast, Front; the pan pad once zoomed in |
-| `horizontal` | A tidy bar under the view: the turn on one row (Angle, Auto-turn, More), the **zoom slider** on the next. One row when the bar is 900 px or wider. Under 560 px the labels are read by a screen reader only. | Angle, Auto-turn, the zoom slider, readout, Fit, More | Tilt and Front, then the speeds; the pan pad last |
+| `horizontal` | A tidy bar under the view: the turn on one row (Angle, Auto-turn, More), the **zoom slider** on the next. One row when the bar is 1040 px or wider. Under 560 px the labels are read by a screen reader only. Under 360 px the zoom slider takes a row of its own, with the buttons under it, so its marks never meet them. | Angle, Auto-turn, the zoom slider, readout, Fit, More | Tilt and Front, then the speeds; the pan pad last |
 | `vertical` | A column beside the view, `--kazoku-column-width` wide (16rem). Auto-turn and More at the top, so More does not move when it opens. | Auto-turn, More, Angle, the zoom slider, readout, Fit | Tilt, the speeds, Front, the pan pad |
 | `compact` | The least room, for a card or a phone: **one row** of Auto-turn, minus, the readout, plus and More. It never takes a second row until More is pressed. | Auto-turn, readout, More | Everything else, one press away, under the row |
 

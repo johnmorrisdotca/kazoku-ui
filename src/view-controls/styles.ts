@@ -88,6 +88,13 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
   ${CLASSIC} .pan { grid-area: pan; justify-content: center; }
   ${CLASSIC} .drag { margin-inline-start: 4px; }
 }
+/* In a panel narrower than the buttons and the speed need side by side, the speed takes the row under them. */
+${CLASSIC} { container-type: inline-size; }
+@container (max-width: 329px) {
+  @media (max-width: 640px) {
+    ${CLASSIC} .pace-now { grid-area: pace; justify-self: end; }
+  }
+}
 
 /* The zoom slider (horizontal, vertical and compact): a logarithmic track with ticks at its marks, the labels under it, and the part from the least zoom to the zoom now filled. */
 .zslide { display: none; }
@@ -122,7 +129,7 @@ ${H} .more, ${V} .more, ${C} .more { grid-area: more; margin-inline-start: 0; }
 /* Centre, shown once the view is zoomed or moved: beside the zoom, never in the turn's row, so Auto-turn and More stay where they are. */
 ${H} .centre, ${V} .centre, ${C} .centre { grid-area: centre; justify-self: end; }
 /* In the two rows it shares More's column, so it is an icon (its name is read) and never widens that column, which would move Auto-turn. */
-@container (max-width: 899px) {
+@container (max-width: 1039px) {
   ${H} .centre .text { ${UNSEEN} }
   ${H} .centre { padding: 0; }
 }
@@ -137,10 +144,19 @@ ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padd
   /* The readout is Fit here (its name says so), which leaves the slider the room for its marks. */
   ${H} [data-b="fit"] { display: none; }
 }
-@container (min-width: 900px) {
+/* A phone-safe width: the zoom slider takes a row of its own, so its marks never meet the buttons, and the buttons sit under it. */
+@container (max-width: 359px) {
+  ${H} .zoom { flex-wrap: wrap; }
+  ${H} .zslide { flex: 1 0 100%; }
+  ${H} .centre { align-self: end; }
+  ${H} .zbox { min-width: 0; }
+}
+/* Wide enough for the turn, Auto-turn, the zoom with its slider, Centre and More on one row, with the angle slider still a slider. */
+@container (min-width: 1040px) {
   ${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto auto auto; grid-template-areas: "angle speed play zoom centre more" "tilt tilt tilt pace front front" "pan pan pan pan pan pan"; column-gap: 12px; }
   :host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "zoom centre more" "pan pan pan"; }
-  ${H} .zslide { flex: 0 0 15rem; }
+  ${H} .zslide { width: 15rem; }
+  ${H} .zoom { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
   ${H} .pan { justify-self: end; }
 }
 
