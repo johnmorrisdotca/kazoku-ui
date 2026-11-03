@@ -29,7 +29,7 @@ test("while it turns by itself the angle is left as it was", () => {
 
 test("keys are configurable", () => {
   const keys = parseKeys("yaw:a, zoom:z,bogus:x,tilt:");
-  assert.deepEqual(keys, { yaw: "a", tilt: "tilt", zoom: "z", drag: "drag", speed: "speed" });
+  assert.deepEqual(keys, { yaw: "a", tilt: "tilt", zoom: "z", drag: "drag", speed: "pace" });
   const search = formatAddress("", { yaw: 30, tilt: 5, zoom: 2, drag: "turn" }, keys);
   assert.equal(search, "?a=30&tilt=5&z=2&drag=turn");
   assert.deepEqual(parseAddress(search, keys), { yaw: 30, tilt: 5, zoom: 2, drag: "turn" });

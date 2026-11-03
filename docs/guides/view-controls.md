@@ -11,7 +11,7 @@ description: The view-controls element in full: what the reader gets, every attr
 
 ## What the reader gets
 
-- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds tilt, the three speeds, Front and the arrow pad, and the choice is remembered.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds tilt, the speed buttons (0.5×, 1×, 2×), Front and the arrow pad, and the choice is remembered.
 - A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. The wheel over the view, a pinch, or Ctrl or Command with the wheel zooms about the pointer; Shift and the wheel, or a sideways swipe, turns it. Elsewhere the wheel scrolls the page, and so does a new turn of the wheel once the zoom is at its end that way.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
@@ -74,13 +74,15 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `grab-radius` | Exact grab for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit`. A drag then keeps the touched point under the pointer. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself. |
-| `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |
+| `speed` | Degrees a second at a pace of 1 (30). |
+| `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.5 and 2 on the default buttons. The reader's choice is written here and kept in the address as `pace`. The buttons are the family's [speed buttons](speed-buttons.md). |
+| `paces` | The speeds the buttons stand for: `0.5 1 2` by default; any numbers (`paces="1 4 8"`). |
 | `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. |
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: see [Layouts and the zoom slider](layouts-and-zoom.md). |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&speed=fast`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
@@ -89,7 +91,7 @@ Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, til
 
 ## The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`speed=slow` or `speed=fast`; Medium leaves the address). The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
+Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address, and a page's own `speed` parameter is never touched). The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";
@@ -101,8 +103,8 @@ console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
 // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"speed"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"speed"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace"}
 ```
 
 ## Opening at the scene's natural size

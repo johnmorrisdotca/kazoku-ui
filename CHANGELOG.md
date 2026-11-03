@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-03
+
+One speed control for the whole family: the Auto-turn speeds are 0.5×, 1× and 2×, and the same buttons serve a solar system's days a second and a replay bar.
+
+- **`<kazoku-speed-buttons>`** (KAZOKU-UI-46, John 2026-11-03: "the same controls throughout all apps"). One button for each speed, no menu: `steps="0.5 1 2"` by default, any numbers (`1 10 100` for days a second, `0.25 0.5 1 2 4` for a replay, `0 1 3600 86400 -3600` for a clock that can stop and run back), `unit` (`×`, or none), `label` (the group's name, shown and read), `no-label`, `address` and `address-key` (the choice kept in the address, the start left off), `lang` and `theme`. The chosen speed is the `value`, an attribute that follows the reader's choice, and the property; `steps` and `step(1)` (the next speed, round at the ends) are properties too; the page hears `kazoku-speedchange` with `{ value, steps, reason }`. It is the Auto-turn control in the view controls and a part of its own: `@johnmorrisdotca/kazoku-ui/speed-buttons`, `/element` and `/define`, with the pure `parseSteps`, `speedText`, `nearestStep`, `startStep`, `stepFrom`, `parseSpeed` and `SPEED_ADDRESS_KEY`. Reduced motion changes nothing in it. New demo page `speed.html`, a guide in English and Japanese, `e2e/speed-buttons.demo.mjs`, `test/speed-buttons.test.ts`.
+- **The view controls' speeds are 0.5×, 1× and 2×**, not Slow, Medium and Fast. The new `pace` attribute is the speed as a multiple of `speed` (1 by default) and follows the buttons; `paces` names other buttons (`paces="1 4 8"`). The address key is now `pace` (`?pace=2`), no longer `speed`, which is a page's own (a clock's, a replay's) and is never read or written by the controls; `?pace=slow` and `?pace=fast` of 0.12 and 0.13 still read as 0.5 and 2. `DEFAULT_KEYS.speed` is `"pace"`, `AddressChoices.pace` a number. `PACES`, `PACE_FACTOR`, `parsePace` and the type `Pace` remain, for the three words. The small speed button of the basic level while the view turns shows `1×` and steps through the speeds.
+
+### Documentation
+
+- A guide, `speed-buttons.md`, with its Japanese page; the view controls guide, README, getting started, architecture, labels and upgrading pages say `pace`, `paces` and the numbers; the API reference lists the new part; a picture of the buttons three ways (`docs/images/speed-buttons-*.webp`).
+
 ## [0.13.1] - 2026-11-03
 
 The layouts hold at a phone's width and in any narrow panel.

@@ -16,12 +16,13 @@ const ready = async (page, query = "") => {
 /** The controls a reader can see, in the order they come, with the rows they make and the least height of any. */
 const look = (page) => page.evaluate((tag) => {
   const el = document.querySelector(tag);
-  const seen = [...el.shadowRoot.querySelectorAll("button, input")].filter((node) => node.getClientRects().length > 0);
+  const kids = (root) => [...root.querySelectorAll("button, input, kazoku-speed-buttons")].flatMap((n) => (n.localName === "kazoku-speed-buttons" ? [...n.shadowRoot.querySelectorAll("button")] : [n]));
+  const seen = kids(el.shadowRoot).filter((node) => node.getClientRects().length > 0);
   // Rows: the middles in order, a new row wherever the next middle is more than half a button below.
   const middles = seen.map((node) => { const r = node.getBoundingClientRect(); return (r.top + r.bottom) / 2; }).sort((a, b) => a - b);
   const rows = middles.filter((y, i) => i === 0 || y - middles[i - 1] > 24);
   return {
-    shown: seen.map((node) => node.dataset.b ?? node.id),
+    shown: seen.map((node) => node.dataset.b ?? (node.dataset.v === undefined ? node.id : `pace-${node.dataset.v}`)),
     rows: rows.length,
     least: Math.min(...seen.map((node) => node.getBoundingClientRect().height)),
     width: el.shadowRoot.querySelector(".bar").getBoundingClientRect().width,
@@ -55,7 +56,7 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   await button(page, "more").click();
   await button(page, "in").click();
   const advanced = await look(page);
-  expect(advanced.shown).toEqual(expect.arrayContaining(["tilt", "slow", "medium", "fast", "front", "left", "up", "down", "right", "move", "turn"]));
+  expect(advanced.shown).toEqual(expect.arrayContaining(["tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right", "move", "turn"]));
   expect(advanced.fits).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -78,7 +79,7 @@ test("vertical: a column beside the view, Auto-turn and More at the top, and Mor
   const more = await button(page, "more").boundingBox();
   await button(page, "more").click();
   expect(await button(page, "more").boundingBox()).toEqual(more);
-  expect((await look(page)).shown).toEqual(expect.arrayContaining(["tilt", "slow", "front"]));
+  expect((await look(page)).shown).toEqual(expect.arrayContaining(["tilt", "pace-0.5", "front"]));
   expect(errors).toEqual([]);
 });
 
@@ -98,7 +99,7 @@ test("compact: one row, the same row while it turns, and the rest one press of M
   await expect(button(page, "level")).toHaveText("1×");
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect((await look(page)).shown).toEqual(["yaw", "tilt", "play", "slow", "medium", "fast", "front", "zoom", "out", "level", "in", "fit", "more"]);
+  expect((await look(page)).shown).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "front", "zoom", "out", "level", "in", "fit", "more"]);
   expect((await look(page)).fits).toBe(true);
   await button(page, "more").click();
   expect((await look(page)).rows).toBe(1);

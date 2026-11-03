@@ -75,12 +75,13 @@ try {
     if (process.env.PNG) writeFileSync(`${out}/layouts-${scheme}.png`, png);
     await context.close();
   }
-  // The pictures of the guides (docs/guides): the layouts on a phone, the header's switches, the address, save-image, the renderer and the builder, light and dark.
+  // The pictures of the guides (docs/guides): the layouts on a phone, the header's switches, the address, save-image, the speed buttons, the renderer and the builder, light and dark.
   const GUIDE = [
     { name: "layouts-phone", viewport: { width: 390, height: 900 }, url: "/layouts.html", selector: ".layouts", ready: () => [...document.querySelectorAll("kazoku-view-controls")].every((el) => el.shadowRoot?.querySelector(".bar")), prepare: () => { for (const el of document.querySelectorAll("kazoku-view-controls")) el.set({ yaw: -28, tilt: 10, zoom: 1.6 }); } },
     { name: "switches", viewport: { width: 820, height: 300 }, url: "/", selector: ".top", ready: () => document.querySelector("kazoku-theme-switch")?.shadowRoot?.querySelector("button") && document.querySelector("kazoku-language-picker")?.shadowRoot?.querySelector("button") },
     { name: "address", viewport: { width: 820, height: 700 }, url: "/address.html?size=l&dots=on", selector: "main", ready: () => document.querySelector("kazoku-theme-switch")?.shadowRoot?.querySelector("button") },
     { name: "save-image", viewport: { width: 1000, height: 700 }, url: "/save-image.html", selector: ".targets", ready: () => [...document.querySelectorAll("kazoku-save-image")].every((el) => el.shadowRoot?.querySelector("button")) },
+    { name: "speed-buttons", viewport: { width: 900, height: 700 }, url: "/speed.html?turn=2&days=10&replay=0.5", selector: ".targets", ready: () => [...document.querySelectorAll("kazoku-speed-buttons")].every((el) => el.shadowRoot?.querySelector("button")) },
     { name: "renderer", viewport: { width: 1000, height: 900 }, url: "/renderer.html", selector: "main", ready: () => document.querySelector('.host[data-live="1"]') && document.querySelectorAll(".host img").length > 8, settle: 1500 },
     { name: "builder", viewport: { width: 1100, height: 900 }, url: "/builder.html?kazoku-view-controls.layout=horizontal&kazoku-view-controls.level=advanced", selector: "main", ready: () => document.querySelector("#stage kazoku-view-controls")?.shadowRoot?.querySelector(".bar") },
   ];

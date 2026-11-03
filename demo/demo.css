@@ -116,3 +116,11 @@ output[data-testid="address"] { min-width: 0; overflow-wrap: anywhere; font: 0.8
 .stagebox { display: grid; gap: 10px; justify-items: start; min-height: 120px; }
 .stagebox .scene { width: 100%; max-width: 560px; }
 .stagebox kazoku-view-controls { width: 100%; }
+.sample { display: grid; place-items: center; height: 120px; margin-bottom: 8px; border-radius: 8px; background: var(--bg); perspective: 400px; }
+.spinner { width: 56px; height: 80px; animation: kz-turn var(--turn, 10s) linear infinite; transform-style: preserve-3d; }
+.spinner span { display: block; width: 100%; height: 100%; border-radius: 8px; background: var(--accent); }
+
+.sample:not(:hover):not(.on) .spinner { animation-play-state: paused; }
+@keyframes kz-turn { to { transform: rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+.target output { display: block; margin-top: 6px; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: speed buttons</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">speed buttons</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="layouts.html" data-say="layouts">Layouts</a></p>
+  <p class="intro" data-say="intro">One set of buttons for every speed in the family: Auto-turn's in the view controls, a solar system's days a second, a replay's. Press one; it stays on, goes in the address and in the element's value.</p>
+  <div class="targets">
+    <section class="target"><h2 data-say="turn">Auto-turn: 0.5×, 1×, 2×</h2>
+      <div class="sample" id="turner" data-testid="turner"><div class="spinner" id="spinner"><span></span></div></div>
+      <kazoku-speed-buttons id="turn-speed" steps="0.5 1 2" address address-key="turn" data-testid="turn-speed"></kazoku-speed-buttons>
+      <output id="turn-out" data-testid="turn-out"></output></section>
+    <section class="target"><h2 data-say="days">A solar system: days a second</h2>
+      <kazoku-speed-buttons id="days-speed" steps="1 10 100" unit="" address address-key="days" data-testid="days-speed"></kazoku-speed-buttons>
+      <output id="days-out" data-testid="days-out"></output></section>
+    <section class="target"><h2 data-say="replay">A replay bar</h2>
+      <kazoku-speed-buttons id="replay-speed" steps="0.25 0.5 1 2 4" address address-key="replay" data-testid="replay-speed"></kazoku-speed-buttons>
+      <output id="replay-out" data-testid="replay-out"></output></section>
+  </div>
+  <pre class="code" data-testid="code"><code>import "@johnmorrisdotca/kazoku-ui/speed-buttons/define";
+
+&lt;kazoku-speed-buttons steps="1 10 100" unit="" label="Days a second" address&gt;&lt;/kazoku-speed-buttons&gt;</code></pre>
+</main>
+<script type="module" src="speed.js"></script>
+</body>
+</html>

@@ -17,6 +17,7 @@ Kazoku UIは、実行時の依存のない、ESモジュールにコンパイル
 | テーマの切り替え | `src/theme-switch/` | `/theme-switch`、`/theme-switch/element`、`/theme-switch/define` |
 | 言語の選択 | `src/language-picker/` | `/language-picker`、`/language-picker/element`、`/language-picker/define` |
 | 画像の保存 | `src/save-image/` | `/save-image`、`/save-image/element`、`/save-image/define` |
+| 速さのボタン | `src/speed-buttons/` | `/speed-buttons`、`/speed-buttons/element`、`/speed-buttons/define` |
 | 共有レンダラー | `src/renderer/` | `/renderer` |
 | フリーズ検査 | `src/testing/` | `/testing` |
 | アドレスの状態 | `src/address-state/` | `/address-state` |

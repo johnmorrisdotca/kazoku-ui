@@ -15,6 +15,7 @@ Kazoku UI is plain TypeScript compiled to ES modules, with no runtime dependency
 | Theme switch | `src/theme-switch/` | `/theme-switch`, `/theme-switch/element`, `/theme-switch/define` |
 | Language picker | `src/language-picker/` | `/language-picker`, `/language-picker/element`, `/language-picker/define` |
 | Save image | `src/save-image/` | `/save-image`, `/save-image/element`, `/save-image/define` |
+| Speed buttons | `src/speed-buttons/` | `/speed-buttons`, `/speed-buttons/element`, `/speed-buttons/define` |
 | Shared renderer | `src/renderer/` | `/renderer` |
 | Freeze checks | `src/testing/` | `/testing` |
 | Address state | `src/address-state/` | `/address-state` |

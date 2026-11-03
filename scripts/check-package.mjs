@@ -45,6 +45,13 @@ const PARTS = [
   assert.deepEqual(pure.parseFormats("svg"), ["svg"]);`,
   },
   {
+    name: "speed-buttons", tag: "kazoku-speed-buttons", cls: "SpeedButtonsElement", define: "defineSpeedButtons",
+    pure: ["DEFAULT_STEPS", "nearestStep", "parseSpeed", "parseSteps", "speedText", "startStep", "stepFrom", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.deepEqual(pure.parseSteps("1, 10 100"), [1, 10, 100]);
+  assert.equal(pure.speedText(0.5), "0.5×");
+  assert.equal(pure.stepFrom(2, [0.5, 1, 2]), 0.5);`,
+  },
+  {
     name: "renderer", pure: ["createSharedRenderer", "createScheduler", "createAssetCache", "createStillCache", "pixelRatioFor", "disposeDeep", "MAX_PIXELS", "MAX_SIDE", "MAX_RATIO"],
     run: `assert.ok(pure.pixelRatioFor(5120, 2880, 2) < 2);
   const cache = pure.createAssetCache({ lingerMs: 0 });
@@ -129,5 +136,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/index.js"];
+const files = ["save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/index.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);

@@ -11,7 +11,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Speed buttons](docs/guides/speed-buttons.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
 
 ## In 30 seconds
 
@@ -57,6 +57,7 @@ console.log(zoomText(2.44)); // 2.4×
 - **View controls** in four layouts, with a zoom slider, a readout, Auto-turn, Centre, keys, touch and the address.
 - **Theme switch** (Light, Dark, Auto) and **language picker** (each language in its own name) that write `data-theme` and `lang` and tell the page.
 - **Save image** for a canvas, an SVG or any element, as PNG or SVG.
+- **Speed buttons**: one row of 0.5×, 1×, 2× (or the steps you name: a solar system's days a second, a replay's speeds) for the whole family, kept in an attribute and the address.
 - **Address state**, with no element: choices kept in the link with `replaceState`.
 - **A shared 3D renderer** and its **freeze checks**: one WebGL context, shared assets, stills, a pixel budget.
 - **Labels in English and Japanese**, light and dark, 48 px touch targets, reduced motion respected.
@@ -156,15 +157,18 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 | `@johnmorrisdotca/kazoku-ui/save-image` | The formats, the file name, the size and the functions that render and download a canvas, an SVG or an element as PNG or SVG. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/save-image/element` | The `SaveImageElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/save-image/define` | Registers `<kazoku-save-image>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/speed-buttons` | The steps, how a speed reads, the nearest step and the address key of the speed buttons. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/speed-buttons/element` | The `SpeedButtonsElement` class (needs a browser). |
+| `@johnmorrisdotca/kazoku-ui/speed-buttons/define` | Registers `<kazoku-speed-buttons>` (once, and only if the tag is free). |
 | `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
 
 ## View controls
 
-- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `Medium`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, all three speeds (Slow, Medium, Fast), Front, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `1×`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, the speed buttons (0.5×, 1×, 2×), Front, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
 - The zoom readout is the view's `zoom` (1× is Fit, whatever `fit-scale` is), one decimal, the one zoom number on the bar: it follows the buttons, the wheel, a pinch, a double press, Fit, the keys, the address, `set` and a changed limit. A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
-- Auto-turn with play and pause; its speed is Slow (half the `speed` attribute), Medium (the `speed` attribute, 30 degrees a second) or Fast (twice it), kept in the address as `?speed=slow` or `?speed=fast`.
+- Auto-turn with play and pause; its speed is chosen with the family's [speed buttons](docs/guides/speed-buttons.md): 0.5× (half the `speed` attribute), 1× (the `speed` attribute, 30 degrees a second) or 2× (twice it), kept in the `pace` attribute and in the address as `?pace=0.5` or `?pace=2`.
 - **The wheel zooms.** The wheel over the view zooms it about the pointer, like a map; a trackpad's pinch (and Ctrl or Command with the wheel) zooms too. Shift and the wheel, or a sideways swipe, turns it. Tipping is a drag, the arrow keys or the tilt slider. With the pointer anywhere else the wheel scrolls the page, and a wheel that starts while the zoom is already at its end that way (turned down at Fit) scrolls the page too, so the page is never trapped.
 - Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
@@ -186,7 +190,7 @@ The `layout` attribute says where the controls sit; `controls` (`basic` or `adva
 
 | `layout` | What it looks like | Basic shows | More adds |
 |---|---|---|---|
-| `classic` (the default) | The bar of 0.10 and before, unchanged: one wrapping row at a desk, two rows on a phone. No zoom slider. | Angle, Auto-turn, − readout +, Fit, More | Tilt, Slow, Medium, Fast, Front; the pan pad once zoomed in |
+| `classic` (the default) | The bar of 0.10 and before, unchanged: one wrapping row at a desk, two rows on a phone. No zoom slider. | Angle, Auto-turn, − readout +, Fit, More | Tilt, 0.5×, 1×, 2×, Front; the pan pad once zoomed in |
 | `horizontal` | A tidy bar under the view: the turn on one row (Angle, Auto-turn, More), the **zoom slider** on the next (Zoom, − readout +, Fit). One row when the bar is 1040 px or wider. Under 560 px the labels are read by a screen reader only, and the readout is Fit; under 440 px the zoom slider takes a row of its own, with the buttons under it, so its marks never meet them. Centre, once the view is zoomed or moved, comes in at the end of the zoom row (an icon in the two rows, so Auto-turn and More never move). | Angle, Auto-turn, the zoom slider, − readout +, Fit, More | Tilt and Front, then the speeds, between the two rows; the pan pad last |
 | `vertical` | A column beside the view, `--kazoku-column-width` wide (16rem). Auto-turn and More at the top, so More does not move when it opens; then the Angle slider, the zoom slider, and − readout + and Fit. On a narrow screen put it under the view and give it `width: auto`. | Auto-turn, More, Angle, the zoom slider, − readout +, Fit | Tilt, the speeds, Front, the pan pad, in the column |
 | `compact` | The least room, for a card or a phone: **one row** of Auto-turn, −, the readout, + and More (icons, named for a screen reader). It never takes a second row until More is pressed; while it turns, the speed is in More, and Centre is there with Fit. | Auto-turn, − readout +, More | Everything else, one press away, under the row: the zoom slider and Fit, Angle, Tilt, the speeds, Front, the pan pad |
@@ -355,13 +359,15 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `grab-radius` | Exact grab, for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (a drag of *d* pixels moves the ground at the middle by *d* pixels), and the radius grows with the zoom. Left out, a drag turns by a fixed angle across the view, as before. See [docs/drag-rule.md](docs/drag-rule.md). |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
-| `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |
+| `speed` | Degrees a second at a pace of 1 (30). |
+| `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.5 and 2 on the default buttons. The reader's choice is written here, and kept in the address as `pace`. |
+| `paces` | The speeds the buttons stand for, `0.5 1 2` by default (any numbers: `paces="1 4 8"`). |
 | `controls` | `basic` (the default) or `advanced`: which controls are shown (see above; the zoom readout in both, the speed in both while the view turns). Written in the page's markup it is where the reader starts; what the reader chose with More is remembered under `kazoku-view-controls` in `localStorage` (or the key `storage` names) and wins. Setting the attribute later changes the level at once. The host carries `data-level` with the level now. |
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: where the controls sit (see [Layouts](#layouts)). Can change at any time. Anything else is `classic`. The host carries `data-layout` with the layout in use. |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&speed=fast`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. With `layout="compact"` the row floats 8 px in from the bottom start corner instead of spanning the bottom. |
@@ -371,7 +377,7 @@ Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-lin
 
 ### The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`speed=slow` or `speed=fast`; Medium leaves the address, and another value of `speed`, a page's own, is left alone). The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
+Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address; a page's own `speed` parameter is never touched, and `?pace=slow` or `fast` of 0.12 and 0.13 still read as 0.5 and 2). The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
 
 ### Why the tag is only defined when it is free
 
@@ -423,6 +429,17 @@ See [docs/address-state.md](docs/address-state.md); the demo's `address.html` sh
 ```
 
 What a picture of an element cannot carry (web fonts, `::before`, cross-origin images), the element-free `renderImage` and `saveImage`, and the one `img-src data:` a strict policy needs are in [docs/save-image.md](docs/save-image.md); the demo's `save-image.html` saves all three kinds.
+
+## Speed buttons
+
+`<kazoku-speed-buttons>` is one button for each speed (0.5×, 1×, 2× by default, no menu): the same element for Auto-turn in the view controls, a solar system's days a second (`steps="1 10 100"`) and a replay bar. The chosen speed is the `value` attribute, can be kept in the address, and is announced as `kazoku-speedchange`.
+
+```html
+<kazoku-speed-buttons steps="0.5 1 2" value="1" address></kazoku-speed-buttons>
+<script type="module">import "@johnmorrisdotca/kazoku-ui/speed-buttons/define";</script>
+```
+
+See [the guide](docs/guides/speed-buttons.md) for the attributes, the event and the functions without the element.
 
 ## Shared 3D renderer
 
@@ -515,7 +532,7 @@ One part, one subpath; the pure code, the element and the registration are three
 
 ## Demos
 
-[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
+[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [speed buttons](https://johnmorrisdotca.github.io/kazoku-ui/speed.html), [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/builder-dark.webp">
@@ -534,6 +551,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [Language picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/language-picker.md) | Each language in its own name |
 | [Address state](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/address-state.md) | Choices kept in the link |
 | [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
+| [Speed buttons](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/speed-buttons.md) | 0.5×, 1×, 2× or your own steps, kept in an attribute and the address |
 | [The shared renderer](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/renderer.md) | One WebGL context, and the freeze checks |
 | [Frameworks and CSP](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/frameworks-and-csp.md) | React, Vue, Svelte, Angular, servers, strict policies |
 | [Accessibility and labels](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/accessibility-and-labels.md) | The rules and the words |

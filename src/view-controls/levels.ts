@@ -8,7 +8,7 @@ export const parseLevel = (text: string | null | undefined): Level | undefined =
 /** The localStorage key the level is remembered under, unless `storage` names another. */
 export const LEVEL_STORAGE_KEY = "kazoku-view-controls";
 
-/** Auto-turn speed: Medium is the element's `speed`, Slow half of it and Fast twice it. */
+/** The three speeds of 0.12 and 0.13 by name: Medium is the element's `speed`, Slow half of it and Fast twice it. A pace is now any number (the `pace` attribute, the `paces` it chooses from); these words still read as 0.5, 1 and 2. */
 export type Pace = "slow" | "medium" | "fast";
 
 export const PACES: readonly Pace[] = ["slow", "medium", "fast"];

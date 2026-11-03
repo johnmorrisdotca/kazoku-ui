@@ -28,7 +28,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
   const report = await page.evaluate(() => {
     const root = document.querySelector("kazoku-view-controls").shadowRoot;
     const vh = window.innerHeight;
-    const shown = [...root.querySelectorAll("button, input")].filter((el) => !el.closest("[hidden]") && el.getClientRects().length > 0);
+    const kids = (node) => [...node.querySelectorAll("button, input, kazoku-speed-buttons")].flatMap((n) => (n.localName === "kazoku-speed-buttons" ? [...n.shadowRoot.querySelectorAll("button")] : [n]));
+    const shown = kids(root).filter((el) => !el.closest("[hidden]") && !el.getRootNode().host?.closest?.("[hidden]") && el.getClientRects().length > 0);
     const small = shown.filter((el) => { const r = el.getBoundingClientRect(); return r.height < 47.5 || (el.tagName === "BUTTON" && r.width < 47.5); }).map((el) => el.dataset.b ?? el.id);
     const below = shown.filter((el) => el.getBoundingClientRect().bottom > vh).map((el) => el.dataset.b ?? el.id);
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);

@@ -144,7 +144,7 @@ console.log(PARTS.length > 5);
 
 ## 自分でタグを登録する
 
-`define`ファイルは、タグを1回だけ、空いているときだけ登録します。先に`customElements.get`を呼ぶからです。`define`のインポートが実行する関数も、そこからエクスポートされています。`defineViewControls`、`defineThemeSwitch`、`defineLanguagePicker`、`defineSaveImage`です。呼ぶと、そのタグが空いている場合に登録されます。タグを自分で、または別の名前で登録したいページは、`element`のパスからクラスをインポートして登録します。
+`define`ファイルは、タグを1回だけ、空いているときだけ登録します。先に`customElements.get`を呼ぶからです。`define`のインポートが実行する関数も、そこからエクスポートされています。`defineViewControls`、`defineThemeSwitch`、`defineLanguagePicker`、`defineSaveImage`、`defineSpeedButtons`です。呼ぶと、そのタグが空いている場合に登録されます。タグを自分で、または別の名前で登録したいページは、`element`のパスからクラスをインポートして登録します。
 
 ```html
 <script type="module">

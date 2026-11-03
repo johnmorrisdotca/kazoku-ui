@@ -142,7 +142,7 @@ console.log(PARTS.length > 5);
 
 ## Registering a tag yourself
 
-`define` files register a tag once and only if it is free: they call `customElements.get` first. The function a `define` import runs is exported from it too: `defineViewControls`, `defineThemeSwitch`, `defineLanguagePicker` and `defineSaveImage`. Calling one registers its tag if it is free. A page that wants to register a tag itself, or under another name, imports the class from the `element` path and registers it:
+`define` files register a tag once and only if it is free: they call `customElements.get` first. The function a `define` import runs is exported from it too: `defineViewControls`, `defineThemeSwitch`, `defineLanguagePicker`, `defineSaveImage` and `defineSpeedButtons`. Calling one registers its tag if it is free. A page that wants to register a tag itself, or under another name, imports the class from the `element` path and registers it:
 
 ```html
 <script type="module">

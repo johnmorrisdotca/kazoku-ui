@@ -60,7 +60,9 @@ button:disabled { opacity: 0.4; cursor: default; }
 svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { display: none; }
 .zoom button.level { min-width: 64px; padding: 0 8px; font-variant-numeric: tabular-nums; }
-.pace .lbl { margin-inline-end: 4px; }
+/* The speed buttons are an element of their own: they are given the colours this bar has, set on the bar so that the buttons' own variables never read themselves. */
+.bar { --_bar-ink: var(--_ink); --_bar-surface: var(--_surface); --_bar-line: var(--_line); --_bar-accent: var(--_accent); }
+.pace { --kazoku-ink: var(--_bar-ink); --kazoku-surface: var(--_bar-surface); --kazoku-line: var(--_bar-line); --kazoku-accent: var(--_bar-accent); }
 /* One small button: the word over the speed, so it takes little room. It comes in on Auto-turn's left, so Auto-turn stays under the pointer that just pressed it. The angle's running number makes the room, so the turning bar is never wider than the still one and adds no row; it stays for a screen reader. */
 .pace-now { flex-direction: column; gap: 0; padding: 0 10px; line-height: 1.1; }
 .pace-now .lbl { font-size: 0.7em; font-weight: 400; }
@@ -73,13 +75,12 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
   ${CLASSIC} .bar { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; grid-template-areas: "angle play more" "tilt tilt front" "pace pace pace" "zoom zoom zoom" "pan pan pan"; gap: 0 8px; padding: 2px 8px; }
   ${CLASSIC} .field.angle { grid-area: angle; }
   ${CLASSIC} .field.tilt { grid-area: tilt; }
-  ${CLASSIC} .field label, ${CLASSIC} .field output, ${CLASSIC} .play .text, ${CLASSIC} .more .text, ${CLASSIC} .pace .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  ${CLASSIC} .field label, ${CLASSIC} .field output, ${CLASSIC} .play .text, ${CLASSIC} .more .text, ${CLASSIC} .pace::part(label) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   ${CLASSIC} .play, ${CLASSIC} .more { padding: 0; }
   ${CLASSIC} .play { grid-area: play; }
   ${CLASSIC} .more { grid-area: more; }
   ${CLASSIC} .front { grid-area: front; padding: 0 12px; }
   ${CLASSIC} .pace { grid-area: pace; justify-self: end; flex-wrap: nowrap; }
-  ${CLASSIC} .pace button { padding: 0 12px; }
   ${CLASSIC} .zoom { grid-area: zoom; justify-self: end; flex-wrap: nowrap; }
   ${CLASSIC} .zoom button { padding: 0 8px; }
   ${CLASSIC} .zoom button.level { padding: 0 6px; }
@@ -138,7 +139,7 @@ ${H} .zslide { flex: 1 1 auto; min-width: 0; }
 ${H} .zoom button, ${V} .zoom button, ${C} .zoom button { padding: 0 10px; }
 ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padding: 0 6px; }
 @container (max-width: 559px) {
-  ${H} .field label, ${H} .field output, ${H} .play .text, ${H} .more .text, ${H} .pace .lbl { ${UNSEEN} }
+  ${H} .field label, ${H} .field output, ${H} .play .text, ${H} .more .text, ${H} .pace::part(label) { ${UNSEEN} }
   ${H} .play, ${H} .more { padding: 0; }
   ${H} .zbox { min-width: 72px; }
   /* The readout is Fit here (its name says so), which leaves the slider the room for its marks. */
@@ -173,8 +174,7 @@ ${V} [data-b="out"] { grid-area: out; }
 ${V} [data-b="level"] { grid-area: level; }
 ${V} [data-b="in"] { grid-area: in; }
 ${V} [data-b="fit"] { grid-area: fit; justify-self: start; }
-${V} .pace .lbl { ${UNSEEN} }
-${V} .pace button { padding: 0 10px; }
+${V} .pace::part(label) { ${UNSEEN} }
 ${V} .pan { flex-wrap: wrap; }
 ${V} .drag { margin-inline-start: 0; }
 

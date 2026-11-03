@@ -14,8 +14,9 @@ const ready = async (page, query = "") => {
 };
 /** The names of the buttons and sliders a reader can see. */
 const shown = (page) => page.evaluate(() => {
+  const kids = (root) => [...root.querySelectorAll("button, input, kazoku-speed-buttons")].flatMap((n) => (n.localName === "kazoku-speed-buttons" ? [...n.shadowRoot.querySelectorAll("button")] : [n]));
   const root = document.querySelector("kazoku-view-controls").shadowRoot;
-  return [...root.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0).map((el) => el.dataset.b ?? el.id);
+  return kids(root).filter((el) => el.getClientRects().length > 0).map((el) => el.dataset.b ?? (el.dataset.v === undefined ? el.id : `pace-${el.dataset.v}`));
 });
 
 test("the controls start basic: turn, Auto-turn, zoom, Fit and More, and nothing else", async ({ page }) => {
@@ -32,7 +33,7 @@ test("More shows tilt, speed, Front and, once zoomed, the pan pad; and shows the
   await ready(page);
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "slow", "medium", "fast", "front", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "front", "out", "level", "in", "fit", "more"]);
   await button(page, "in").click();
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
   const plain = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id));
@@ -107,54 +108,83 @@ test("a screen reader is told the zoom once it settles, and not on load", async 
   await expect(live).toHaveText("Zoom level 2.4×");
 });
 
-test("Slow, Medium and Fast change the turn's speed and keep it turning, and are kept in the address", async ({ page }) => {
+const speed = (page, value) => page.locator(`${BAR} kazoku-speed-buttons button[data-v="${value}"]`);
+
+test("the speed buttons 0.5×, 1× and 2× change the turn's speed and keep it turning, and are kept in the attribute and the address", async ({ page }) => {
   await ready(page, "?controls=advanced");
-  const speed = () => page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed);
-  expect(await speed()).toBe(30);
-  await expect(button(page, "medium")).toHaveAttribute("aria-pressed", "true");
+  const rate = () => page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed);
+  expect(await rate()).toBe(30);
+  await expect(speed(page, 1)).toHaveAttribute("aria-pressed", "true");
+  await expect(speed(page, 1)).toHaveText("1×");
   await button(page, "play").click();
-  await button(page, "fast").click();
-  expect(await speed()).toBe(60);
+  await speed(page, 2).click();
+  expect(await rate()).toBe(60);
   expect((await stateOf(page)).turning).toBe(true);
-  await expect(button(page, "fast")).toHaveAttribute("aria-pressed", "true");
-  await expect(button(page, "medium")).toHaveAttribute("aria-pressed", "false");
-  await expect(page).toHaveURL(/speed=fast/);
-  await button(page, "slow").click();
-  expect(await speed()).toBe(15);
-  await expect(page).toHaveURL(/speed=slow/);
-  await button(page, "medium").click();
-  expect(await speed()).toBe(30);
-  await expect(page).not.toHaveURL(/speed=/);
+  await expect(speed(page, 2)).toHaveAttribute("aria-pressed", "true");
+  await expect(speed(page, 1)).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "2");
+  await expect(page).toHaveURL(/pace=2/);
+  await speed(page, 0.5).click();
+  expect(await rate()).toBe(15);
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "0.5");
+  await expect(page).toHaveURL(/pace=0\.5/);
+  await speed(page, 1).click();
+  expect(await rate()).toBe(30);
+  await expect(page).not.toHaveURL(/pace=/);
 });
 
 test("the faster the pace the faster the angle moves", async ({ page }) => {
   await ready(page, "?controls=advanced");
   const turned = async (pace) => {
-    await button(page, pace).click();
+    await speed(page, pace).click();
     await page.evaluate(() => document.querySelector("kazoku-view-controls").set({ yaw: 0 }));
     await page.waitForTimeout(600);
     return (await stateOf(page)).yaw;
   };
   await button(page, "play").click();
-  const slow = await turned("slow");
-  const fast = await turned("fast");
+  const slow = await turned(0.5);
+  const fast = await turned(2);
   expect(fast).toBeGreaterThan(slow * 2.5);
 });
 
-test("a page opened on a speed starts at it", async ({ page }) => {
-  await ready(page, "?controls=advanced&speed=slow");
-  await expect(button(page, "slow")).toHaveAttribute("aria-pressed", "true");
+test("the `pace` attribute is the start and follows the buttons; `paces` names the buttons", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  const bar = page.locator(BAR);
+  await bar.evaluate((el) => el.setAttribute("pace", "2"));
+  await expect(speed(page, 2)).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(60);
+  await bar.evaluate((el) => el.setAttribute("paces", "1 4 8"));
+  await expect(page.locator(`${BAR} kazoku-speed-buttons button`)).toHaveText(["1×", "4×", "8×"]);
+  await expect(speed(page, 1)).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(30);
+  await speed(page, 8).click();
+  expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(240);
+});
+
+test("with reduced motion the speed buttons still step, and a pressed Auto-turn still turns at the chosen speed", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await ready(page, "?controls=advanced");
+  await speed(page, 2).click();
+  await expect(speed(page, 2)).toHaveAttribute("aria-pressed", "true");
+  await button(page, "play").click();
+  expect((await stateOf(page)).turning).toBe(true);
+  expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(60);
+});
+
+test("a page opened on a pace starts at it", async ({ page }) => {
+  await ready(page, "?controls=advanced&pace=0.5");
+  await expect(speed(page, 0.5)).toHaveAttribute("aria-pressed", "true");
   expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(15);
 });
 
 test("the labels are English or Japanese", async ({ page }) => {
   await ready(page, "?controls=advanced");
   await expect(button(page, "more")).toHaveText("More");
-  await expect(button(page, "slow")).toHaveText("Slow");
+  await expect(page.locator(`${BAR} kazoku-speed-buttons [role="group"]`)).toHaveAttribute("aria-label", "Speed");
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
   await expect(button(page, "more")).toHaveText("詳細");
-  await expect(button(page, "slow")).toHaveText("ゆっくり");
-  await expect(page.locator(`${BAR} [data-g="pace"]`)).toHaveAttribute("aria-label", "速さ");
+  await expect(speed(page, 0.5)).toHaveText("0.5×");
+  await expect(page.locator(`${BAR} kazoku-speed-buttons [role="group"]`)).toHaveAttribute("aria-label", "速さ");
   await expect(button(page, "level")).toHaveAttribute("aria-label", "ズーム倍率 1×, 全体に戻す");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
@@ -182,7 +212,7 @@ for (const level of ["basic", "advanced"]) {
     await ready(page, `?controls=${level}`);
     await button(page, "play").click();
     await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 3 }), BAR);
-    const zoomNumbers = await page.evaluate((tag) => [...document.querySelector(tag).shadowRoot.querySelectorAll("button, output, span")].filter((el) => el.getClientRects().length > 0 && el.children.length === 0 && /\d\s*[×x]/.test(el.textContent)).map((el) => el.textContent), BAR);
+    const zoomNumbers = await page.evaluate((tag) => [...document.querySelector(tag).shadowRoot.querySelectorAll("button, output, span")].filter((el) => el.getClientRects().length > 0 && el.children.length === 0 && !el.closest(".pace-now") && /\d\s*[×x]/.test(el.textContent)).map((el) => el.textContent), BAR);
     expect(zoomNumbers).toEqual(["3×"]);
     await expect(button(page, "two")).toHaveCount(0);
     await page.evaluate((tag) => document.querySelector(tag).fit(), BAR);
@@ -283,29 +313,29 @@ test("basic shows one small speed button only while it turns; it steps through t
   await button(page, "play").click();
   await expect(now).toBeVisible();
   expect(await shown(page)).toEqual(["yaw", "pace-now", "play", "out", "level", "in", "fit", "more"]);
-  await expect(now).toHaveText("SpeedMedium");
-  await expect(now).toHaveAttribute("aria-label", "Speed: Medium");
+  await expect(now).toHaveText("Speed1×");
+  await expect(now).toHaveAttribute("aria-label", "Speed: 1×");
   await now.click();
-  await expect(now).toHaveAttribute("aria-label", "Speed: Fast");
+  await expect(now).toHaveAttribute("aria-label", "Speed: 2×");
   expect(await speed()).toBe(60);
   expect((await stateOf(page)).turning).toBe(true);
-  await expect(page).toHaveURL(/speed=fast/);
+  await expect(page).toHaveURL(/pace=2/);
   await now.click();
-  await expect(now).toHaveAttribute("aria-label", "Speed: Slow");
+  await expect(now).toHaveAttribute("aria-label", "Speed: 0.5×");
   expect(await speed()).toBe(15);
-  await expect(page).toHaveURL(/speed=slow/);
+  await expect(page).toHaveURL(/pace=0\.5/);
   await now.click();
-  await expect(now).toHaveAttribute("aria-label", "Speed: Medium");
-  await expect(page).not.toHaveURL(/speed=/);
+  await expect(now).toHaveAttribute("aria-label", "Speed: 1×");
+  await expect(page).not.toHaveURL(/pace=/);
   await button(page, "play").click();
   await expect(now).toBeHidden();
   expect(await speed()).toBe(30);
 });
 
 test("a page opened on a speed shows it as soon as it turns, and a page's own speed attribute still works", async ({ page }) => {
-  await ready(page, "?speed=fast");
+  await ready(page, "?pace=2");
   await button(page, "play").click();
-  await expect(button(page, "pace-now")).toHaveAttribute("aria-label", "Speed: Fast");
+  await expect(button(page, "pace-now")).toHaveAttribute("aria-label", "Speed: 2×");
   await page.evaluate((tag) => document.querySelector(tag).setAttribute("speed", "5"), BAR);
   expect(await page.evaluate((tag) => document.querySelector(tag).controller.speed, BAR)).toBe(10);
 });
@@ -314,7 +344,7 @@ test("advanced has the three speeds and not the small button, and a flat view ha
   await ready(page, "?controls=advanced");
   await button(page, "play").click();
   await expect(button(page, "pace-now")).toBeHidden();
-  await expect(button(page, "fast")).toBeVisible();
+  await expect(speed(page, 2)).toBeVisible();
   await button(page, "more").click();
   await expect(button(page, "pace-now")).toBeVisible();
   await page.evaluate((tag) => document.querySelector(tag).setAttribute("flat", ""), BAR);

@@ -6,9 +6,13 @@ import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { type Layout, LEVEL_STORAGE_KEY, type Level, PACE_FACTOR, type Pace, PACES, parseLayout, parseLevel, zoomText } from "./levels.ts";
+import { type Layout, LEVEL_STORAGE_KEY, type Level, parseLayout, parseLevel, zoomText } from "./levels.ts";
 import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
+import "../speed-buttons/define.ts";
+import type { SpeedButtonsElement, SpeedChangeDetail } from "../speed-buttons/element.ts";
+import { EVENT as SPEED_EVENT } from "../speed-buttons/index.ts";
+import { nearestStep, parseSpeed, parseSteps, speedText } from "../speed-buttons/steps.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
 import { SNAP_PX, zoomAtPosition, type ZoomMark, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomToMark } from "./zoomScale.ts";
@@ -45,11 +49,7 @@ const HTML = `
   <div class="field tilt adv" part="field tilt"><label data-w="tilt" for="tilt"></label><input id="tilt" type="range" min="-30" max="30" step="1" value="0" part="slider" /><output for="tilt" data-o="tilt">0°</output></div>
   <button type="button" class="pace-now" data-b="pace-now" part="button" hidden><span class="lbl" data-w="speed"></span><span data-o="pace"></span></button>
   <button type="button" class="play" data-b="play" aria-pressed="false" part="button">${ICON.play}${ICON.pause}<span class="text" data-w="autoTurn"></span></button>
-  <div class="group pace adv" role="group" data-g="pace"><span class="lbl" data-w="speed" aria-hidden="true"></span>
-    <button type="button" data-b="slow" aria-pressed="false" part="button"><span data-w="slow"></span></button>
-    <button type="button" data-b="medium" aria-pressed="true" part="button"><span data-w="medium"></span></button>
-    <button type="button" data-b="fast" aria-pressed="false" part="button"><span data-w="fast"></span></button>
-  </div>
+  <kazoku-speed-buttons class="pace adv" data-g="pace"></kazoku-speed-buttons>
   <button type="button" class="front adv" data-b="front" part="button"><span data-w="front"></span></button>
   <button type="button" class="centre" data-b="centre" part="button" hidden>${ICON.centre}<span class="text" data-w="centre"></span></button>
   <div class="group zoom" role="group" data-g="zoom">
@@ -76,7 +76,7 @@ const HTML = `
 /**
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
- * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second),
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second at a pace of 1), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice of the buttons is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself zooms),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
@@ -84,7 +84,7 @@ const HTML = `
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "pace", "paces", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -103,7 +103,7 @@ export class ViewControlsElement extends HTMLElement {
   #marksFor = "";
   /** The zoom the slider shows now; NaN until it has shown one, and again when the marks are redrawn for new limits. */
   #zoomShown = Number.NaN;
-  #pace: Pace = "medium";
+  #pace = 1;
   #labels: ViewWords = wordsFor("en");
   #said = "";
   #sayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -197,7 +197,7 @@ export class ViewControlsElement extends HTMLElement {
     Object.assign(start, chosen);
     c.turnable = !this.hasAttribute("flat");
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
-    this.#pace = pace ?? "medium";
+    this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
     for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size"]) this.#option(name);
@@ -249,6 +249,11 @@ export class ViewControlsElement extends HTMLElement {
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
     else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
     else if (name === "speed") this.#speed();
+    else if (name === "pace" || name === "paces") {
+      this.#pace = this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? this.#pace);
+      this.#speed();
+      this.#show();
+    }
     else if (name === "layout") {
       this.#arrange();
       this.#show();
@@ -345,14 +350,15 @@ export class ViewControlsElement extends HTMLElement {
       remember(this.#storageKey(), this.#level);
       this.#show();
     });
-    const choosePace = (pace: Pace): void => {
-      this.#pace = pace;
-      this.#speed();
-      this.#show();
-      if (this.hasAttribute("address")) this.#save();
-    };
-    for (const pace of PACES) on(pace, () => choosePace(pace));
-    on("pace-now", () => choosePace(PACES[(PACES.indexOf(this.#pace) + 1) % PACES.length] as Pace));
+    // The speed buttons are the family's own element; its choice is the pace, kept in the attribute and the address.
+    const speeds = q<SpeedButtonsElement>("kazoku-speed-buttons");
+    speeds.addEventListener(SPEED_EVENT, (event) => {
+      // The element's own, not one for the page to hear: the page hears `kazoku-viewchange`.
+      event.stopPropagation();
+      const { value, reason } = (event as CustomEvent<SpeedChangeDetail>).detail;
+      if (reason === "user") this.#choosePace(value);
+    });
+    on("pace-now", () => speeds.step(1));
     on("left", () => c().panBy(-1, 0));
     on("right", () => c().panBy(1, 0));
     on("up", () => c().panBy(0, -1));
@@ -436,9 +442,27 @@ export class ViewControlsElement extends HTMLElement {
     }
   }
 
+  /** The speeds the buttons stand for: the `paces` attribute, `0.5 1 2` by default. */
+  #paces(): number[] {
+    return parseSteps(this.getAttribute("paces"));
+  }
+
+  #nearestPace(value: number): number {
+    return nearestStep(value, this.#paces()) ?? 1;
+  }
+
+  /** A button was pressed: the pace is the number on it. It is written to the `pace` attribute and the address. */
+  #choosePace(pace: number): void {
+    this.#pace = pace;
+    this.#speed();
+    if (this.getAttribute("pace") !== String(pace)) this.setAttribute("pace", String(pace));
+    this.#show();
+    if (this.hasAttribute("address")) this.#save();
+  }
+
   /** The turn's degrees a second: the `speed` attribute (30) times the pace. */
   #speed(): void {
-    this.#ensure().speed = (Number(this.getAttribute("speed")) || 30) * PACE_FACTOR[this.#pace];
+    this.#ensure().speed = (Number(this.getAttribute("speed")) || 30) * this.#pace;
   }
 
   #limits(): void {
@@ -496,7 +520,9 @@ export class ViewControlsElement extends HTMLElement {
     set('[data-g="zoom"]', words.zoom);
     set('[data-g="pan"]', words.pan);
     set('[data-g="drag"]', words.drag);
-    set('[data-g="pace"]', words.speed);
+    const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
+    speeds?.setAttribute("lang", language);
+    speeds?.setAttribute("label", words.speed);
     set('[data-b="left"]', words.panLeft);
     set('[data-b="right"]', words.panRight);
     set('[data-b="up"]', words.panUp);
@@ -543,9 +569,14 @@ export class ViewControlsElement extends HTMLElement {
     }
     say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
-    for (const pace of PACES) q<HTMLButtonElement>(`[data-b="${pace}"]`).setAttribute("aria-pressed", String(this.#pace === pace));
-    write(q('[data-o="pace"]'), words[this.#pace]);
-    say(q('[data-b="pace-now"]'), `${words.speed}: ${words[this.#pace]}`);
+    const speeds = q<SpeedButtonsElement>("kazoku-speed-buttons");
+    const paces = this.#paces();
+    if (speeds.getAttribute("steps") !== paces.join(" ")) speeds.setAttribute("steps", paces.join(" "));
+    this.#pace = this.#nearestPace(this.#pace);
+    if (speeds.value !== this.#pace) speeds.value = this.#pace;
+    const pace = speedText(this.#pace);
+    write(q('[data-o="pace"]'), pace);
+    say(q('[data-b="pace-now"]'), `${words.speed}: ${pace}`);
     const more = q<HTMLButtonElement>('[data-b="more"]');
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;

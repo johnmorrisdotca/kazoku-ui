@@ -2,10 +2,16 @@
 title: Upgrading
 section: upgrading
 order: 14
-description: What each version from 0.7 to 0.13 asks of you, which defaults changed, what was removed, and what still works.
+description: What each version from 0.7 to 0.14 asks of you, which defaults changed, what was removed, and what still works.
 ---
 
 The package is in early development (0.x), so a minor version can add to the interface. This page lists what asks something of you, newest first. The complete, dated record is the [changelog](../../CHANGELOG.md).
+
+## To 0.14
+
+- **The Auto-turn speeds are numbers: 0.5×, 1×, 2×.** The buttons that said Slow, Medium and Fast are now the family's [speed buttons](speed-buttons.md), and say `0.5×`, `1×` and `2×`. The speed is the new `pace` attribute (a multiple of `speed`, 1 by default) and the address key is now `pace` (`?pace=2`), not `speed`: `speed` is a page's own parameter, such as a clock's, and the controls no longer read or write it. A link made with `?speed=fast` shows Medium; `?pace=fast` and `?pace=slow` still read as 2 and 0.5. `paces` (for example `paces="1 4 8"`) names other buttons.
+- **A new part, `<kazoku-speed-buttons>`**, from `@johnmorrisdotca/kazoku-ui/speed-buttons/define`, for any speed: a solar system's days a second, a replay bar. The view controls use it; a page that styled the old buttons by their `data-b` names inside the view controls (`slow`, `medium`, `fast`) now styles `::part(button)` of `kazoku-speed-buttons` instead, or leaves them alone.
+- The address default `DEFAULT_KEYS.speed` is `"pace"`, `AddressChoices.pace` is a number, and `parsePace`, `PACES` and `PACE_FACTOR` still exist for the three words.
 
 ## To 0.13
 

@@ -1,7 +1,7 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
   "version": "0.13.1",
-  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address and a save-as-image button, each a framework-free custom element and a plain controller. Zero dependencies; the shared 3D renderer takes three.js as an optional peer.",
+  "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address, a save-as-image button and one set of speed buttons (0.5×, 1×, 2× or your own steps), each a framework-free custom element and a plain controller. Zero dependencies; the shared 3D renderer takes three.js as an optional peer.",
   "keywords": [
     "view-controls",
     "3d",
@@ -30,7 +30,10 @@
     "webgl",
     "three",
     "three.js",
-    "renderer"
+    "renderer",
+    "speed-buttons",
+    "playback-speed",
+    "time-speed"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -47,7 +50,8 @@
     "./dist/view-controls/define.js",
     "./dist/theme-switch/define.js",
     "./dist/language-picker/define.js",
-    "./dist/save-image/define.js"
+    "./dist/save-image/define.js",
+    "./dist/speed-buttons/define.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -122,6 +126,21 @@
       "types": "./dist/save-image/define.d.ts",
       "import": "./dist/save-image/define.js",
       "default": "./dist/save-image/define.js"
+    },
+    "./speed-buttons": {
+      "types": "./dist/speed-buttons/index.d.ts",
+      "import": "./dist/speed-buttons/index.js",
+      "default": "./dist/speed-buttons/index.js"
+    },
+    "./speed-buttons/element": {
+      "types": "./dist/speed-buttons/element.d.ts",
+      "import": "./dist/speed-buttons/element.js",
+      "default": "./dist/speed-buttons/element.js"
+    },
+    "./speed-buttons/define": {
+      "types": "./dist/speed-buttons/define.d.ts",
+      "import": "./dist/speed-buttons/define.js",
+      "default": "./dist/speed-buttons/define.js"
     },
     "./renderer": {
       "types": "./dist/renderer/index.d.ts",

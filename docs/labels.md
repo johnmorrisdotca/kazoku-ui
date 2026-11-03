@@ -1,6 +1,6 @@
 # Labels
 
-The labels of the view controls, the theme switch, the language picker and the save-image buttons, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+The labels of the view controls, the theme switch, the language picker, the save-image buttons and the speed buttons, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
 languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
 
 The Japanese is written for the interface and has not yet been read by a native speaker.
@@ -60,3 +60,11 @@ One label. The languages themselves are never translated: each is written in its
 | `svg` | Save SVG | SVGで保存 | SVG de hozon, save as SVG |
 | `saved` | Saved | 保存しました | hozon shimashita, it was saved |
 | `failed` | Could not save | 保存できませんでした | hozon dekimasen deshita, it could not be saved |
+
+## Speed buttons
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Speed | 速さ | hayasa, speed (the group's name; a `label` attribute replaces it) |
+
+The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no translation.

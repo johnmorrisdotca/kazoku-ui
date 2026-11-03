@@ -25,19 +25,25 @@ test("a level or a pace is one of its words, else nothing", () => {
   assert.deepEqual(PACES.map((p) => PACE_FACTOR[p]), [0.5, 1, 2]);
 });
 
-test("the speed is kept in the address as slow or fast, and Medium leaves it", () => {
-  assert.equal(formatAddress("", { ...plain, pace: "fast" }), "?speed=fast");
-  assert.equal(formatAddress("?speed=fast", { ...plain, pace: "medium" }), "");
-  assert.equal(formatAddress("", { ...plain, pace: "slow" }, parseKeys("speed:pace")), "?pace=slow");
-  assert.deepEqual(parseAddress("?speed=slow&zoom=2"), { pace: "slow", zoom: 2 });
-  assert.deepEqual(parseAddress("?pace=fast", parseKeys("speed:pace")), { pace: "fast" });
+test("the pace is kept in the address as its number, and 1 leaves it", () => {
+  assert.equal(formatAddress("", { ...plain, pace: 2 }), "?pace=2");
+  assert.equal(formatAddress("?pace=2", { ...plain, pace: 1 }), "");
+  assert.equal(formatAddress("", { ...plain, pace: 0.5 }, parseKeys("speed:turn")), "?turn=0.5");
+  assert.deepEqual(parseAddress("?pace=0.5&zoom=2"), { pace: 0.5, zoom: 2 });
+  assert.deepEqual(parseAddress("?turn=4", parseKeys("speed:turn")), { pace: 4 });
 });
 
-test("a page's own speed parameter is left alone unless a pace word is chosen", () => {
-  assert.equal(formatAddress("?speed=5", { ...plain, pace: "medium" }), "?speed=5");
+test("the words of 0.12 and 0.13 in an address still mean 0.5, 1 and 2", () => {
+  assert.deepEqual(parseAddress("?pace=slow"), { pace: 0.5 });
+  assert.deepEqual(parseAddress("?pace=fast"), { pace: 2 });
+  assert.deepEqual(parseAddress("?pace=medium"), { pace: 1 });
+});
+
+test("a page's own speed parameter is never read or written by the pace", () => {
+  assert.equal(formatAddress("?speed=5", { ...plain, pace: 2 }), "?speed=5&pace=2");
   assert.equal(formatAddress("?speed=5", plain), "?speed=5");
   assert.deepEqual(parseAddress("?speed=5"), {});
-  assert.equal(formatAddress("?speed=5", { ...plain, pace: "fast" }), "?speed=fast");
+  assert.deepEqual(parseAddress("?pace=nonsense"), {});
 });
 
 test("every new label is in both languages", () => {
