@@ -2,13 +2,17 @@
 // the layouts side by side (layouts.html at a desk's width) and the layouts on a phone (horizontal, vertical and compact, one under another).
 // It serves the demo on port 8402, or TEST_PORT, and stops the server it started. It needs the site built (`pnpm screenshots` builds first).
 // IMAGES_OUT writes somewhere else than docs/images; PNG=1 writes png beside the webp (to look at them).
+// Then the family's thumbnail, dark thumbnail and icon (scripts/family-thumbnail.mjs, always in docs/images); `--thumbnail` takes only those three.
+// Chromium draws in software only (SwiftShader), never on the graphics card.
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import { captureDrawing, composeThumbnails } from "./family-thumbnail.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
+const onlyThumbnail = process.argv.includes("--thumbnail");
 const out = process.env.IMAGES_OUT ?? `${root}docs/images`;
 mkdirSync(out, { recursive: true });
 const port = Number(process.env.TEST_PORT ?? 8402);
@@ -23,7 +27,7 @@ try {
     };
     poll();
   });
-  const browser = await chromium.launch({ headless: true, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+  const browser = await chromium.launch({ args: ["--headless=new", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-gpu-compositing"] });
   const webp = async (png) => {
     const page = await browser.newPage();
     const base64 = await page.evaluate(async (data) => {
@@ -43,7 +47,7 @@ try {
     await page.close();
     return Buffer.from(base64, "base64");
   };
-  for (const scheme of ["light", "dark"]) {
+  for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
     const context = await browser.newContext({ viewport: { width: 820, height: 640 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "reduce" });
     const page = await context.newPage();
     await page.goto(`http://127.0.0.1:${port}/?yaw=-32&tilt=14&zoom=1.4`);
@@ -54,7 +58,7 @@ try {
     if (process.env.PNG) writeFileSync(`${out}/hero-${scheme}.png`, png);
     await context.close();
   }
-  for (const scheme of ["light", "dark"]) {
+  for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
     // Every layout side by side, the zoom a little in so the slider shows its fill, and More open on compact so its second step shows too.
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1.5, colorScheme: scheme, reducedMotion: "reduce" });
     const page = await context.newPage();
@@ -69,6 +73,34 @@ try {
     const png = await page.locator(".layouts").screenshot();
     writeFileSync(`${out}/layouts-${scheme}.webp`, await webp(png));
     if (process.env.PNG) writeFileSync(`${out}/layouts-${scheme}.png`, png);
+    await context.close();
+  }
+  // The family's thumbnail: the demo's card, turned and tipped, over the view controls that turn it, on the family's
+  // paper and its black cloth; the icon is the card alone. The dotted floor, the header and the words around are left out.
+  const stage = async (page, withControls) => {
+    await page.goto(`http://127.0.0.1:${port}/?yaw=-32&tilt=14&zoom=1.5`);
+    await page.waitForFunction(() => document.querySelector("kazoku-view-controls")?.shadowRoot?.querySelector(".bar"));
+    await page.evaluate((withControls) => {
+      document.activeElement?.blur();
+      const stage = document.createElement("div");
+      stage.id = "thumbnail-stage";
+      stage.style.cssText = "display:flex;flex-direction:column;gap:12px;width:860px;padding:8px";
+      const scene = document.getElementById("scene");
+      scene.style.cssText = "background:transparent;border:0;height:380px";
+      for (const part of scene.querySelectorAll(".grid, .pin")) part.remove();
+      stage.append(scene);
+      if (withControls) stage.append(document.getElementById("controls"));
+      document.querySelector("main").replaceChildren(stage);
+    }, withControls);
+    await page.waitForTimeout(600);
+    return captureDrawing(page, "#thumbnail-stage");
+  };
+  const taken = {};
+  for (const [kind, scheme] of [["light", "light"], ["dark", "dark"], ["icon", "light"]]) {
+    const context = await browser.newContext({ viewport: { width: 1000, height: 900 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    taken[kind] = await stage(page, kind !== "icon");
+    if (kind === "icon") for (const picture of await composeThumbnails({ page, root, light: taken.light, dark: taken.dark, icon: taken.icon, label: "Kazoku UI 家族" })) console.log(picture.file, `${Math.round(picture.bytes / 1024)} KB`);
     await context.close();
   }
   await browser.close();

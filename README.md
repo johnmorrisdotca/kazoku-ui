@@ -1,3 +1,5 @@
+<p align="center"><a href="https://johnmorrisdotca.github.io/kazoku-ui/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/thumbnail-dark.png"><img src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/thumbnail.png" alt="Kazoku UI: a card with a blue circle and a black triangle, turned and tipped in 3D, over the view controls that turn it." width="1200"></picture></a></p>
+
 # Kazoku UI 家族
 
 <picture>
