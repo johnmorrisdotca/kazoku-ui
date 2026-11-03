@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.13.1, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.14.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "renderer", "testing"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "renderer", "testing"];
 ```
 
 ### Part
@@ -404,7 +404,8 @@ interface AddressChoices {
     tilt: number;
     zoom: number;
     drag: DragMode;
-    pace?: Pace;
+    /** The auto-turn speed as a multiple of the element's `speed`: the number of the button that is on. */
+    pace?: number;
 }
 ```
 
@@ -418,7 +419,7 @@ interface AddressKeys {
     tilt: string;
     zoom: string;
     drag: string;
-    /** The auto-turn speed (`slow` or `fast`; Medium is the start and leaves the address). */
+    /** The auto-turn speed, a number (`0.5`, `2`; 1 is the start and leaves the address). `pace` by default, because a page's own `speed` (a clock's, a replay's) is its own. */
     speed?: string;
 }
 ```
@@ -507,7 +508,7 @@ interface Limits {
 
 ### Pace
 
-*type*. Auto-turn speed: Medium is the element's `speed`, Slow half of it and Fast twice it.
+*type*. The three speeds of 0.12 and 0.13 by name: Medium is the element's `speed`, Slow half of it and Fast twice it. A pace is now any number (the `pace` attribute, the `paces` it chooses from); these words still read as 0.5, 1 and 2.
 
 ```ts
 type Pace = "slow" | "medium" | "fast";
@@ -1847,6 +1848,224 @@ import { defineSaveImage } from '@johnmorrisdotca/kazoku-ui/save-image/define';
 
 ```ts
 function defineSaveImage(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/speed-buttons`
+
+14 values and 2 types.
+
+```js
+import { DEFAULT_STEPS, DEFAULT_UNIT, EVENT, languageOf, nearestStep, parseSpeed, parseSteps, SPEED_ADDRESS_KEY, speedText, startStep, stepFrom, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/speed-buttons';
+```
+
+### DEFAULT_STEPS
+
+*constant*. The steps when a page names none: half speed, normal and double.
+
+```ts
+const DEFAULT_STEPS: readonly number[];
+```
+
+### DEFAULT_UNIT
+
+*constant*. The word on each step's button after its number, when the page names none.
+
+```ts
+const DEFAULT_UNIT = "\u00D7";
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-speedchange";
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### nearestStep
+
+*function*. The step nearest `value`: by ratio where both are above zero (so 2.5 is nearer 2 than 4), else by plain distance. `undefined` when there are no steps.
+
+```ts
+function nearestStep(value: number, steps: readonly number[]): number | undefined;
+```
+
+### parseSpeed
+
+*function*. What an address or attribute says: a number that is (or is nearest to) one of the steps. `undefined` when it is not a number at all. The words `slow`, `medium` and `fast` of the first view controls mean 0.5, 1 and 2.
+
+```ts
+function parseSpeed(text: string | null | undefined, steps: readonly number[]): number | undefined;
+```
+
+### parseSteps
+
+*function*. The steps in a list such as `0.5 1 2` or `1, 10, 100`: finite numbers in the order given, each once. `fallback` when the list holds none. A step may be 0 (Paused) or negative (Back).
+
+```ts
+function parseSteps(text: string | null | undefined, fallback?: readonly number[]): number[];
+```
+
+### SPEED_ADDRESS_KEY
+
+*constant*. The address key the buttons keep their choice under, unless `address-key` names another.
+
+```ts
+const SPEED_ADDRESS_KEY = "speed";
+```
+
+### speedText
+
+*function*. The number as a button shows it: `0.5×`, `1×`, `100×`, `−1×` (a real minus sign). At most four significant figures, so 0.333333 reads `0.333×`.
+
+```ts
+function speedText(value: number, unit?: string): string;
+```
+
+### startStep
+
+*function*. The step the buttons start on: 1 where the steps have it (normal speed), else the first.
+
+```ts
+function startStep(steps: readonly number[]): number;
+```
+
+### stepFrom
+
+*function*. The step after (`direction` 1) or before (-1) `value`, going round at the ends: one press of a single button that cycles through the speeds.
+
+```ts
+function stepFrom(value: number, steps: readonly number[], direction?: 1 | -1): number;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-speed-buttons";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, SpeedWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<SpeedWords>) => SpeedWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### SpeedWords
+
+*interface*
+
+```ts
+interface SpeedWords {
+    /** The name of the group of buttons, said by a screen reader and shown before them. */
+    group: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/speed-buttons/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, SpeedButtonsElement, TAG } from '@johnmorrisdotca/kazoku-ui/speed-buttons/element';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-speedchange";
+```
+
+### SpeedButtonsElement
+
+*class*. Attributes: `steps` (the speeds, `0.5 1 2` by default; any numbers, `1 10 100`, `0 1 3600 86400 -3600`), `value` (the one that is on; the start, and it follows the reader's choice),
+
+```ts
+class SpeedButtonsElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The speed now. Setting it to a speed that is not a step takes the nearest step. */
+    get value(): number;
+    set value(next: number | string);
+    /** The speeds the buttons stand for. Setting a list (or a text such as `1 10 100`) draws them again, keeping the nearest to the speed now. */
+    get steps(): readonly number[];
+    set steps(list: readonly number[] | string);
+    /** Your own label over the language's, for example `{ group: "Time" }`. */
+    set words(words: Partial<SpeedWords>);
+    /** One press of a single button that cycles: the next speed (`direction` 1) or the one before (-1), going round at the ends. */
+    step(direction?: 1 | -1): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-speed-buttons";
+```
+
+### SpeedChangeDetail
+
+*interface*. What the `kazoku-speedchange` event carries in `detail`.
+
+```ts
+interface SpeedChangeDetail {
+    /** The speed now: one of `steps`. */
+    value: number;
+    steps: readonly number[];
+    /** `init` (once, when it comes up), `user` (a button or `step()`) or `set` (the `value` property or attribute). */
+    reason: "init" | "user" | "set";
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/speed-buttons/define`
+
+1 value and 0 types.
+
+```js
+import { defineSpeedButtons } from '@johnmorrisdotca/kazoku-ui/speed-buttons/define';
+```
+
+### defineSpeedButtons
+
+*function*
+
+```ts
+function defineSpeedButtons(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`
