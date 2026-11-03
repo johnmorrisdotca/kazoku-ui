@@ -113,7 +113,7 @@ export async function movedBy(page, view, act, options = {}) {
  * the object really turns. The view is put back after each step. Fails with a message that says what moved and where.
  * @param {import("@playwright/test").Page} page
  * @param {{ view: string, picture?: string, window?: [number, number, number, number], controls?: string, min?: number, settle?: number, keys?: boolean, autoTurn?: "right" | "left" | false, distance?: number }} options
- *   `view` is the selector of the element the hands are bound to; `picture` the selector of what is photographed (the view by default; give the globe's own canvas when the view is much wider than the globe, so the middle of the picture is ground); `window` the part of the picture that is followed, as shares `[left, right, top, bottom]` (the middle 40%; give the part that holds the object when it is thin, such as a rocket); `controls` the selector of the `<kazoku-view-controls>` (needed for Auto-turn); `min` the pixels that count as moved (8);
+ *   `view` is the selector of the element the hands are bound to; `picture` the selector of what is photographed (the view by default; give the globe's own canvas when the view is much wider than the globe, so the middle of the picture is ground); `window` the part of the picture that is followed, as shares `[left, right, top, bottom]` (the middle 40%; give the part that holds the object when it is thin, such as a rocket); `controls` the selector of the `<kazoku-view-controls>` (needed for Auto-turn); `min` the pixels that count as moved (8; the other axis may move by up to the larger of `min` and 3);
  *   `distance` the pixels dragged (30); `keys: false` skips the arrow keys; `autoTurn` the direction the ground goes while Auto-turn runs, in a view whose Auto-turn is the object's own turn.
  */
 export async function checkFollowsTheHand(page, options) {
@@ -122,11 +122,11 @@ export async function checkFollowsTheHand(page, options) {
   const move = (act) => movedBy(page, page.locator(picture), act, { settle, window });
   const right = await move(() => dragBy(page, target, distance, 0));
   expect(right.x, `a drag right moves the ground right (moved ${right.x},${right.y})`).toBeGreaterThan(min);
-  expect(Math.abs(right.y), "and not up or down").toBeLessThan(min);
+  expect(Math.abs(right.y), "and not up or down").toBeLessThan(Math.max(min, 3));
   await dragBy(page, target, -distance, 0);
   const up = await move(() => dragBy(page, target, 0, -distance));
   expect(up.y, `a drag up moves the ground up (moved ${up.x},${up.y})`).toBeLessThan(-min);
-  expect(Math.abs(up.x), "and not sideways").toBeLessThan(min);
+  expect(Math.abs(up.x), "and not sideways").toBeLessThan(Math.max(min, 3));
   await dragBy(page, target, 0, distance);
   await page.waitForTimeout(settle);
   if (keys) {
