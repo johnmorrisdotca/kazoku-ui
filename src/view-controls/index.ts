@@ -5,4 +5,5 @@ export { between, clamp, clampPan, DEFAULT_LIMITS, degreesPerPixel, dragTurn, PA
 export { languageOf, WORDS, wordsFor, type Language, type ViewWords } from "./words.ts";
 export const EVENT = "kazoku-viewchange";
 export const TAG = "kazoku-view-controls";
-export { LEVEL_STORAGE_KEY, PACE_FACTOR, PACES, parseLevel, parsePace, zoomText, type Level, type Pace } from "./levels.ts";
+export { LAYOUTS, LEVEL_STORAGE_KEY, PACE_FACTOR, PACES, parseLayout, parseLevel, parsePace, zoomText, type Layout, type Level, type Pace } from "./levels.ts";
+export { COMMON_ZOOMS, MARK_GAP, SLIDER_STEP, SNAP_PX, zoomAtPosition, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomToMark, type ZoomMark } from "./zoomScale.ts";

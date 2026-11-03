@@ -24,9 +24,9 @@ themeSwitch.addEventListener("kazoku-themechange", (event) => {
   else controls.setAttribute("theme", event.detail.choice);
 });
 
-// Options, off by default, switched on in the address: ?controls=advanced (every control), ?anchor=pin (the + and - buttons and keys zoom about the ring), ?key-tilt=wheel, ?stop-turn, ?tilt-step=1.
+// Options, off by default, switched on in the address: ?controls=advanced (every control), ?layout=horizontal, vertical or compact (layouts.html shows them side by side), ?anchor=pin (the + and - buttons and keys zoom about the ring), ?key-tilt=wheel, ?stop-turn, ?tilt-step=1.
 const options = new URLSearchParams(location.search);
-for (const name of ["key-tilt", "stop-turn", "tilt-step", "controls"]) if (options.has(name)) controls.setAttribute(name, options.get(name));
+for (const name of ["key-tilt", "stop-turn", "tilt-step", "controls", "layout", "zoom-min", "zoom-max"]) if (options.has(name)) controls.setAttribute(name, options.get(name));
 if (options.get("anchor") === "pin") {
   const place = () => {
     const pin = $("pin");

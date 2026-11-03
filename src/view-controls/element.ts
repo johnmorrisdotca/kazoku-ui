@@ -6,11 +6,12 @@ import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { LEVEL_STORAGE_KEY, type Level, PACE_FACTOR, type Pace, PACES, parseLevel, zoomText } from "./levels.ts";
+import { type Layout, LEVEL_STORAGE_KEY, type Level, PACE_FACTOR, type Pace, PACES, parseLayout, parseLevel, zoomText } from "./levels.ts";
 import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
+import { SNAP_PX, zoomAtPosition, type ZoomMark, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomToMark } from "./zoomScale.ts";
 
 export { EVENT, TAG };
 
@@ -34,6 +35,10 @@ const ICON = {
   more: icon("M3 7h18v2H3zM3 15h18v2H3zM8 4a3 3 0 1 0 0 6 3 3 0 1 0 0-6zM16 12a3 3 0 1 0 0 6 3 3 0 1 0 0-6z"),
 };
 
+/** The zoom slider's steps from end to end, and the width of its thumb in pixels (the styles draw it 28 wide). */
+const SLIDER_SPAN = 1000;
+const THUMB = 28;
+
 const HTML = `
 <div class="bar" part="bar" role="group">
   <div class="field angle" part="field angle"><label data-w="angle" for="yaw"></label><input id="yaw" type="range" min="-180" max="180" step="1" value="0" part="slider" /><output for="yaw" data-o="yaw">0°</output></div>
@@ -48,6 +53,7 @@ const HTML = `
   <button type="button" class="front adv" data-b="front" part="button"><span data-w="front"></span></button>
   <button type="button" class="centre" data-b="centre" part="button" hidden>${ICON.centre}<span class="text" data-w="centre"></span></button>
   <div class="group zoom" role="group" data-g="zoom">
+    <div class="field zslide" part="field zoom-slider"><label data-w="zoom" for="zoom"></label><div class="zbox"><div class="ztrack" aria-hidden="true"><div class="zfill"></div></div><div class="zmarks" aria-hidden="true"></div><input id="zoom" type="range" min="0" max="1000" step="1" value="0" part="slider zoom-slider" /></div></div>
     <button type="button" data-b="out" part="button">${ICON.minus}</button>
     <button type="button" class="level" data-b="level" part="button"><span data-o="zoom">1×</span></button>
     <button type="button" data-b="in" part="button">${ICON.plus}</button>
@@ -73,11 +79,12 @@ const HTML = `
  * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
+ * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
  * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "controls", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -91,6 +98,10 @@ export class ViewControlsElement extends HTMLElement {
   #unwatch: (() => void) | undefined;
   #offPage = false;
   #level: Level = "basic";
+  #layout: Layout = "classic";
+  #marks: ZoomMark[] = [];
+  #marksFor = "";
+  #zoomAt = -1;
   #pace: Pace = "medium";
   #labels: ViewWords = wordsFor("en");
   #said = "";
@@ -174,6 +185,7 @@ export class ViewControlsElement extends HTMLElement {
     this.#offPage = false;
     if (this.#root.querySelector(".bar") === null) this.#build();
     this.#keys = parseKeys(this.getAttribute("address-keys"));
+    this.#arrange();
     this.#limits();
     const start: Partial<ViewState> = {};
     for (const key of ["yaw", "tilt"] as const) {
@@ -236,7 +248,10 @@ export class ViewControlsElement extends HTMLElement {
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
     else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
     else if (name === "speed") this.#speed();
-    else if (name === "controls") {
+    else if (name === "layout") {
+      this.#arrange();
+      this.#show();
+    } else if (name === "controls") {
       this.#level = parseLevel(value) ?? "basic";
       this.#show();
     }
@@ -315,6 +330,7 @@ export class ViewControlsElement extends HTMLElement {
     };
     slider("yaw");
     slider("tilt");
+    this.#zoomSlider(q<HTMLInputElement>("#zoom"), c);
     const on = (b: string, run: () => void): void => q<HTMLButtonElement>(`[data-b="${b}"]`).addEventListener("click", run);
     on("play", () => c().toggle());
     on("front", () => c().front());
@@ -342,6 +358,69 @@ export class ViewControlsElement extends HTMLElement {
     on("down", () => c().panBy(0, 1));
     on("move", () => c().setDrag("move"));
     on("turn", () => c().setDrag("turn"));
+  }
+
+  /** The zoom slider: logarithmic, so a press of + or - moves it the same way anywhere; a drag that ends near a mark goes to it, and the keys step, jump between marks and go to the ends. */
+  #zoomSlider(input: HTMLInputElement, c: () => ViewController): void {
+    const go = (final: boolean): void => {
+      const { zoomMin: min, zoomMax: max } = c().limits;
+      const length = input.getBoundingClientRect().width - THUMB;
+      const zoom = zoomAtPosition(Number(input.value) / SLIDER_SPAN, min, max);
+      c().zoomAt(zoomSnap(zoom, this.#marks, min, max, length > 0 ? SNAP_PX / length : 0), undefined, final);
+    };
+    input.addEventListener("input", () => go(false));
+    input.addEventListener("change", () => go(true));
+    input.addEventListener("keydown", (event) => {
+      const { zoomMin: min, zoomMax: max } = c().limits;
+      const zoom = c().state.zoom;
+      const up = event.key === "ArrowRight" || event.key === "ArrowUp";
+      const down = event.key === "ArrowLeft" || event.key === "ArrowDown";
+      let next: number | undefined;
+      if (up || down) next = zoomStep(zoom, this.#marks, up ? 1 : -1, min, max);
+      else if (event.key === "PageUp" || event.key === "PageDown") next = zoomToMark(zoom, this.#marks, event.key === "PageUp" ? 1 : -1, min, max);
+      else if (event.key === "Home") next = min;
+      else if (event.key === "End") next = max;
+      if (next === undefined) return;
+      event.preventDefault();
+      c().zoomAt(next);
+    });
+  }
+
+  /** The layout from the attribute, on the host as `data-layout` for the styles. */
+  #arrange(): void {
+    this.#layout = parseLayout(this.getAttribute("layout"));
+    if (this.dataset.layout !== this.#layout) this.dataset.layout = this.#layout;
+  }
+
+  /** The slider's marks for the limits now: ticks on the track and their labels under it, made again only when the limits change. */
+  #drawMarks(): void {
+    const { zoomMin: min, zoomMax: max } = this.#ensure().limits;
+    const key = `${min} ${max}`;
+    if (key === this.#marksFor) return;
+    this.#marksFor = key;
+    this.#marks = zoomMarks(min, max);
+    this.#zoomAt = -1;
+    const track = this.#root.querySelector<HTMLElement>(".ztrack");
+    const labels = this.#root.querySelector<HTMLElement>(".zmarks");
+    if (track === null || labels === null) return;
+    for (const tick of track.querySelectorAll(".ztick")) tick.remove();
+    labels.replaceChildren();
+    const doc = this.ownerDocument;
+    for (const mark of this.#marks) {
+      // Placed through the CSSOM, which a strict style-src allows, not a style attribute in markup.
+      const tick = doc.createElement("span");
+      tick.className = "ztick";
+      tick.style.setProperty("--at", String(mark.at));
+      track.append(tick);
+      const label = doc.createElement("span");
+      label.className = "zmark";
+      label.dataset.zoom = String(mark.zoom);
+      if (mark.end) label.dataset.end = mark.at === 0 ? "start" : "end";
+      label.style.setProperty("--at", String(mark.at));
+      label.textContent = zoomText(mark.zoom);
+      labels.append(label);
+    }
+    this.#root.querySelector<HTMLElement>(".zslide")?.toggleAttribute("hidden", this.#marks.length === 0);
   }
 
   #storageKey(): string {
@@ -375,6 +454,7 @@ export class ViewControlsElement extends HTMLElement {
       tilt.min = String(-c.limits.tiltMax);
       tilt.max = String(c.limits.tiltMax);
     }
+    this.#drawMarks();
   }
 
   #resolveView(): void {
@@ -450,6 +530,17 @@ export class ViewControlsElement extends HTMLElement {
       if (node.getAttribute("aria-label") !== label) node.setAttribute("aria-label", label);
     };
     write(q('[data-o="zoom"]'), zoom);
+    // The slider always shows the true zoom, wherever it came from; written only when it moved.
+    const at = zoomPosition(s.zoom, c.limits.zoomMin, c.limits.zoomMax);
+    if (at !== this.#zoomAt) {
+      this.#zoomAt = at;
+      const slider = q<HTMLInputElement>("#zoom");
+      const value = String(Math.round(at * SLIDER_SPAN));
+      if (slider.value !== value) slider.value = value;
+      q<HTMLElement>(".zbox").style.setProperty("--pos", String(at));
+    }
+    const zoomSlider = q<HTMLInputElement>("#zoom");
+    if (zoomSlider.getAttribute("aria-valuetext") !== zoom) zoomSlider.setAttribute("aria-valuetext", zoom);
     say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
     for (const pace of PACES) q<HTMLButtonElement>(`[data-b="${pace}"]`).setAttribute("aria-pressed", String(this.#pace === pace));
@@ -469,6 +560,7 @@ export class ViewControlsElement extends HTMLElement {
     // The speed is always in sight while the view turns: one small button in basic, which steps through the three; advanced always has the three.
     q<HTMLElement>(".pace-now").hidden = flat || advanced || !s.turning;
     this.toggleAttribute("data-turning", s.turning);
+    if (this.hasAttribute("data-flat") !== flat) this.toggleAttribute("data-flat", flat);
   }
 
   /** Tells a screen reader the zoom once it has settled for a moment (a pinch or a wheel makes many steps). */
