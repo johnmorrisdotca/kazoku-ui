@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-03
+
+The wheel over the view zooms it, in every family package that uses the view controls.
+
 - **The wheel zooms** (KAZOKU-UI-45). The wheel over the view now zooms it about the pointer, like a map, about 1.2 times a notch; before, the plain wheel tipped a focused view and only Ctrl or Command with the wheel zoomed. A trackpad's pinch (Ctrl and the wheel) still zooms. Shift and the wheel, or a sideways swipe, turns the view. Tipping is a drag, the arrow keys or the tilt slider. With the pointer anywhere else the wheel scrolls the page; a wheel that starts while the zoom is already at its end that way (turned down at Fit, or up at the most) scrolls the page as well, so it is never trapped, while the steps of a turn that reaches the end part-way through stay with the view, so the page does not jump. A flat view leaves Shift and the wheel and a sideways swipe to the page. `wheelZoomFactor` takes a third argument, `"pinch"` (the default, as before) or `"wheel"`, and `WHEEL_GESTURE_MS` (300) is exported. `key-tilt="wheel"` still swaps the up and down keys.
 - The README opens with the package's thumbnail, and the demo carries it as its link preview (og:image) and publishes the card, a dark card and an icon on Pages at `thumbnail.png`, `thumbnail-dark.png` and `icon.png`.
 
