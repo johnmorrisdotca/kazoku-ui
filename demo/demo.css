@@ -74,3 +74,5 @@ output[data-testid="address"] { min-width: 0; overflow-wrap: anywhere; font: 0.8
 .card-face { fill: var(--face); stroke: var(--edge); stroke-width: 2; }
 .art .a { fill: var(--face-a); }
 .art .b { fill: var(--face-b); }
+
+#globe { position: absolute; inset: 0; margin: auto; width: 300px; height: 300px; pointer-events: none; }

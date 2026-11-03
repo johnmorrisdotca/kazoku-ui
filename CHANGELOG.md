@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- **Exact grab** (KAZOKU-UI-28, from chikyu-earth's MODULES-200). `grab-radius` on `<kazoku-view-controls>` (and `grabRadius` on `createViewController`, `degreesPerPixel` and a `grabRadius` argument to `dragTurn`): the on-screen radius of a globe or turnable piece in CSS pixels at Fit, or `fit` for half the smaller side of the view. A drag then turns the view by the angle that keeps the touched point under the pointer, on both axes, and the radius grows with the zoom. Left out, nothing changes: the fixed angle across the view (180 degrees across the width, 60 down the height) that moved a globe's ground about 1.5 pixels for each pixel of drag sideways and half a pixel up and down.
+- **The drag rule**, written down in `docs/drag-rule.md`: the surface under the pointer follows the pointer, the arrow keys agree, Auto-turn goes the object's real way.
+- **`templates/e2e-ground.mjs`**, the shared browser check of the rule (`checkFollowsTheHand`, `checkExactGrab`, and the parts), copied unchanged into a package's `e2e/`; a unit test holds its finder. The demo's `grab.html` draws a globe turned with exact grab and is tested with the helper.
+
 ## [0.10.1] - 2026-11-02
 
 - **`onContext("restored")`** (KAZOKU-UI-15, found by chikyu-earth). The shared renderer's `onContext` was told `"lost"` and `"unavailable"` but never `"restored"`, although `docs/renderer.md` and the `SharedRendererOptions` type said it was. It is now called when the browser gives the context back, after the focused view draws again. `e2e/renderer.demo.mjs`'s lost-and-restored check reads the events the demo records (`["lost"]`, then `["lost", "restored"]`); it fails on 0.10.0, where the second list is `["lost"]`.

@@ -9,7 +9,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md)
 
 ```sh
 npm install @johnmorrisdotca/kazoku-ui
@@ -113,7 +113,7 @@ myZoomIn.onclick = () => view.zoomBy(1.4);
 
 The automatic turn is idle whenever nothing can see the view: while the `for` element (else the controls) is scrolled out of sight, and while the tab is hidden. Its frame loop is stopped, so no animation frame is asked for and no `kazoku-viewchange` event with reason `auto` is sent; `state.turning` stays true, and the turn goes on from where it was when the view is back (the first frame back only restarts the clock). A view that opens off screen asks for no frame until it is seen, and an element on no page asks for none. One frame is asked for at a time, and at most one `auto` change is sent a page frame. A page does not need to pause it for these. Without the element, `view.bind(element)` watches the bound element the same way; `view.suspendTurn()` and `view.resumeTurn()` do the same for your own visibility test (they nest, on top of what `bind` does), and `view.play(seconds)` stops the turn by itself after that many seconds of turning.
 
-Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`. `anchor`, `keyTilt`, `stopTurn` and `tiltStep` are also members you can change at any time. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
+Options of `createViewController` that match: `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`. `anchor`, `keyTilt`, `stopTurn`, `tiltStep` and `grabRadius` are also members you can change at any time. The controller also has `ignore` (changeable), `fitScale`, `startZoom` (the `zoom` the view opens at) and `setFitScale(n)`, `setStartZoom(zoom)`; `DEFAULT_IGNORE` is the default selector.
 
 ### Buttons and links inside the view
 
@@ -130,6 +130,10 @@ controls.anchor = { x: 60, y: -30 }; // pixels from the view's middle when it is
 ```
 
 Zoom is about that point of the picture, so it stays put on screen however far in the reader is and wherever the view has been moved to: `+` then `-` leaves it where it was within a pixel. Without the element, set `view.anchor` on the controller, or pass `anchor` to `createViewController`; `view.zoomBy(f)` and `view.zoomAt(z)` with no point use it.
+
+### The drag rule and exact grab
+
+In every turnable view the surface under the pointer follows the pointer, the arrow keys agree, and Auto-turn goes the object's real way; `grab-radius` makes a drag keep the touched point under the pointer on a globe. The rule, the option and the shared browser check (`templates/e2e-ground.mjs`) are in [docs/drag-rule.md](docs/drag-rule.md); the demo's `grab.html` shows it.
 
 ### Keys, the wheel and the turn
 
@@ -179,6 +183,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `key-tilt` | Which way Arrow Up tips the view: `drag` (the default: like a drag up) or `wheel` (the way a wheel turned up tips it, the other way). Arrow Down goes the other way from Up. |
 | `stop-turn` | A press on the view, the wheel over it or a key it handles stops the automatic turn. Off by default, so the turn carries on. Buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees (`1` gives whole degrees). 0 by default: not rounded. |
+| `grab-radius` | Exact grab, for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (a drag of *d* pixels moves the ground at the middle by *d* pixels), and the radius grows with the zoom. Left out, a drag turns by a fixed angle across the view, as before. See [docs/drag-rule.md](docs/drag-rule.md). |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
 | `speed` | Degrees a second at Medium (30); Slow is half and Fast twice. |

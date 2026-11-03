@@ -1,0 +1,13 @@
+import type { Locator, Page } from "@playwright/test";
+
+export interface Shift {
+  x: number;
+  y: number;
+  error: number;
+}
+export function bestShift(before: ArrayLike<number>, after: ArrayLike<number>, w: number, h: number, reach: number): Shift;
+export function groundShift(page: Page, before: Buffer, after: Buffer, reach?: number): Promise<Shift>;
+export function dragBy(page: Page, target: Locator, dx: number, dy: number): Promise<void>;
+export function movedBy(page: Page, view: Locator, act: () => Promise<void>, options?: { settle?: number; reach?: number }): Promise<Shift>;
+export function checkFollowsTheHand(page: Page, options: { view: string; picture?: string; controls?: string; min?: number; settle?: number; keys?: boolean; autoTurn?: "right" | "left" | false; distance?: number }): Promise<void>;
+export function checkExactGrab(page: Page, options: { view: string; picture?: string; radius: number; tolerance?: number; settle?: number; reach?: number }): Promise<void>;

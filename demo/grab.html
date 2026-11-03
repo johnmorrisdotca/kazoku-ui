@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: exact grab</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">exact grab</span></h1>
+    <div class="tools">
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro"><a href="index.html">The view controls</a> · A drawn globe, 120 pixels in radius. Drag it: the point you touch stays under the pointer. With <code>?grab=off</code> the drag turns it by a fixed angle across the view instead: a half turn over the view's width.</p>
+  <div class="scene" id="scene" tabindex="0" role="group" aria-roledescription="globe" data-testid="scene">
+    <canvas id="globe" width="300" height="300" data-testid="globe" aria-hidden="true"></canvas>
+  </div>
+  <kazoku-view-controls id="controls" for="scene" tilt-max="80" data-testid="controls"></kazoku-view-controls>
+  <output class="readout" id="readout" data-testid="readout" aria-live="off"></output>
+</main>
+<script type="module" src="grab.js"></script>
+</body>
+</html>
