@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { clamp, clampPan, type Camera, degreesPerPixel, dragTurn, pinchTo, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
+import { between, clamp, clampPan, type Camera, degreesPerPixel, dragTurn, pinchTo, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
 
 const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
 
@@ -106,4 +106,30 @@ test("an exact grab turns by the angle that carries the touched point by the pix
   for (const off of [0, -5, Number.NaN]) assert.equal(dragTurn(start, 100, 0, size, true, undefined, 0, off).yaw, 45);
   assert.equal(dragTurn({ ...start, tilt: 12 }, 0, -75, size, false, undefined, 0, 100).tilt, 12);
   assert.equal(dragTurn(start, 0, -1000, size, true, undefined, 0, 50).tilt, 30);
+});
+
+test("a pan keeps at least a quarter of a small object in view, and the picture covering the view still holds without one", () => {
+  const size = { width: 400, height: 300 };
+  const zoomed: Camera = { ...start, zoom: 2 };
+  // As the picture (no object given): at 2x it may move half the view's size, so it still covers the view.
+  assert.equal(clampPan({ ...zoomed, panX: 900, panY: -900 }, size).panX, 200);
+  assert.equal(clampPan({ ...zoomed, panX: 900, panY: -900 }, size).panY, -150);
+  // An object 100 by 80 at Fit is 200 by 160 at 2x; it may go until a quarter of it (50 by 40) is left in the view's edge.
+  const object = { width: 100, height: 80 };
+  const far = clampPan({ ...zoomed, panX: 5000, panY: -5000 }, size, object);
+  assert.equal(far.panX, 200 + 50);
+  assert.equal(far.panY, -(150 + 40));
+  // The object spans pan +/- 100 about its middle, so at the limit its edge is 50 in from the view's: a quarter of its width is in view.
+  assert.equal(far.panX - 100, 150);
+  assert.equal(clampPan({ ...start, panX: 40 }, size, object).panX, 0, "at Fit nothing moves");
+});
+
+test("between eases from one camera to another and holds at the ends", () => {
+  const from: Camera = { yaw: 90, tilt: 20, zoom: 3, panX: 100, panY: -50 };
+  const to: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
+  assert.deepEqual(between(from, to, 0), from);
+  assert.deepEqual(between(from, to, 1), to);
+  assert.deepEqual(between(from, to, 2), to);
+  const half = between(from, to, 0.5);
+  assert.ok(half.yaw < 45 && half.yaw > 0, "quick at first: past the half way at the half time");
 });

@@ -17,6 +17,7 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `zoomTwo` | Zoom to 2 times | 2倍にする | nibai ni suru, make it 2 times (not shown any more; kept for a page's own `words`) |
 | `zoomIn` | Zoom in | 拡大 | kakudai, make larger |
 | `fit` | Fit | 全体 | zentai, the whole |
+| `centre` | Centre | 中央 | chūō, the middle |
 | `pan` | Move the view | 表示を動かす | hyōji o ugokasu, move the view |
 | `panLeft` | Move left | 左へ | hidari e, to the left |
 | `panRight` | Move right | 右へ | migi e, to the right |

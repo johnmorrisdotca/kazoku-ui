@@ -380,6 +380,63 @@ test("grabRadius keeps the touched point under the pointer: the same degrees for
   assert.ok(Math.abs(view.state.yaw - radian) < 1e-9, "it can be changed at any time");
 });
 
+test("centre puts the object back in the middle at Fit and the default angle, in a quarter of a second, and says so when it is there", () => {
+  const { view, clock, seen } = make();
+  view.set({ yaw: 120, tilt: 20, zoom: 3, panX: 80, panY: -40 }, true);
+  seen.length = 0;
+  view.centre();
+  assert.equal(clock.pending(), true, "it moves over frames");
+  clock.step(0);
+  clock.step(100);
+  assert.ok(view.state.zoom < 3 && view.state.zoom > 1 && view.state.yaw < 120 && view.state.yaw > 0, "on the way");
+  assert.ok(seen.every((one) => one.reason === "centre" && !one.final), "the steps are not final");
+  clock.step(200);
+  assert.deepEqual({ yaw: view.state.yaw, tilt: view.state.tilt, zoom: view.state.zoom, panX: view.state.panX, panY: view.state.panY }, { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 });
+  assert.equal(seen[seen.length - 1]?.final, true);
+  assert.equal(clock.pending(), false, "and the loop is done");
+});
+
+test("centre with animate false, or for a reader who prefers reduced motion, goes at once; a hand on the view stops it where it is", () => {
+  const instant = make();
+  instant.view.set({ yaw: 120, zoom: 3, panX: 80 }, true);
+  instant.view.centre(false);
+  assert.equal(instant.view.state.zoom, 1);
+  assert.equal(instant.view.state.yaw, 0);
+  assert.equal(instant.clock.pending(), false);
+  const reduced = make();
+  reduced.view.set({ yaw: 120, zoom: 3, panX: 80 }, true);
+  const was = (globalThis as { matchMedia?: unknown }).matchMedia;
+  (globalThis as { matchMedia?: unknown }).matchMedia = () => ({ matches: true });
+  try {
+    reduced.view.centre();
+  } finally {
+    (globalThis as { matchMedia?: unknown }).matchMedia = was;
+  }
+  assert.equal(reduced.view.state.zoom, 1, "reduced motion: at once");
+  const held = make();
+  held.view.set({ yaw: 120, zoom: 3, panX: 80 }, true);
+  held.view.centre();
+  held.clock.step(0);
+  held.clock.step(80);
+  const hands = fakeBound();
+  held.view.bind(hands.fakeView);
+  hands.press(100, 100);
+  const stopped = held.view.state.zoom;
+  assert.equal(held.clock.pending(), false, "a press stops the move");
+  held.clock.step(500);
+  assert.equal(held.view.state.zoom, stopped);
+  hands.release();
+});
+
+test("an object smaller than the view cannot be panned out of it", () => {
+  const { view } = make({ objectSize: { width: 100, height: 80 } });
+  view.set({ zoom: 2 }, true);
+  view.panBy(40, 0);
+  assert.equal(view.state.panX, 250, "a quarter of the object (50 of 200) is left in the view");
+  view.panBy(-80, 0);
+  assert.equal(view.state.panX, -250);
+});
+
 test("a suspended turn asks for no frames and sends no change, and goes on when resumed", () => {
   const { view, clock, seen } = make();
   view.play();

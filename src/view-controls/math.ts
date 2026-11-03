@@ -50,12 +50,15 @@ export function zoomAbout(camera: Camera, next: number, at: Point, limits: Limit
   return { ...camera, zoom, panX: atOne ? 0 : at.x - (at.x - camera.panX) * k, panY: atOne ? 0 : at.y - (at.y - camera.panY) * k };
 }
 
-/** Hold the pan so the picture still covers the view: at zoom z the picture may move (z - 1) / 2 of the view's size either way. */
-export function clampPan(camera: Camera, size: Size | undefined): Camera {
+/**
+ * Hold the pan so the object cannot be lost. By default the object is the picture, which fills the view at Fit: at zoom z it may move (z - 1) / 2 of the view's size either way, so the picture still covers the view.
+ * A page whose object is smaller than the view gives its `object` (its size at Fit, in CSS pixels): it may then move until a quarter of it is still in view, in a view of any size, so it can never be dragged out.
+ */
+export function clampPan(camera: Camera, size: Size | undefined, object?: Size): Camera {
   if (camera.zoom <= 1) return { ...camera, panX: 0, panY: 0 };
   if (size === undefined) return camera;
-  const roomX = (size.width * (camera.zoom - 1)) / 2;
-  const roomY = (size.height * (camera.zoom - 1)) / 2;
+  const roomX = object === undefined ? (size.width * (camera.zoom - 1)) / 2 : size.width / 2 + (object.width * camera.zoom) / 4;
+  const roomY = object === undefined ? (size.height * (camera.zoom - 1)) / 2 : size.height / 2 + (object.height * camera.zoom) / 4;
   return { ...camera, panX: clamp(camera.panX, -roomX, roomX), panY: clamp(camera.panY, -roomY, roomY) };
 }
 
@@ -88,6 +91,13 @@ export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips
   const raw = start.tilt - (exact > 0 ? dy * exact : (dy / (size.height || 360)) * TILT_ACROSS);
   const tilt = tips ? clamp(step > 0 ? Math.round(raw / step) * step : raw, -limits.tiltMax, limits.tiltMax) : start.tilt;
   return { yaw, tilt };
+}
+
+/** The camera `fraction` of the way (0 to 1) from `from` to `to`, eased out: quick at first, slow at the end. */
+export function between(from: Camera, to: Camera, fraction: number): Camera {
+  const t = 1 - (1 - clamp(fraction, 0, 1)) ** 3;
+  const mix = (a: number, b: number): number => a + (b - a) * t;
+  return { yaw: mix(from.yaw, to.yaw), tilt: mix(from.tilt, to.tilt), zoom: mix(from.zoom, to.zoom), panX: mix(from.panX, to.panX), panY: mix(from.panY, to.panY) };
 }
 
 /** The factor a Ctrl or Command wheel turn zooms by (a trackpad's pinch arrives that way). `deltaMode` 1 is lines. */

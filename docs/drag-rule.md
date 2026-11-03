@@ -9,6 +9,8 @@ In every 3D or turnable view of the family (a globe, a garment, a rocket, a card
 
 The shared controls' numbers (`yaw` goes up as the hand goes right, `tilt` goes up as the hand goes up) are the same in every package; the package decides what they mean in its scene. A package whose scene moves the other way when `yaw` goes up has the drawing's sign wrong, not the controls: change the drawing, never the key or the drag.
 
+A view that has been dragged away is put right with **Centre** (`element.centre()`, and the key Home): the object in the middle at Fit and the default angle.
+
 ## Exact grab
 
 By default a drag turns the view by a fixed angle across its size: a half turn (180 degrees) across the width and 60 degrees down the height. On a round object that is not what the hand expects: in a view 300 pixels wide the ground of a globe moves about 1.5 pixels for each pixel of drag sideways and half a pixel up and down, and in a wide view much less. Give the controls the object's radius and the angle comes from it instead:

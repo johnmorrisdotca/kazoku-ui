@@ -3,7 +3,7 @@
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
 import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
-import { clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
   /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
@@ -53,6 +53,8 @@ export interface ViewControllerOptions {
   tiltStep?: number;
   /** Exact grab: the on-screen radius, in CSS pixels at Fit, of the globe or turnable piece, or `"fit"` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (`degreesPerPixel`), and at a zoom the radius grows with it. 0 (the default) keeps the fixed angle across the view. */
   grabRadius?: number | "fit";
+  /** The object's size at Fit in CSS pixels, when it is smaller than the view: a pan then keeps at least a quarter of it in view (see `clampPan`). Left out, the object is the picture, which covers the view. */
+  objectSize?: Size;
   /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
   size?: () => Size | undefined;
   onChange?: (state: ViewState, info: ChangeInfo) => void;
@@ -74,6 +76,8 @@ export interface ViewController {
   tiltStep: number;
   /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
   grabRadius: number | "fit";
+  /** The object's size at Fit (see `ViewControllerOptions.objectSize`). Can be changed at any time. */
+  objectSize: Size | undefined;
   /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
   readonly fitScale: number;
   /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
@@ -96,6 +100,8 @@ export interface ViewController {
   releaseTurn(): void;
   front(): void;
   fit(): void;
+  /** Put the object back in the middle at Fit and the default angle (yaw and tilt 0). It moves there over a quarter of a second, and at once for `animate` false or for a reader who prefers reduced motion; any hand on the view stops the move where it is. Ends with a change `{ final: true, reason: "centre" }`. */
+  centre(animate?: boolean): void;
   /** Zoom to `next` about the point `at` (client pixels); left out, about the `anchor`, else the view's middle. */
   zoomAt(next: number, at?: Point, final?: boolean): void;
   zoomBy(factor: number, at?: Point): void;
@@ -106,6 +112,9 @@ export interface ViewController {
   bind(view: HTMLElement): () => void;
   destroy(): void;
 }
+
+/** How long a move to the middle takes. */
+const CENTRE_MS = 250;
 
 const HANDLED_KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "_", "0", "Home"];
 
@@ -125,6 +134,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let limit = 0;
   let turned = 0;
   let destroyed = false;
+  let centring = 0;
+  let stepping = false;
   let fitScale = positive(options.fitScale) ?? 1;
   let start: "fit" | number = positive(options.zoom) ?? "fit";
   let atStart = true;
@@ -147,11 +158,18 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     options.onChange?.({ ...state }, { final, reason });
   };
 
+  const stopCentre = (): void => {
+    if (centring === 0) return;
+    clock.cancel(centring);
+    centring = 0;
+  };
+
   const camera = (): Camera => ({ yaw: state.yaw, tilt: state.tilt, zoom: state.zoom, panX: state.panX, panY: state.panY });
 
   /** Take a camera in, held to the limits and, once the view's size is known, to the room the zoom gives. */
   const take = (next: Camera): void => {
-    const held = clampPan({ ...next, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size());
+    if (!stepping) stopCentre();
+    const held = clampPan({ ...next, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size(), controller.objectSize);
     state.yaw = controller.turnable ? wrapYaw(held.yaw) : state.yaw;
     state.tilt = controller.turnable ? held.tilt : state.tilt;
     if (held.zoom !== state.zoom) atStart = false;
@@ -178,7 +196,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   const tick = (now: number): void => {
     if (!state.turning || suspends > 0) return;
     frame = clock.request(tick);
-    if (holds > 0) {
+    if (holds > 0 || centring !== 0) {
       last = 0;
       return;
     }
@@ -202,6 +220,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     stopTurn: options.stopTurn ?? false,
     tiltStep: options.tiltStep ?? 0,
     grabRadius: options.grabRadius ?? 0,
+    objectSize: options.objectSize,
     get fitScale() {
       return fitScale;
     },
@@ -280,6 +299,34 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       take({ ...camera(), zoom: 1, panX: 0, panY: 0 });
       emit(true, "fit");
     },
+    centre(animate = true) {
+      stopCentre();
+      const from = camera();
+      const to: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
+      const reduced = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+      const same = from.yaw === 0 && from.tilt === 0 && from.zoom === 1 && from.panX === 0 && from.panY === 0;
+      if (!animate || reduced || same || destroyed) {
+        take(to);
+        emit(true, "centre");
+        return;
+      }
+      let began = -1;
+      const step = (now: number): void => {
+        if (began < 0) began = now;
+        const fraction = (now - began) / CENTRE_MS;
+        stepping = true;
+        take(between(from, to, fraction));
+        stepping = false;
+        if (fraction >= 1) {
+          centring = 0;
+          emit(true, "centre");
+          return;
+        }
+        emit(false, "centre");
+        centring = clock.request(step);
+      };
+      centring = clock.request(step);
+    },
     zoomAt(next, at, final = true) {
       take(zoomAbout(camera(), next, fromMiddle(at), limits));
       emit(final, "zoom");
@@ -303,6 +350,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     },
     destroy() {
       destroyed = true;
+      stopCentre();
       clock.cancel(frame);
       state.turning = false;
       unbind?.();
@@ -331,6 +379,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     };
     const canTurn = (): boolean => controller.turnable;
     const grab = (): void => {
+      stopCentre();
       if (controller.stopTurn) controller.pause();
     };
 

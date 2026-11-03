@@ -38,7 +38,7 @@ test("More shows tilt, speed, Front and, once zoomed, the pan pad; and shows the
   const plain = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id));
   expect(plain).toEqual([]);
   await button(page, "more").click();
-  expect(await shown(page)).toEqual(["yaw", "play", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "play", "centre", "out", "level", "in", "fit", "more"]);
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
 });
 

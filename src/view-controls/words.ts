@@ -12,6 +12,7 @@ export interface ViewWords {
   zoomTwo: string;
   zoomIn: string;
   fit: string;
+  centre: string;
   pan: string;
   panLeft: string;
   panRight: string;
@@ -43,6 +44,7 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomTwo: "Zoom to 2 times",
     zoomIn: "Zoom in",
     fit: "Fit",
+    centre: "Centre",
     pan: "Move the view",
     panLeft: "Move left",
     panRight: "Move right",
@@ -70,6 +72,7 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomTwo: "2倍にする",
     zoomIn: "拡大",
     fit: "全体",
+    centre: "中央",
     pan: "表示を動かす",
     panLeft: "左へ",
     panRight: "右へ",

@@ -34,8 +34,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle, tilt, auto-turn, three speeds, front, four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
-  expect(report.count).toBe(18);
+  // Angle, tilt, auto-turn, three speeds, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
+  expect(report.count).toBe(19);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);
@@ -485,4 +485,47 @@ test("tilt-step rounds the tilt of a drag to whole degrees", async ({ page }) =>
     expect(Number.isInteger(tilt), `${query} ${tilt}`).toBe(whole);
     expect(tilt).toBeGreaterThan(0);
   }
+});
+
+const dragAway = async (page) => {
+  await button(page, "in").click();
+  await button(page, "in").click();
+  const box = await page.locator("#scene").boundingBox();
+  const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 3000, from.y - 3000, { steps: 8 });
+  await page.mouse.up();
+};
+
+test("an item dragged far out of view is held in view, and Centre brings it back to the middle at Fit and the front", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  await expect(page.locator(`${BAR} .centre`)).toBeHidden();
+  await dragAway(page);
+  const moved = await stateOf(page);
+  const box = await page.locator("#scene").boundingBox();
+  expect(moved.zoom).toBeGreaterThan(1.5);
+  expect(Math.abs(moved.panX), "the pan is held").toBeLessThanOrEqual((box.width * (moved.zoom - 1)) / 2 + 1);
+  expect(Math.abs(moved.panX) + Math.abs(moved.panY)).toBeGreaterThan(50);
+  await expect(page.locator(`${BAR} .centre`)).toBeVisible();
+  await button(page, "centre").click();
+  await expect.poll(async () => {
+    const s = await stateOf(page);
+    return [s.zoom, s.panX, s.panY, s.yaw, s.tilt].join(",");
+  }, { timeout: 4000 }).toBe("1,0,0,0,0");
+  await expect(page.locator(`${BAR} .centre`)).toBeHidden();
+});
+
+test("Centre goes at once for a reader who prefers reduced motion, and Home does the same from the keyboard", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await ready(page, "?controls=advanced");
+  await dragAway(page);
+  await button(page, "centre").click();
+  const s = await stateOf(page);
+  expect([s.zoom, s.panX, s.panY]).toEqual([1, 0, 0]);
+  await dragAway(page);
+  await page.locator("#scene").focus();
+  await page.keyboard.press("Home");
+  const h = await stateOf(page);
+  expect([h.zoom, h.panX, h.panY, h.yaw, h.tilt]).toEqual([1, 0, 0, 0, 0]);
 });

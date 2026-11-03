@@ -131,6 +131,10 @@ controls.anchor = { x: 60, y: -30 }; // pixels from the view's middle when it is
 
 Zoom is about that point of the picture, so it stays put on screen however far in the reader is and wherever the view has been moved to: `+` then `-` leaves it where it was within a pixel. Without the element, set `view.anchor` on the controller, or pass `anchor` to `createViewController`; `view.zoomBy(f)` and `view.zoomAt(z)` with no point use it.
 
+### Centre
+
+Zoom in and drag the object away and a **Centre** button (中央) comes into the bar. It puts the object back in the middle at Fit and the default angle (yaw and tilt 0) with a quarter of a second's move, at once for a reader who prefers reduced motion, and a hand on the view (a press, the wheel, a key) stops the move where it is. `element.centre()` and `controller.centre(animate = true)` do the same from code, ending with a change whose `reason` is `"centre"`. The keys Home and 0 are the same without the move (they send `front` and `fit`). The pan is held so the object cannot be lost: the picture keeps covering the view, or, with `object-size`, a quarter of the object stays in view.
+
 ### The drag rule and exact grab
 
 In every turnable view the surface under the pointer follows the pointer, the arrow keys agree, and Auto-turn goes the object's real way; `grab-radius` makes a drag keep the touched point under the pointer on a globe. The rule, the option and the shared browser check (`templates/e2e-ground.mjs`) are in [docs/drag-rule.md](docs/drag-rule.md); the demo's `grab.html` shows it.
@@ -183,6 +187,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `key-tilt` | Which way Arrow Up tips the view: `drag` (the default: like a drag up) or `wheel` (the way a wheel turned up tips it, the other way). Arrow Down goes the other way from Up. |
 | `stop-turn` | A press on the view, the wheel over it or a key it handles stops the automatic turn. Off by default, so the turn carries on. Buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees (`1` gives whole degrees). 0 by default: not rounded. |
+| `object-size` | `w,h`: the object's size at Fit in CSS pixels, when it is smaller than the view. A pan then keeps at least a quarter of the object in view, however far it is dragged; left out, the object is the picture, which keeps covering the view. Or set `element.objectSize = { width, height }`. |
 | `grab-radius` | Exact grab, for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (a drag of *d* pixels moves the ground at the middle by *d* pixels), and the radius grows with the zoom. Left out, a drag turns by a fixed angle across the view, as before. See [docs/drag-rule.md](docs/drag-rule.md). |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself (as Auto-turn pressed). Left out, it never stops. Time spent paused off screen or in a hidden tab is not counted, and a reader's own Auto-turn press has no limit. |
