@@ -103,6 +103,30 @@ test("compact: one row, the same row while it turns, and the rest one press of M
   expect(errors).toEqual([]);
 });
 
+test("Centre comes in beside the zoom once the view is zoomed, adding no row to the turn and none to compact's one row", async ({ page }) => {
+  for (const layout of ["horizontal", "vertical", "compact"]) {
+    await ready(page, `?layout=${layout}`);
+    const still = await look(page);
+    const play = await button(page, "play").boundingBox();
+    const more = await button(page, "more").boundingBox();
+    await button(page, "in").click();
+    const zoomed = await look(page);
+    expect(zoomed.rows, layout).toBe(layout === "vertical" ? still.rows + 1 : still.rows);
+    expect(await button(page, "play").boundingBox(), `${layout}: Auto-turn stays put`).toEqual(play);
+    expect(await button(page, "more").boundingBox(), `${layout}: More stays put`).toEqual(more);
+    if (layout === "compact") {
+      expect(zoomed.shown, "compact keeps Centre with Fit behind More").not.toContain("centre");
+      await button(page, "more").click();
+    }
+    await expect(button(page, "centre"), layout).toBeVisible();
+    expect((await look(page)).least, layout).toBeGreaterThanOrEqual(47.5);
+    await button(page, "centre").click();
+    await expect.poll(async () => (await stateOf(page)).zoom, { message: layout }).toBe(1);
+    await expect(button(page, "centre")).toBeHidden();
+    await expect(slider(page)).toHaveAttribute("aria-valuetext", "1×");
+  }
+});
+
 test("a flat view in each layout shows no turn controls", async ({ page }) => {
   for (const layout of ["horizontal", "vertical", "compact"]) {
     await ready(page, `?layout=${layout}`);

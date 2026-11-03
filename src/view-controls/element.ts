@@ -101,7 +101,8 @@ export class ViewControlsElement extends HTMLElement {
   #layout: Layout = "classic";
   #marks: ZoomMark[] = [];
   #marksFor = "";
-  #zoomAt = -1;
+  /** The zoom the slider shows now; NaN until it has shown one, and again when the marks are redrawn for new limits. */
+  #zoomShown = Number.NaN;
   #pace: Pace = "medium";
   #labels: ViewWords = wordsFor("en");
   #said = "";
@@ -399,7 +400,7 @@ export class ViewControlsElement extends HTMLElement {
     if (key === this.#marksFor) return;
     this.#marksFor = key;
     this.#marks = zoomMarks(min, max);
-    this.#zoomAt = -1;
+    this.#zoomShown = Number.NaN;
     const track = this.#root.querySelector<HTMLElement>(".ztrack");
     const labels = this.#root.querySelector<HTMLElement>(".zmarks");
     if (track === null || labels === null) return;
@@ -530,17 +531,16 @@ export class ViewControlsElement extends HTMLElement {
       if (node.getAttribute("aria-label") !== label) node.setAttribute("aria-label", label);
     };
     write(q('[data-o="zoom"]'), zoom);
-    // The slider always shows the true zoom, wherever it came from; written only when it moved.
-    const at = zoomPosition(s.zoom, c.limits.zoomMin, c.limits.zoomMax);
-    if (at !== this.#zoomAt) {
-      this.#zoomAt = at;
+    // The slider always shows the true zoom, wherever it came from. A frame of the automatic turn leaves the zoom alone, so it costs one comparison here.
+    if (s.zoom !== this.#zoomShown) {
+      this.#zoomShown = s.zoom;
       const slider = q<HTMLInputElement>("#zoom");
+      const at = zoomPosition(s.zoom, c.limits.zoomMin, c.limits.zoomMax);
       const value = String(Math.round(at * SLIDER_SPAN));
       if (slider.value !== value) slider.value = value;
       q<HTMLElement>(".zbox").style.setProperty("--pos", String(at));
+      if (slider.getAttribute("aria-valuetext") !== zoom) slider.setAttribute("aria-valuetext", zoom);
     }
-    const zoomSlider = q<HTMLInputElement>("#zoom");
-    if (zoomSlider.getAttribute("aria-valuetext") !== zoom) zoomSlider.setAttribute("aria-valuetext", zoom);
     say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
     for (const pace of PACES) q<HTMLButtonElement>(`[data-b="${pace}"]`).setAttribute("aria-pressed", String(this.#pace === pace));

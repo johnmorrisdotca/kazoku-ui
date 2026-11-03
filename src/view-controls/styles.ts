@@ -108,8 +108,8 @@ ${H} .zslide, ${V} .zslide, ${C} .zslide { display: flex; }
 ${H} { container-type: inline-size; }
 ${H} .bar, ${V} .bar, ${C} .bar { display: grid; row-gap: 0; align-items: center; }
 ${H} .bar > *, ${V} .bar > *, ${C} .zoom > * { margin-block: 2px; }
-${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-areas: "angle speed play more" "tilt tilt front front" "pace pace pace pace" "zoom zoom zoom zoom" "pan pan pan pan"; column-gap: 8px; padding: 4px 8px; }
-:host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "zoom more" "pan pan"; }
+${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-areas: "angle speed play more" "tilt tilt front front" "pace pace pace pace" "zoom zoom zoom centre" "pan pan pan pan"; column-gap: 8px; padding: 4px 8px; }
+:host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "zoom centre more" "pan pan pan"; }
 ${H} .angle, ${V} .angle, ${C} .angle { grid-area: angle; }
 ${H} .tilt, ${V} .tilt, ${C} .tilt { grid-area: tilt; }
 ${H} .pace-now, ${V} .pace-now { grid-area: speed; }
@@ -119,6 +119,13 @@ ${H} .front, ${V} .front, ${C} .front { grid-area: front; justify-self: start; }
 ${H} .zoom, ${V} .zoom { grid-area: zoom; }
 ${H} .pan, ${V} .pan, ${C} .pan { grid-area: pan; justify-self: start; }
 ${H} .more, ${V} .more, ${C} .more { grid-area: more; margin-inline-start: 0; }
+/* Centre, shown once the view is zoomed or moved: beside the zoom, never in the turn's row, so Auto-turn and More stay where they are. */
+${H} .centre, ${V} .centre, ${C} .centre { grid-area: centre; justify-self: end; }
+/* In the two rows it shares More's column, so it is an icon (its name is read) and never widens that column, which would move Auto-turn. */
+@container (max-width: 899px) {
+  ${H} .centre .text { ${UNSEEN} }
+  ${H} .centre { padding: 0; }
+}
 ${H} .zoom { display: flex; flex-wrap: nowrap; gap: 4px; min-width: 0; }
 ${H} .zslide { flex: 1 1 auto; min-width: 0; }
 ${H} .zoom button, ${V} .zoom button, ${C} .zoom button { padding: 0 10px; }
@@ -131,15 +138,15 @@ ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padd
   ${H} [data-b="fit"] { display: none; }
 }
 @container (min-width: 900px) {
-  ${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "angle speed play zoom more" "tilt tilt tilt pace front" "pan pan pan pan pan"; column-gap: 12px; }
-  :host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "zoom more" "pan pan"; }
+  ${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto auto auto; grid-template-areas: "angle speed play zoom centre more" "tilt tilt tilt pace front front" "pan pan pan pan pan pan"; column-gap: 12px; }
+  :host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "zoom centre more" "pan pan pan"; }
   ${H} .zslide { flex: 0 0 15rem; }
   ${H} .pan { justify-self: end; }
 }
 
 /* Vertical: a column beside the view, its width --kazoku-column-width (16rem). Auto-turn and More at the top, so More stays put when it opens; then the turn, the zoom and its slider. */
 ${V} { width: var(--kazoku-column-width, 16rem); max-width: 100%; }
-${V} .bar { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "play speed . more" "angle angle angle angle" "tilt tilt tilt tilt" "pace pace pace pace" "front front front front" "zoom zoom zoom zoom" "pan pan pan pan"; column-gap: 8px; padding: 6px 8px; }
+${V} .bar { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "play speed . more" "angle angle angle angle" "tilt tilt tilt tilt" "pace pace pace pace" "front front front front" "zoom zoom zoom zoom" "centre centre centre centre" "pan pan pan pan"; column-gap: 8px; padding: 6px 8px; }
 ${V} .field { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label value" "slider slider"; gap: 0 8px; }
 ${V} .field label { grid-area: label; padding-top: 4px; }
 ${V} .field output { grid-area: value; padding-top: 4px; }
@@ -161,9 +168,9 @@ ${C} { display: block; }
 /* Over a card, an open More never reaches past the card's top: the controls scroll inside themselves. */
 :host([data-layout="compact"][overlay]) { display: flex; flex-direction: column; max-height: calc(100% - 16px); }
 :host([data-layout="compact"][overlay]) .bar { min-height: 0; overflow-y: auto; }
-${C} .bar { width: fit-content; max-width: 100%; grid-template-columns: repeat(5, auto); grid-template-areas: "play out level in more" "zs zs zs zs fit" "angle angle angle angle angle" "tilt tilt tilt tilt tilt" "pace pace pace pace pace" "front front front front front" "pan pan pan pan pan"; column-gap: 2px; padding: 2px 4px; border: 1px solid var(--_line); border-radius: 28px; background: var(--_surface); }
+${C} .bar { width: fit-content; max-width: 100%; grid-template-columns: repeat(5, auto); grid-template-areas: "play out level in more" "zs zs zs zs fit" "centre centre centre centre centre" "angle angle angle angle angle" "tilt tilt tilt tilt tilt" "pace pace pace pace pace" "front front front front front" "pan pan pan pan pan"; column-gap: 2px; padding: 2px 4px; border: 1px solid var(--_line); border-radius: 28px; background: var(--_surface); }
 :host([data-layout="compact"][data-level="advanced"]) .bar { border-radius: 20px; padding: 2px 8px 6px; column-gap: 4px; }
-:host([data-layout="compact"][data-flat]) .bar { grid-template-areas: "out level in more ." "zs zs zs fit fit" "pan pan pan pan pan"; }
+:host([data-layout="compact"][data-flat]) .bar { grid-template-areas: "out level in more ." "zs zs zs fit fit" "centre centre centre centre centre" "pan pan pan pan pan"; }
 ${C} .zoom { display: contents; }
 ${C} .zslide { grid-area: zs; }
 ${C} [data-b="out"] { grid-area: out; }
@@ -175,5 +182,8 @@ ${C} .play:hover:not(:disabled), ${C} .more:hover:not(:disabled), ${C} .zoom but
 ${C} .play .text, ${C} .more .text { ${UNSEEN} }
 ${C} .play, ${C} .more { padding: 0; }
 ${C} .pace-now { display: none; }
+${V} .centre, ${C} .centre { justify-self: start; }
+/* The row stays one row: Centre is with Fit, one press of More away. */
+:host([data-layout="compact"][data-level="basic"]) .centre { display: none; }
 :host([data-layout="compact"][data-level="basic"]) .angle, :host([data-layout="compact"][data-level="basic"]) .zslide, :host([data-layout="compact"][data-level="basic"]) [data-b="fit"] { display: none; }
 `;
