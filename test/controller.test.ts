@@ -347,6 +347,39 @@ test("tiltStep rounds the tilt of a drag, and 0 leaves it as it is", () => {
   }
 });
 
+test("grabRadius keeps the touched point under the pointer: the same degrees for a pixel on both axes, a bigger piece turns less, a zoomed one too, and off it is the fixed angle", () => {
+  const radian = 180 / Math.PI;
+  const drag = (extra: Parameters<typeof createViewController>[0], dx: number, dy: number, zoomFirst = 1) => {
+    const { view } = make({ drag: undefined, ...extra } as never);
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    if (zoomFirst !== 1) {
+      view.setDrag("turn");
+      view.zoomAt(zoomFirst);
+    }
+    hands.press(100, 100);
+    hands.move(100 + dx, 100 + dy);
+    hands.release();
+    return view.state;
+  };
+  assert.ok(Math.abs(drag({ grabRadius: 100 }, 100, 0).yaw - radian) < 1e-9);
+  assert.ok(Math.abs(drag({ grabRadius: 100 }, 0, -40).tilt - 0.4 * radian) < 1e-9);
+  assert.ok(Math.abs(drag({ grabRadius: 200 }, 100, 0).yaw - radian / 2) < 1e-9, "a bigger piece turns less");
+  // "fit" is half the smaller side of the view: 150 here (400 by 300).
+  assert.ok(Math.abs(drag({ grabRadius: "fit" }, 150, 0).yaw - radian) < 1e-9);
+  const zoomed = drag({ grabRadius: 100 }, 100, 0, 2);
+  assert.ok(Math.abs(zoomed.yaw - radian / 2) < 1e-9, "at 2x the piece is twice as big, so the same pixels turn it half as far");
+  assert.equal(drag({}, 100, 0).yaw, 45, "unset it is a half turn across the view");
+  const { view } = make();
+  assert.equal(view.grabRadius, 0);
+  view.grabRadius = 100;
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  hands.press(0, 0);
+  hands.move(100, 0);
+  assert.ok(Math.abs(view.state.yaw - radian) < 1e-9, "it can be changed at any time");
+});
+
 test("a suspended turn asks for no frames and sends no change, and goes on when resumed", () => {
   const { view, clock, seen } = make();
   view.play();

@@ -71,11 +71,11 @@ const HTML = `
  * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
- * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
+ * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "speed", "controls", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "speed", "controls", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -181,7 +181,7 @@ export class ViewControlsElement extends HTMLElement {
     this.#pace = pace ?? "medium";
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
-    for (const name of ["key-tilt", "stop-turn", "tilt-step"]) this.#option(name);
+    for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius"]) this.#option(name);
     if (this.hasAttribute("anchor")) this.#option("anchor");
     const fitScale = Number(this.getAttribute("fit-scale"));
     if (this.hasAttribute("fit-scale")) c.setFitScale(fitScale);
@@ -228,7 +228,7 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
-    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step") this.#option(name);
+    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius") this.#option(name);
     else if (name === "speed") this.#speed();
     else if (name === "controls") {
       this.#level = parseLevel(value) ?? "basic";
@@ -254,6 +254,7 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "key-tilt") c.keyTilt = value === "wheel" ? "wheel" : "drag";
     else if (name === "stop-turn") c.stopTurn = value !== null;
     else if (name === "tilt-step") c.tiltStep = Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
+    else if (name === "grab-radius") c.grabRadius = value?.trim() === "fit" ? "fit" : Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
   #startZoom(): "fit" | number {

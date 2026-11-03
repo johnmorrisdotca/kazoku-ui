@@ -51,6 +51,8 @@ export interface ViewControllerOptions {
   stopTurn?: boolean;
   /** Round the tilt of a drag to a multiple of this many degrees; 0 (the default) leaves it unrounded, 1 gives whole degrees. */
   tiltStep?: number;
+  /** Exact grab: the on-screen radius, in CSS pixels at Fit, of the globe or turnable piece, or `"fit"` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (`degreesPerPixel`), and at a zoom the radius grows with it. 0 (the default) keeps the fixed angle across the view. */
+  grabRadius?: number | "fit";
   /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
   size?: () => Size | undefined;
   onChange?: (state: ViewState, info: ChangeInfo) => void;
@@ -70,6 +72,8 @@ export interface ViewController {
   keyTilt: KeyTilt;
   stopTurn: boolean;
   tiltStep: number;
+  /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
+  grabRadius: number | "fit";
   /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
   readonly fitScale: number;
   /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
@@ -197,6 +201,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     keyTilt: options.keyTilt ?? "drag",
     stopTurn: options.stopTurn ?? false,
     tiltStep: options.tiltStep ?? 0,
+    grabRadius: options.grabRadius ?? 0,
     get fitScale() {
       return fitScale;
     },
@@ -392,7 +397,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         if (!canTurn()) return;
         const r = view.getBoundingClientRect();
         // Up and down tips it for a mouse; on a finger the browser keeps the vertical drag to scroll the page, and the tilt slider tips it.
-        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch", limits, controller.tiltStep) });
+        const radius = controller.grabRadius === "fit" ? Math.min(r.width, r.height) / 2 : controller.grabRadius;
+        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch", limits, controller.tiltStep, radius * gesture.camera.zoom) });
         emit(false, "drag");
       }
     };

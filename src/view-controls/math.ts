@@ -75,10 +75,17 @@ export function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, li
   return { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
 }
 
-/** A one-pointer drag that turns: `dx` and `dy` pixels from where it began, in a view of `size`. A finger does not tilt (the page's own scroll keeps the vertical drag). A `step` above 0 rounds the tilt to a multiple of it. */
-export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips: boolean, limits: Limits = DEFAULT_LIMITS, step = 0): Pick<Camera, "yaw" | "tilt"> {
-  const yaw = wrapYaw(start.yaw + (dx / (size.width || 360)) * TURN_ACROSS);
-  const raw = start.tilt - (dy / (size.height || 360)) * TILT_ACROSS;
+/** Degrees of turn for one pixel of drag when the piece's on-screen radius is `radius` pixels: the pixel that a point at the middle of a sphere's face moves by, so the touched point stays under the pointer. */
+export const degreesPerPixel = (radius: number): number => (180 / Math.PI) / radius;
+
+/**
+ * A one-pointer drag that turns: `dx` and `dy` pixels from where it began, in a view of `size`. A finger does not tilt (the page's own scroll keeps the vertical drag). A `step` above 0 rounds the tilt to a multiple of it.
+ * A `grabRadius` above 0 is the on-screen radius, in pixels, of a globe or any turnable piece: both axes then turn by the angle that carries a point at the middle of its face by the pixels dragged (`degreesPerPixel`), instead of a fixed angle across the view.
+ */
+export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips: boolean, limits: Limits = DEFAULT_LIMITS, step = 0, grabRadius = 0): Pick<Camera, "yaw" | "tilt"> {
+  const exact = grabRadius > 0 && Number.isFinite(grabRadius) ? degreesPerPixel(grabRadius) : 0;
+  const yaw = wrapYaw(start.yaw + (exact > 0 ? dx * exact : (dx / (size.width || 360)) * TURN_ACROSS));
+  const raw = start.tilt - (exact > 0 ? dy * exact : (dy / (size.height || 360)) * TILT_ACROSS);
   const tilt = tips ? clamp(step > 0 ? Math.round(raw / step) * step : raw, -limits.tiltMax, limits.tiltMax) : start.tilt;
   return { yaw, tilt };
 }

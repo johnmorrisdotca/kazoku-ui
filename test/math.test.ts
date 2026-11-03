@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { clamp, clampPan, type Camera, dragTurn, pinchTo, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
+import { clamp, clampPan, type Camera, degreesPerPixel, dragTurn, pinchTo, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
 
 const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
 
@@ -89,4 +89,21 @@ test("dragTurn rounds the tilt to a step and still holds the limits", () => {
   assert.ok(Math.abs(dragTurn(start, 0, -17, size, true, undefined, 0).tilt - 3.4) < 1e-9);
   assert.equal(dragTurn(start, 0, -300, size, true, undefined, 7).tilt, 30);
   assert.equal(dragTurn(start, 0, -17, size, false, undefined, 1).tilt, 0);
+});
+
+test("an exact grab turns by the angle that carries the touched point by the pixels dragged, on both axes", () => {
+  const size = { width: 400, height: 300 };
+  // A globe 100 pixels in radius: one radian of turn is 100 pixels of a point at the middle of its face.
+  assert.ok(Math.abs(degreesPerPixel(100) - 180 / Math.PI / 100) < 1e-12);
+  assert.ok(Math.abs(dragTurn(start, 100, 0, size, true, undefined, 0, 100).yaw - 180 / Math.PI) < 1e-9);
+  assert.ok(Math.abs(dragTurn(start, 0, -40, size, true, undefined, 0, 100).tilt - 0.4 * (180 / Math.PI)) < 1e-9);
+  // The same drag turns a bigger piece less, and the same on both axes (the fixed angle gives 1.5 and 0.5 degrees a pixel on this view).
+  assert.ok(dragTurn(start, 50, 0, size, true, undefined, 0, 200).yaw < dragTurn(start, 50, 0, size, true, undefined, 0, 100).yaw);
+  const sideways = dragTurn(start, 10, 0, size, true, undefined, 0, 120).yaw;
+  const upright = dragTurn(start, 0, -10, size, true, undefined, 0, 120).tilt;
+  assert.ok(Math.abs(sideways - upright) < 1e-9);
+  // Off (0, a negative or a number that is not one) it is the fixed angle across the view; a finger still does not tilt and the limits hold.
+  for (const off of [0, -5, Number.NaN]) assert.equal(dragTurn(start, 100, 0, size, true, undefined, 0, off).yaw, 45);
+  assert.equal(dragTurn({ ...start, tilt: 12 }, 0, -75, size, false, undefined, 0, 100).tilt, 12);
+  assert.equal(dragTurn(start, 0, -1000, size, true, undefined, 0, 50).tilt, 30);
 });
