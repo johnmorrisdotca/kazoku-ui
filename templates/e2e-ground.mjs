@@ -16,13 +16,14 @@ import { expect } from "@playwright/test";
  * @param {number} w
  * @param {number} h
  * @param {number} reach
+ * @param {[number, number, number, number]} [window] the part of `before` that is slid, as shares of its width and height: left, right, top, bottom (the middle 40%: 0.3, 0.7, 0.3, 0.7)
  * @returns {{ x: number, y: number, error: number }}
  */
-export function bestShift(before, after, w, h, reach) {
-  const x0 = Math.round(w * 0.3);
-  const x1 = Math.round(w * 0.7);
-  const y0 = Math.round(h * 0.3);
-  const y1 = Math.round(h * 0.7);
+export function bestShift(before, after, w, h, reach, window = [0.3, 0.7, 0.3, 0.7]) {
+  const x0 = Math.round(w * window[0]);
+  const x1 = Math.round(w * window[1]);
+  const y0 = Math.round(h * window[2]);
+  const y1 = Math.round(h * window[3]);
   let best = { x: 0, y: 0, error: Infinity };
   for (let dy = -reach; dy <= reach; dy += 1) {
     for (let dx = -reach; dx <= reach; dx += 1) {
@@ -52,8 +53,9 @@ export function bestShift(before, after, w, h, reach) {
  * @param {Buffer} before
  * @param {Buffer} after
  * @param {number} [reach]
+ * @param {[number, number, number, number]} [window] the part of the first picture that is slid (see `bestShift`)
  */
-export async function groundShift(page, before, after, reach = 60) {
+export async function groundShift(page, before, after, reach = 60, window) {
   const grey = (data) =>
     page.evaluate(async (png) => {
       const img = new Image();
@@ -70,7 +72,7 @@ export async function groundShift(page, before, after, reach = 60) {
       return { w: img.width, h: img.height, out };
     }, data.toString("base64"));
   const [p, q] = [await grey(before), await grey(after)];
-  return bestShift(p.out, q.out, p.w, p.h, reach);
+  return bestShift(p.out, q.out, p.w, p.h, reach, window);
 }
 
 /**
@@ -96,28 +98,28 @@ export async function dragBy(page, target, dx, dy) {
  * @param {import("@playwright/test").Page} page
  * @param {import("@playwright/test").Locator} view
  * @param {() => Promise<void>} act
- * @param {{ settle?: number, reach?: number }} [options]
+ * @param {{ settle?: number, reach?: number, window?: [number, number, number, number] }} [options]
  */
 export async function movedBy(page, view, act, options = {}) {
   const before = await view.screenshot({ scale: "css" });
   await act();
   await page.waitForTimeout(options.settle ?? 600);
   const after = await view.screenshot({ scale: "css" });
-  return groundShift(page, before, after, options.reach ?? 70);
+  return groundShift(page, before, after, options.reach ?? 70, options.window);
 }
 
 /**
  * The drag rule: the ground follows the hand. Drag right and it moves right, drag up and it moves up, the right and up arrow keys agree, and (with `autoTurn`) Auto-turn goes the way
  * the object really turns. The view is put back after each step. Fails with a message that says what moved and where.
  * @param {import("@playwright/test").Page} page
- * @param {{ view: string, picture?: string, controls?: string, min?: number, settle?: number, keys?: boolean, autoTurn?: "right" | "left" | false, distance?: number }} options
- *   `view` is the selector of the element the hands are bound to; `picture` the selector of what is photographed (the view by default; give the globe's own canvas when the view is much wider than the globe, so the middle of the picture is ground); `controls` the selector of the `<kazoku-view-controls>` (needed for Auto-turn); `min` the pixels that count as moved (8);
+ * @param {{ view: string, picture?: string, window?: [number, number, number, number], controls?: string, min?: number, settle?: number, keys?: boolean, autoTurn?: "right" | "left" | false, distance?: number }} options
+ *   `view` is the selector of the element the hands are bound to; `picture` the selector of what is photographed (the view by default; give the globe's own canvas when the view is much wider than the globe, so the middle of the picture is ground); `window` the part of the picture that is followed, as shares `[left, right, top, bottom]` (the middle 40%; give the part that holds the object when it is thin, such as a rocket); `controls` the selector of the `<kazoku-view-controls>` (needed for Auto-turn); `min` the pixels that count as moved (8);
  *   `distance` the pixels dragged (30); `keys: false` skips the arrow keys; `autoTurn` the direction the ground goes while Auto-turn runs, in a view whose Auto-turn is the object's own turn.
  */
 export async function checkFollowsTheHand(page, options) {
-  const { view, picture = view, controls = "kazoku-view-controls", min = 8, settle = 600, keys = true, autoTurn = false, distance = 30 } = options;
+  const { view, picture = view, window, controls = "kazoku-view-controls", min = 8, settle = 600, keys = true, autoTurn = false, distance = 30 } = options;
   const target = page.locator(view);
-  const move = (act) => movedBy(page, page.locator(picture), act, { settle });
+  const move = (act) => movedBy(page, page.locator(picture), act, { settle, window });
   const right = await move(() => dragBy(page, target, distance, 0));
   expect(right.x, `a drag right moves the ground right (moved ${right.x},${right.y})`).toBeGreaterThan(min);
   expect(Math.abs(right.y), "and not up or down").toBeLessThan(min);
