@@ -45,7 +45,7 @@ The view controls never draw your scene. They tell your page what the reader cho
 </script>
 ```
 
-The bar has an angle slider, Auto-turn, zoom out and in with a readout, Fit and a More button. A drag turns the view, a pinch or Ctrl and the wheel zooms, the arrow keys turn it, and `address` keeps the choices in the link. The whole story is in [View controls](view-controls.md).
+The bar has an angle slider, Auto-turn, zoom out and in with a readout, Fit and a More button. A drag turns the view, the wheel or a pinch zooms about the pointer, the arrow keys turn it, and `address` keeps the choices in the link. The whole story is in [View controls](view-controls.md).
 
 ## A theme switch and a language picker
 

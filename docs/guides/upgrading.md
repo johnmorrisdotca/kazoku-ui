@@ -2,10 +2,15 @@
 title: Upgrading
 section: upgrading
 order: 14
-description: What each version from 0.7 to 0.12 asks of you, which defaults changed, what was removed, and what still works.
+description: What each version from 0.7 to 0.13 asks of you, which defaults changed, what was removed, and what still works.
 ---
 
 The package is in early development (0.x), so a minor version can add to the interface. This page lists what asks something of you, newest first. The complete, dated record is the [changelog](../../CHANGELOG.md).
+
+## To 0.13
+
+- **The wheel zooms.** The plain wheel over the view now zooms it about the pointer, as a map does, and no longer tips a focused view. Shift and the wheel, or a sideways swipe, turns it, as before. With the pointer elsewhere the wheel scrolls the page, and a wheel that starts while the zoom is at its end that way scrolls the page too. If your page tells readers to hold Ctrl to zoom, it can now say that the wheel zooms; Ctrl and the wheel still work.
+- `wheelZoomFactor` takes a third argument, `"pinch"` (the default, as before) or `"wheel"`, and `WHEEL_GESTURE_MS` is new. `key-tilt="wheel"` still swaps the up and down keys.
 
 ## To 0.12
 
@@ -54,4 +59,4 @@ console.log(parseLayout(undefined), parseLevel("basic"), PACES.join(" "), LEVEL_
 
 ## Pinning
 
-Pin the minor you test against (`~0.12.0`) until 1.0, and read this page and the changelog on each upgrade. Parts that arrive later (picture-tile pickers, Help, GitHub and npm pills, the family's backgrounds) are new subpaths and change nothing that exists.
+Pin the minor you test against (`~0.13.0`) until 1.0, and read this page and the changelog on each upgrade. Parts that arrive later (picture-tile pickers, Help, GitHub and npm pills, the family's backgrounds) are new subpaths and change nothing that exists.

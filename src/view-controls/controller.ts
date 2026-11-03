@@ -3,7 +3,7 @@
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
 import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
-import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, WHEEL_GESTURE_MS, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
   /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
@@ -22,7 +22,7 @@ export interface ChangeInfo {
 /** What `bind` leaves alone by default: the page's own controls inside the view. */
 export const DEFAULT_IGNORE = "button, a, input, select, textarea, label, [data-kazoku-ignore]";
 
-/** Which way Arrow Up tips the view: like a drag up (`"drag"`, the default) or the way the wheel turned up does (`"wheel"`, the other way). */
+/** Which way Arrow Up tips the view: like a drag up (`"drag"`, the default) or the other way (`"wheel"`, the way the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
 export type KeyTilt = "drag" | "wheel";
 
 export interface Clock {
@@ -45,7 +45,7 @@ export interface ViewControllerOptions {
   ignore?: string;
   /** The point the zoom buttons and keys zoom about, in content coordinates: CSS pixels from the view's middle when it is at Fit (zoom 1, no pan). It moves with the picture, so the point stays where it is on screen while the view zooms. Left out, they zoom about the view's middle. */
   anchor?: Point;
-  /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (as a wheel turned up). */
+  /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
   keyTilt?: KeyTilt;
   /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
   stopTurn?: boolean;
@@ -479,23 +479,33 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       }
     };
 
+    // The wheel over the view zooms it about the pointer, as a map does; the page scrolls when the pointer is anywhere else. Ctrl or Command
+    // and the wheel (a trackpad's pinch) zooms too. Shift and the wheel, or a sideways swipe, turns it. Tipping is left to a drag, the keys
+    // and the buttons. A wheel that starts while the zoom is already at its end that way (zooming out at Fit) goes on to scroll the page,
+    // so the page is never trapped; one that reaches the end part-way through stops there rather than flinging the page.
+    let wheelTaken = Number.NEGATIVE_INFINITY;
     const onWheel = (e: WheelEvent): void => {
-      if (e.ctrlKey || e.metaKey) {
-        // A trackpad's pinch arrives as Ctrl and the wheel; Command and the wheel does the same for a mouse.
+      const pinch = e.ctrlKey || e.metaKey;
+      const now = Number.isFinite(e.timeStamp) ? e.timeStamp : 0;
+      const continuing = now - wheelTaken < WHEEL_GESTURE_MS && now >= wheelTaken;
+      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+      if (!pinch && (horizontal || e.shiftKey)) {
+        if (!canTurn()) return;
         e.preventDefault();
+        wheelTaken = now;
         grab();
-        controller.zoomAt(state.zoom * wheelZoomFactor(e.deltaY, e.deltaMode), { x: e.clientX, y: e.clientY });
+        controller.set({ yaw: state.yaw + (e.deltaX || e.deltaY) * 0.3 }, true, "wheel");
         return;
       }
-      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-      const focused = view.ownerDocument.activeElement === view;
-      // A sideways swipe turns it wherever the pointer is over it; an up and down wheel only when the view has focus, as the page's scroll comes first.
-      if (!horizontal && !focused) return;
+      const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
+      const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
+      // Ctrl and the wheel is always the view's, or the browser would zoom the whole page.
+      if (!pinch && atEnd && !continuing) return;
       e.preventDefault();
-      if (!canTurn()) return;
+      wheelTaken = now;
+      if (atEnd) return;
       grab();
-      if (horizontal || e.shiftKey) controller.set({ yaw: state.yaw + (e.deltaX || e.deltaY) * 0.3 }, true, "wheel");
-      else controller.set({ tilt: Math.round(state.tilt + e.deltaY * 0.15) }, true, "wheel");
+      controller.zoomAt(state.zoom * factor, { x: e.clientX, y: e.clientY });
     };
 
     const onKey = (e: KeyboardEvent): void => {

@@ -278,7 +278,7 @@ test("the wheel and a pinch still zoom about the pointer, whatever the anchor", 
   assert.ok(Math.abs(view.state.panX - (100 - 100 * k)) < 1e-6, "about the pointer's place, 100 right of the middle");
 });
 
-test("Arrow Up tips like a drag up by default and like a wheel up with keyTilt wheel", () => {
+test("Arrow Up tips like a drag up by default and the other way with keyTilt wheel", () => {
   const drag = make();
   const a = fakeBound();
   drag.view.bind(a.fakeView);
@@ -295,16 +295,82 @@ test("Arrow Up tips like a drag up by default and like a wheel up with keyTilt w
   b.key("ArrowDown");
   b.key("ArrowDown");
   assert.equal(wheel.view.state.tilt, 5);
-  // A wheel turned up (negative deltaY) with the view focused goes the same way as Arrow Up does with keyTilt wheel.
-  const c = make({ keyTilt: "wheel" });
-  const d = fakeBound();
-  (d.fakeView as unknown as { ownerDocument: { activeElement: unknown } }).ownerDocument.activeElement = d.fakeView;
-  c.view.bind(d.fakeView);
-  d.wheel({ deltaY: -100 });
-  const wheelUp = c.view.state.tilt;
-  c.view.set({ tilt: 0 });
-  d.key("ArrowUp");
-  assert.equal(Math.sign(c.view.state.tilt), Math.sign(wheelUp));
+});
+
+test("the plain wheel over the view zooms about the pointer; it never tips the view", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  let stopped = false;
+  hands.wheel({ deltaY: -100, clientX: 300, clientY: 150, timeStamp: 1000, preventDefault: () => { stopped = true; } });
+  const k = view.state.zoom;
+  assert.ok(stopped, "the view takes the wheel, so the page does not scroll");
+  assert.ok(k > 1.15 && k < 1.3, `one notch zooms about 1.2 times (${k})`);
+  assert.ok(Math.abs(view.state.panX - (100 - 100 * k)) < 1e-6, "about the pointer's place, 100 right of the middle");
+  assert.equal(view.state.tilt, 0, "the wheel does not tip");
+  assert.equal(view.state.yaw, 0, "nor turn");
+  hands.wheel({ deltaY: 100, clientX: 300, clientY: 150, timeStamp: 1100 });
+  assert.ok(Math.abs(view.state.zoom - 1) < 1e-9, "a notch down zooms back out");
+  // Firefox counts in lines: three lines a notch zoom about as much as 100 pixels do.
+  hands.wheel({ deltaY: -3, deltaMode: 1, timeStamp: 1200 });
+  assert.ok(Math.abs(view.state.zoom - k) < 0.02, `three lines (${view.state.zoom}) zoom like one notch (${k})`);
+  hands.wheel({ deltaY: -100000, timeStamp: 1300 });
+  assert.ok(view.state.zoom <= k * 2 + 1e-9, "one event never zooms more than twice");
+});
+
+test("Shift and the wheel, or a sideways swipe, turns the view; a flat view leaves them to the page", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  let stopped = false;
+  hands.wheel({ shiftKey: true, deltaY: 100, timeStamp: 10, preventDefault: () => { stopped = true; } });
+  assert.ok(stopped);
+  assert.equal(view.state.yaw, 30, "Shift and the wheel turns");
+  assert.equal(view.state.zoom, 1, "and does not zoom");
+  hands.wheel({ deltaX: -50, deltaY: 5, timeStamp: 20 });
+  assert.equal(view.state.yaw, 15, "a sideways swipe turns");
+  assert.equal(view.state.tilt, 0, "neither tips");
+  const flat = make();
+  flat.view.turnable = false;
+  const f = fakeBound();
+  flat.view.bind(f.fakeView);
+  stopped = false;
+  f.wheel({ deltaX: 80, timeStamp: 10, preventDefault: () => { stopped = true; } });
+  assert.equal(stopped, false, "a flat view lets the page have a sideways swipe");
+  assert.equal(flat.view.state.yaw, 0);
+});
+
+test("the page scrolls when the zoom is at its end, but a wheel that reaches the end part-way through does not fling it", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  let taken = 0;
+  const spin = (deltaY: number, timeStamp: number, init: object = {}) => {
+    let stopped = false;
+    hands.wheel({ deltaY, timeStamp, preventDefault: () => { stopped = true; }, ...init });
+    if (stopped) taken += 1;
+    return stopped;
+  };
+  // At Fit, a wheel turned down (zooming out) has nowhere to go: the page scrolls, and goes on scrolling.
+  assert.equal(spin(100, 1000), false, "zooming out at Fit scrolls the page");
+  assert.equal(spin(100, 1050), false, "and keeps scrolling it");
+  assert.equal(view.state.zoom, 1);
+  // Turned up, it zooms in, then back out to Fit; the steps that come on in the same turn stop at Fit and do not scroll the page.
+  assert.equal(spin(-100, 2000), true);
+  assert.ok(view.state.zoom > 1);
+  assert.equal(spin(100, 2050), true);
+  assert.equal(spin(100, 2100), true, "reaching Fit part-way through a turn holds the page still");
+  assert.equal(spin(100, 2350), true, "so does its glide, while the steps keep coming");
+  assert.equal(view.state.zoom, 1);
+  assert.equal(spin(100, 3000), false, "a new turn of the wheel at Fit scrolls the page again");
+  // The same at the other end.
+  view.zoomAt(5);
+  assert.equal(spin(-100, 4000), false, "zooming in at the most scrolls the page");
+  // A pinch is always the view's, or the browser would zoom the page.
+  view.fit();
+  assert.equal(spin(50, 5000, { ctrlKey: true }), true, "Ctrl and the wheel at Fit is still the view's");
+  assert.equal(view.state.zoom, 1);
+  assert.equal(taken, 5, "the view took only the steps it zoomed or held");
 });
 
 test("a press, the wheel or a key stops the automatic turn only when asked; a control never does", () => {
@@ -317,7 +383,7 @@ test("a press, the wheel or a key stops the automatic turn only when asked; a co
       view.play();
       clock.step(16);
       if (hand === "press") hands.press(10, 10);
-      else if (hand === "wheel") hands.wheel({ deltaY: 40 });
+      else if (hand === "wheel") hands.wheel({ deltaY: -40, timeStamp: 100 });
       else if (hand === "ctrl-wheel") hands.wheel({ ctrlKey: true, deltaY: -40 });
       else hands.key("ArrowLeft");
       assert.equal(view.state.turning, !stopTurn, `${hand}, stopTurn ${stopTurn}`);

@@ -427,7 +427,7 @@ test("without an anchor the buttons zoom about the middle, and the anchor attrib
   expect(await stateOf(page)).toMatchObject({ panX: 0, panY: 0 });
 });
 
-test("Arrow Up tips like a drag up, or like a wheel up with key-tilt wheel", async ({ page }) => {
+test("Arrow Up tips like a drag up, or the other way with key-tilt wheel", async ({ page }) => {
   await ready(page);
   await page.locator("#scene").focus();
   await page.keyboard.press("ArrowUp");
@@ -440,12 +440,60 @@ test("Arrow Up tips like a drag up, or like a wheel up with key-tilt wheel", asy
   await page.locator("#scene").focus();
   await page.keyboard.press("ArrowUp");
   expect((await stateOf(page)).tilt).toBe(-5);
+  // The wheel no longer tips: with the view focused, it zooms.
   await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })));
-  expect((await stateOf(page)).tilt).toBeLessThan(-5);
+  expect(await stateOf(page)).toMatchObject({ tilt: -5 });
+  expect((await stateOf(page)).zoom).toBeGreaterThan(1);
   await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("ArrowDown");
-  expect((await stateOf(page)).tilt).toBeGreaterThan(-20);
+  expect((await stateOf(page)).tilt).toBe(0);
+});
+
+test("the wheel over the view zooms about the pointer, Shift and the wheel turns it, and elsewhere the page scrolls", async ({ page }) => {
+  await ready(page);
+  // Make the page taller than the window, so it has somewhere to scroll.
+  await page.evaluate(() => { document.body.style.minHeight = "400vh"; });
+  const scene = await page.locator("#scene").boundingBox();
+  const at = { x: scene.x + scene.width * 0.7, y: scene.y + scene.height * 0.5 };
+  await page.mouse.move(at.x, at.y);
+  const mark = await page.evaluate(([p]) => {
+    const r = document.querySelector("#zoomer").getBoundingClientRect();
+    return { u: (p.x - r.left) / r.width, v: (p.y - r.top) / r.height };
+  }, [at]);
+  const top = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, -100);
+  await expect.poll(async () => (await stateOf(page)).zoom).toBeGreaterThan(1.1);
+  const state = await stateOf(page);
+  expect(state).toMatchObject({ tilt: 0, yaw: 0 });
+  expect(await page.evaluate(() => window.scrollY)).toBe(top);
+  const where = await page.evaluate(([m]) => {
+    const r = document.querySelector("#zoomer").getBoundingClientRect();
+    return { x: r.left + m.u * r.width, y: r.top + m.v * r.height };
+  }, [mark]);
+  expect(Math.abs(where.x - at.x)).toBeLessThan(1.5);
+  expect(Math.abs(where.y - at.y)).toBeLessThan(1.5);
+  // Shift and the wheel turns it and leaves the zoom.
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, 100);
+  await page.keyboard.up("Shift");
+  await expect.poll(async () => (await stateOf(page)).yaw).not.toBe(0);
+  expect((await stateOf(page)).zoom).toBe(state.zoom);
+  // With the pointer off the view, the wheel scrolls the page and leaves the view alone.
+  const off = await page.evaluate(() => {
+    const scene = document.querySelector("#scene");
+    for (let y = window.innerHeight - 4; y > 0; y -= 20) {
+      for (const x of [4, window.innerWidth / 2, window.innerWidth - 4]) {
+        const hit = document.elementFromPoint(x, y);
+        if (hit !== null && !scene.contains(hit) && !hit.closest("kazoku-view-controls")) return { x, y };
+      }
+    }
+    return null;
+  });
+  expect(off).not.toBeNull();
+  await page.mouse.move(off.x, off.y);
+  const before = await stateOf(page);
+  await page.mouse.wheel(0, 200);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top);
+  expect((await stateOf(page)).zoom).toBe(before.zoom);
 });
 
 test("stop-turn: a press, the wheel or a key stops the automatic turn, and without it they do not", async ({ page }) => {
@@ -463,7 +511,7 @@ test("stop-turn: a press, the wheel or a key stops the automatic turn, and witho
         await page.mouse.down();
         await page.mouse.up();
       } else if (hand === "wheel") {
-        await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: 40, bubbles: true, cancelable: true })));
+        await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: -40, bubbles: true, cancelable: true })));
       } else await page.keyboard.press("ArrowLeft");
       expect((await stateOf(page)).turning, `${hand} ${query}`).toBe(!stops);
       await expect(button(page, "play")).toHaveAttribute("aria-pressed", String(!stops));

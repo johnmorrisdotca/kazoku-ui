@@ -80,6 +80,12 @@ test("a Ctrl wheel zooms in on a turn up and out on a turn down", () => {
   assert.ok(wheelZoomFactor(100, 0) < 1);
   assert.ok(wheelZoomFactor(-3, 1) > 1);
   assert.equal(wheelZoomFactor(0, 0), 1);
+  // A plain wheel's notch (about 100 pixels) zooms about 1.2 times; a pinch's small steps zoom faster per pixel.
+  assert.ok(wheelZoomFactor(-100, 0, "wheel") > 1.15 && wheelZoomFactor(-100, 0, "wheel") < 1.3);
+  assert.ok(Math.abs(wheelZoomFactor(-100, 0, "wheel") * wheelZoomFactor(100, 0, "wheel") - 1) < 1e-12, "up then down comes back");
+  assert.equal(wheelZoomFactor(-1e6, 0, "wheel"), 2);
+  assert.equal(wheelZoomFactor(1e6, 0, "wheel"), 0.5);
+  assert.ok(wheelZoomFactor(-1, 2, "wheel") > 1, "a page step zooms in too");
 });
 
 test("dragTurn rounds the tilt to a step and still holds the limits", () => {

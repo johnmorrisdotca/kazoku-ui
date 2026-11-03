@@ -100,5 +100,15 @@ export function between(from: Camera, to: Camera, fraction: number): Camera {
   return { yaw: mix(from.yaw, to.yaw), tilt: mix(from.tilt, to.tilt), zoom: mix(from.zoom, to.zoom), panX: mix(from.panX, to.panX), panY: mix(from.panY, to.panY) };
 }
 
-/** The factor a Ctrl or Command wheel turn zooms by (a trackpad's pinch arrives that way). `deltaMode` 1 is lines. */
-export const wheelZoomFactor = (deltaY: number, deltaMode: number): number => Math.exp(-deltaY * (deltaMode === 1 ? 0.05 : 0.01));
+/**
+ * The factor a wheel turn zooms by: up (a negative `deltaY`) zooms in. `deltaMode` 1 is lines and 2 is pages. `kind` `"pinch"` (the default) is a
+ * trackpad's pinch, which arrives as Ctrl and the wheel in small steps; `"wheel"` is a plain wheel or two-finger scroll, whose steps are larger
+ * (about 100 pixels a notch), so one notch zooms about 1.2 times, close to the + key, and one such event never zooms more than 2 times either way.
+ */
+export const wheelZoomFactor = (deltaY: number, deltaMode: number, kind: "pinch" | "wheel" = "pinch"): number => {
+  const pixels = deltaMode === 1 ? deltaY * (kind === "pinch" ? 5 : 33) : deltaMode === 2 ? deltaY * 800 : deltaY;
+  return kind === "pinch" ? Math.exp(-pixels * 0.01) : clamp(Math.exp(-pixels * 0.002), 0.5, 2);
+};
+
+/** Wheel steps closer together than this, in milliseconds, belong to one turn of the wheel or one swipe (with its glide). */
+export const WHEEL_GESTURE_MS = 300;

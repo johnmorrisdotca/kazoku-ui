@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-44 values and 19 types.
+45 values and 19 types.
 
 ```js
-import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseKeys, parseLayout, parseLevel, parsePace, pinchTo, SLIDER_STEP, SNAP_PX, TAG, TILT_ACROSS, TURN_ACROSS, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseKeys, parseLayout, parseLevel, parsePace, pinchTo, SLIDER_STEP, SNAP_PX, TAG, TILT_ACROSS, TURN_ACROSS, WHEEL_GESTURE_MS, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -274,12 +274,20 @@ const TILT_ACROSS = 60;
 const TURN_ACROSS = 180;
 ```
 
-### wheelZoomFactor
+### WHEEL_GESTURE_MS
 
-*constant*. The factor a Ctrl or Command wheel turn zooms by (a trackpad's pinch arrives that way). `deltaMode` 1 is lines.
+*constant*. Wheel steps closer together than this, in milliseconds, belong to one turn of the wheel or one swipe (with its glide).
 
 ```ts
-const wheelZoomFactor: (deltaY: number, deltaMode: number) => number;
+const WHEEL_GESTURE_MS = 300;
+```
+
+### wheelZoomFactor
+
+*constant*. The factor a wheel turn zooms by: up (a negative `deltaY`) zooms in. `deltaMode` 1 is lines and 2 is pages. `kind` `"pinch"` (the default) is a
+
+```ts
+const wheelZoomFactor: (deltaY: number, deltaMode: number, kind?: "pinch" | "wheel") => number;
 ```
 
 ### WORDS
@@ -616,7 +624,7 @@ interface ViewControllerOptions {
     ignore?: string;
     /** The point the zoom buttons and keys zoom about, in content coordinates: CSS pixels from the view's middle when it is at Fit (zoom 1, no pan). It moves with the picture, so the point stays where it is on screen while the view zooms. Left out, they zoom about the view's middle. */
     anchor?: Point;
-    /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (as a wheel turned up). */
+    /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
     keyTilt?: KeyTilt;
     /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
     stopTurn?: boolean;
