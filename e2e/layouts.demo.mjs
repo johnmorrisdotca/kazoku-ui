@@ -39,14 +39,16 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   const still = await look(page);
   // On a phone the readout is Fit, which leaves the slider room for its marks.
   expect(still.shown).toEqual(phone ? ["yaw", "play", "zoom", "out", "level", "in", "more"] : ["yaw", "play", "zoom", "out", "level", "in", "fit", "more"]);
-  expect(still.rows).toBe(2);
+  // On a phone the slider has a row of its own, so its marks have room, and the buttons sit under it.
+  const rows = phone ? 3 : 2;
+  expect(still.rows).toBe(rows);
   expect(still.least).toBeGreaterThanOrEqual(47.5);
   expect(still.fits).toBe(true);
   const where = await button(page, "play").boundingBox();
   await button(page, "play").click();
   await expect(button(page, "pace-now")).toBeVisible();
   const turning = await look(page);
-  expect(turning.rows).toBe(2);
+  expect(turning.rows).toBe(rows);
   expect(turning.height).toBeLessThanOrEqual(still.height);
   expect(await button(page, "play").boundingBox(), "Auto-turn stays under the pointer").toEqual(where);
   await button(page, "play").click();

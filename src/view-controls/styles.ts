@@ -144,8 +144,8 @@ ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padd
   /* The readout is Fit here (its name says so), which leaves the slider the room for its marks. */
   ${H} [data-b="fit"] { display: none; }
 }
-/* A phone-safe width: the zoom slider takes a row of its own, so its marks never meet the buttons, and the buttons sit under it. */
-@container (max-width: 359px) {
+/* A phone-safe width (a phone's screen less the page's margins, and a face wider than the system's): the zoom slider takes a row of its own, so its marks never meet the buttons, and the buttons sit under it. */
+@container (max-width: 439px) {
   ${H} .zoom { flex-wrap: wrap; }
   ${H} .zslide { flex: 1 0 100%; }
   ${H} .centre { align-self: end; }
@@ -198,6 +198,7 @@ ${C} .play:hover:not(:disabled), ${C} .more:hover:not(:disabled), ${C} .zoom but
 ${C} .play .text, ${C} .more .text { ${UNSEEN} }
 ${C} .play, ${C} .more { padding: 0; }
 ${C} .pace-now { display: none; }
+${C} .pace { flex-wrap: wrap; }
 ${V} .centre, ${C} .centre { justify-self: start; }
 /* The row stays one row: Centre is with Fit, one press of More away. */
 :host([data-layout="compact"][data-level="basic"]) .centre { display: none; }

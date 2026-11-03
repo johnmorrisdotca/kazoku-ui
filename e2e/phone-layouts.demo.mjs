@@ -10,7 +10,7 @@ const problems = (page, forced) => page.evaluate(([tag, forced]) => {
   const el = document.querySelector(tag);
   const seen = [...el.shadowRoot.querySelectorAll("button, input, .zmark, output, label")]
     .filter((node) => node.getClientRects().length > 0 && node.getBoundingClientRect().width > 2)
-    .map((node) => ({ name: node.dataset?.b ?? node.id ?? node.className, tag: node.tagName, mark: node.classList.contains("zmark"), box: node.getBoundingClientRect() }));
+    .map((node) => ({ name: node.dataset?.b || node.id || node.className || node.tagName.toLowerCase(), tag: node.tagName, mark: node.classList.contains("zmark"), box: node.getBoundingClientRect() }));
   const host = el.getBoundingClientRect();
   const found = [];
   for (let i = 0; i < seen.length; i += 1) for (let j = i + 1; j < seen.length; j += 1) {
@@ -42,6 +42,8 @@ for (const layout of LAYOUTS) {
       await page.evaluate(() => globalThis.localStorage.clear());
       await page.goto(`/?layout=${layout}&controls=${level}&zoom-min=0.25&zoom-max=16`);
       await expect(page.locator(`${BAR} .bar`)).toBeVisible();
+      // A wide face, as a Linux machine's system font is: the controls must hold with it too.
+      if (process.env.KZ_WIDE_FONT) await page.locator(BAR).evaluate((el) => { const sheet = new globalThis.CSSStyleSheet(); sheet.replaceSync(":host { font-family: Verdana, sans-serif !important; }"); el.shadowRoot.adoptedStyleSheets = [...el.shadowRoot.adoptedStyleSheets, sheet]; });
       const press = (name) => page.locator(`${BAR} [data-b="${name}"]`).click();
       const steps = [
         ["still", async () => {}],
