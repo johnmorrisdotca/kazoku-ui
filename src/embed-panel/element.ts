@@ -608,7 +608,8 @@ export class EmbedPanelElement extends HTMLElement {
   /** Scales the picture to its box. The picture is laid out at its own size and shrunk to fit the width it has, so it is never cut off, at any size on any screen. */
   #fit(): void {
     if (!this.#built || this.hasAttribute("no-preview")) return;
-    if (this.#frame !== 0) cancelAnimationFrame(this.#frame);
+    // One frame at a time, never cancelled: a frame already asked for reads the choices as they are when it runs.
+    if (this.#frame !== 0) return;
     this.#frame = requestAnimationFrame(() => {
       this.#frame = 0;
       const el = this.#el as Record<string, HTMLElement>;

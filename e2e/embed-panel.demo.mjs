@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { COUNT_SCRIPT, readCounts } from "../dist/testing/index.js";
 
 // <kazoku-embed-panel> on its own page: the picker, the size, every tab, the picture that fits its box, Copy with its label, the two links, the credit line, the address, the words, light and dark.
 const P = '[data-testid="panel"]';
@@ -262,4 +263,25 @@ test("properties set before the tag is defined still reach the panel", async ({ 
     return early.shadowRoot.querySelector('[part="code"]').textContent;
   });
   expect(text).toBe("kind is html");
+});
+
+test("the panel asks for no frame at rest and never more than one at a time, whatever is pressed", async ({ page }) => {
+  await page.addInitScript(COUNT_SCRIPT);
+  await ready(page);
+  await page.waitForTimeout(600);
+  const before = await readCounts(page);
+  await page.waitForTimeout(1500);
+  const rest = await readCounts(page);
+  expect(rest.rafRequests - before.rafRequests).toBe(0);
+  for (const n of [160, 480, 240, 320]) {
+    await size(page, n).click();
+    await tab(page, n === 480 ? "iframe" : "html").click();
+    await item(page, n === 160 ? "ocean" : "ember").click();
+  }
+  await page.waitForTimeout(600);
+  const after = await readCounts(page);
+  expect(after.rafRequests - after.rafCallbacks).toBeLessThanOrEqual(1);
+  const settled = await readCounts(page);
+  await page.waitForTimeout(1200);
+  expect((await readCounts(page)).rafRequests - settled.rafRequests).toBe(0);
 });
