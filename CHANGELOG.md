@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-03
+
+One "Put it in your page" panel for every package of the family.
+
+- **`<kazoku-embed-panel>`** (KAZOKU-UI-40 and KAZOKU-UI-30; John, 2026-11-03: "does every package that has embedded have all these options?", "if we do it better elsewhere then we should also use that as a template"). A package fills it with its own choices and its own code; the panel is the same everywhere: a **compact picker** for the thing being embedded (chips by group, a search box from twelve things up, buttons that scroll in their own box; or the package's own in the `picker` slot), a **size** (160, 240, 320, 480 by default), **a tab for each way a page is made** (HTML, ES module, React, Vue, Angular, Svelte, iframe, and any a package adds, such as an image address), **the picture the code makes**, built from the same choices and scaled to fit its box at every size on every screen (wakusei-planets' Venus was cut off on the right), **Copy** with its name on it and a polite "Copied", **Open the embed page**, **Read the docs** and **the credit line**. Slots keep what a package had: `options` (its own choices, between the size and the tabs), `actions` (Save SVG, Download), `picker` and `lede`; `note` and `credits` are a text or a function of the choices. `address` keeps the tab and the size in the link (`?embed=react&size=240`). `lang` (English and Japanese), `theme`, light and dark, 48 px targets, arrow keys, Home and End on the tabs. A package that draws nothing says `no-preview no-size` and still has the tabs, Copy, the docs link and the credit. New part: `@johnmorrisdotca/kazoku-ui/embed-panel`, `/element` and `/define`; the event is `kazoku-embedchange` with `{ kind, size, value, code, reason }`, and `kazoku-embedcopy` follows Copy.
+- **`embedSnippet(kind, spec)`** writes the seven ways from one description of the element (`SnippetSpec`: package, CDN address, tag, entry points, attributes, a name, the iframe), taken from wakusei-planets' generators, byte for byte; with `EMBED_KINDS`, `attrText`, `parseKinds`, `parseSizes`, `nearestSize`, `filterItems`, `groupsOf`, `kindLabel`, the labels in both languages and the defaults. The module imports on a server.
+- **The must-have list has a new item, `embed-panel`**: the demo's "Put it in your page" is kazoku-ui's panel (`templates/check-standard.mjs`, `STANDARD_VERSION` 2026-11-03; `docs/package-standard.md`). A package that cannot say why in `family.notApplicable`. A repo takes the new check when it is next touched; its rollout is a ticket on the modules board.
+- New demo pages `embed-panel.html` (a made-up badge with every part, then a package that draws nothing) and `embed.html` (the badge's embed page), `e2e/embed-panel.demo.mjs` (Chromium and WebKit, desk and phone, light and dark), `test/embed-panel.test.ts`.
+- Fixed: the demo server (`scripts/dev.mjs`) crashed on a file that does not exist after answering 200; it reads first.
+
+### Documentation
+
+- A guide, `embed-panel.md`, with its Japanese page and a picture; [the survey](docs/embed-panel-survey.md) of every package's panel and which does each part best; the README, getting started, architecture, labels and upgrading pages; the API reference lists the new part.
+
 ## [0.14.0] - 2026-11-03
 
 One speed control for the whole family: the Auto-turn speeds are 0.5×, 1× and 2×, and the same buttons serve a solar system's days a second and a replay bar.

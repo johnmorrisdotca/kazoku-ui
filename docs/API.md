@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.14.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.15.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "renderer", "testing"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing"];
 ```
 
 ### Part
@@ -2066,6 +2066,409 @@ import { defineSpeedButtons } from '@johnmorrisdotca/kazoku-ui/speed-buttons/def
 
 ```ts
 function defineSpeedButtons(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/embed-panel`
+
+20 values and 5 types.
+
+```js
+import { attrText, DEFAULT_KINDS, DEFAULT_SIZE, DEFAULT_SIZES, EMBED_KINDS, embedSnippet, EVENT, filterItems, groupsOf, KIND_ADDRESS_KEY, kindLabel, languageOf, nearestSize, parseKinds, parseSizes, SEARCH_FROM, SIZE_ADDRESS_KEY, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/embed-panel';
+```
+
+### attrText
+
+*function*. The attributes as they are written in a tag: `body="mars" moons`.
+
+```ts
+function attrText(attrs: SnippetSpec["attrs"]): string;
+```
+
+### DEFAULT_KINDS
+
+*constant*. The tabs the panel shows when the page names none: the seven ways a page is made.
+
+```ts
+const DEFAULT_KINDS: readonly string[];
+```
+
+### DEFAULT_SIZE
+
+*constant*. The size the panel starts on when the page names none and it is one of the sizes.
+
+```ts
+const DEFAULT_SIZE = 320;
+```
+
+### DEFAULT_SIZES
+
+*constant*. The sizes (pixels across) the size buttons offer by default.
+
+```ts
+const DEFAULT_SIZES: readonly number[];
+```
+
+### EMBED_KINDS
+
+*constant*. The ways `embedSnippet` writes an element into a page, in the order the panel's tabs show them.
+
+```ts
+const EMBED_KINDS: readonly ["html", "module", "react", "vue", "angular", "svelte", "iframe"];
+```
+
+### embedSnippet
+
+*function*. The text that puts an element in a page, for one way of making the page: a script tag from the CDN, an ES module, a React component, a Vue single-file component, an Angular
+
+```ts
+function embedSnippet(kind: EmbedKind, spec: SnippetSpec): string;
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-embedchange";
+```
+
+### filterItems
+
+*function*. The items that are in `group` (all of them when it is empty) and have every word of `query` in their label, id, group or words, ignoring case and accents.
+
+```ts
+function filterItems(items: readonly PickItem[], query?: string, group?: string): PickItem[];
+```
+
+### groupsOf
+
+*function*. The groups of a list, once each, in the order they first appear.
+
+```ts
+function groupsOf(items: readonly PickItem[]): string[];
+```
+
+### KIND_ADDRESS_KEY
+
+*constant*. The address parameters the panel keeps its two choices in.
+
+```ts
+const KIND_ADDRESS_KEY = "embed";
+```
+
+### kindLabel
+
+*function*. What a tab says: the family's word for the id, else the page's own `labels`, else the id itself.
+
+```ts
+function kindLabel(id: string, language: Language, labels?: Readonly<Record<string, string>>, overrides?: Partial<PanelWords>): string;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### nearestSize
+
+*function*. The size to use for a wish: the wish if it is one of the sizes, else the sizes' nearest to it, else the one nearest `DEFAULT_SIZE`.
+
+```ts
+function nearestSize(wish: number | string | null | undefined, sizes: readonly number[]): number;
+```
+
+### parseKinds
+
+*function*. The tab ids from a text such as `html module react`: lower case, once each, in order; no usable id is the default list.
+
+```ts
+function parseKinds(text: string | null | undefined, fallback?: readonly string[]): string[];
+```
+
+### parseSizes
+
+*function*. The sizes from a text such as `160 240 320`: whole numbers from 16 up to 4096, once each, smallest first; no usable number is the default sizes.
+
+```ts
+function parseSizes(text: string | null | undefined, fallback?: readonly number[]): number[];
+```
+
+### SEARCH_FROM
+
+*constant*. More than this many things to pick from and the picker shows a search box.
+
+```ts
+const SEARCH_FROM = 12;
+```
+
+### SIZE_ADDRESS_KEY
+
+*constant*
+
+```ts
+const SIZE_ADDRESS_KEY = "size";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-embed-panel";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, PanelWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<PanelWords>) => PanelWords;
+```
+
+### EmbedKind
+
+*type*. One of the ways in `EMBED_KINDS`.
+
+```ts
+type EmbedKind = (typeof EMBED_KINDS)[number];
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### PanelWords
+
+*interface*
+
+```ts
+interface PanelWords {
+    /** The panel's heading, when it shows one (`heading` attribute). */
+    title: string;
+    /** The name of the group of size buttons. */
+    size: string;
+    /** The name of the row of tabs. */
+    kinds: string;
+    /** The name of the picker. */
+    pick: string;
+    search: string;
+    all: string;
+    /** Said under the picker when the search finds nothing. */
+    none: string;
+    /** The name of the picture beside the code. */
+    preview: string;
+    /** The name of the code box. */
+    code: string;
+    copy: string;
+    copied: string;
+    copyFail: string;
+    open: string;
+    docs: string;
+    credits: string;
+    /** Tab names (`kind_<id>`). */
+    kind_html: string;
+    kind_module: string;
+    kind_react: string;
+    kind_vue: string;
+    kind_angular: string;
+    kind_svelte: string;
+    kind_iframe: string;
+    kind_image: string;
+    kind_element: string;
+    kind_url: string;
+    kind_svg: string;
+}
+```
+
+### PickItem
+
+*interface*. One thing the compact picker offers: a planet, a jersey, a stadium.
+
+```ts
+interface PickItem {
+    /** What the page reads back from `value`. */
+    id: string;
+    /** What the button says. */
+    label: string;
+    /** The row of choices it is under (chips above the list); items with no group are only under All. */
+    group?: string;
+    /** More words the search matches (another name, a country). */
+    words?: string;
+}
+```
+
+### SnippetSpec
+
+*interface*. What `embedSnippet` needs to know about an element: where it comes from, what it is called and what it is given.
+
+```ts
+interface SnippetSpec {
+    /** The npm name, for the `import` lines: `@scope/name`. */
+    package: string;
+    /** The package on the CDN with its version: `https://cdn.jsdelivr.net/npm/@scope/name@1.2.3`. */
+    cdn: string;
+    /** The element's tag. */
+    tag: string;
+    /** The subpath (under the package name) that defines the tag; an empty text is the package's main entry. */
+    element: string;
+    /** More subpaths to load beside it (data, looks); none is fine. */
+    entries: readonly string[];
+    /** The attributes, in the order they are written. A value of `""` is written as a bare attribute. */
+    attrs: readonly (readonly [string, string])[];
+    /** The name the React, Angular and plain module examples use: `planet` gives `Planet`, `PlanetComponent`, `app-planet` and `#planet`. */
+    name: string;
+    /** The embed page as an iframe. */
+    iframe: {
+        src: string;
+        title: string;
+        width: number;
+        height: number;
+    };
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/embed-panel/element`
+
+3 values and 2 types.
+
+```js
+import { EmbedPanelElement, EVENT, TAG } from '@johnmorrisdotca/kazoku-ui/embed-panel/element';
+```
+
+### EmbedPanelElement
+
+*class*. Attributes: `kinds` (the tabs, `html module react vue angular svelte iframe` by default; add your own such as `image`), `kind` (the tab to start on), `sizes` (`160 240 320 480`) and
+
+```ts
+class EmbedPanelElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The tab now: one of `kinds`. Setting one that is not there is ignored. */
+    get kind(): string;
+    set kind(kind: string);
+    /** The size now, in pixels across: one of `sizes`. Setting a number that is not one takes the nearest. */
+    get size(): number;
+    set size(size: number | string);
+    /** The tabs, in order. Setting a list (or a text such as `html react iframe`) draws them again. */
+    get kinds(): readonly string[];
+    set kinds(list: readonly string[] | string);
+    /** The sizes the buttons offer, smallest first. */
+    get sizes(): readonly number[];
+    set sizes(list: readonly number[] | string);
+    /** The picker's choice: an item's `id`. Setting one that is not in `items` is ignored. */
+    get value(): string;
+    set value(id: string);
+    /** The things the built-in picker offers. Leave it empty and give the `picker` slot for a picker of your own. */
+    get items(): readonly PickItem[];
+    set items(items: readonly PickItem[]);
+    /** How a picker button looks inside: a node (a small picture) or a text. The label by default. */
+    set renderItem(render: ((item: PickItem) => Node | string) | undefined);
+    /** The text of a tab for the choices as they are. Required: without it the code box is empty. Call `update()` after the page's own choices change. */
+    set generate(generate: ((context: EmbedContext) => string) | undefined);
+    /** The picture the code makes, as a node (or nothing). It is called when the picture's choices change; the iframe tab draws the iframe itself when this returns nothing for it. */
+    set preview(preview: ((context: EmbedContext) => Node | undefined) | undefined);
+    /** The credit line shown under the code (and read by a screen reader): a text, or a function of the choices. */
+    set credits(credits: Text);
+    /** A line above the code for the tab shown ("The embed page is for a site that cannot run script."): a text, or a function of the choices. */
+    set note(note: Text);
+    /** The names of the tabs the family has no word for: `{ image: "Image address" }`. */
+    set labels(labels: Record<string, string>);
+    /** Your own words over the language's. */
+    set words(words: Partial<PanelWords>);
+    /** Where "Open the embed page" goes. Set it again when the choices change the address. */
+    get openHref(): string;
+    set openHref(href: string);
+    /** Where "Read the docs" goes. */
+    get docsHref(): string;
+    set docsHref(href: string);
+    /** The text of the tab shown: what Copy copies. */
+    get code(): string;
+    /** Reads the page's choices again: the code, the credit, the note, the links, and the picture if its choices changed. Call it whenever the page's own choices change. It tells no one. */
+    update(): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-embedchange";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-embed-panel";
+```
+
+### EmbedChangeDetail
+
+*interface*. What the `kazoku-embedchange` event carries in `detail`.
+
+```ts
+interface EmbedChangeDetail {
+    kind: string;
+    size: number;
+    /** The picker's choice (an item's `id`), or an empty text where there is no built-in picker. */
+    value: string;
+    /** The text to copy now. */
+    code: string;
+    /** `init` (once, when it comes up), `kind` (a tab), `size` (a size button), `pick` (the picker) or `set` (a property or attribute). */
+    reason: "init" | "kind" | "size" | "pick" | "set";
+}
+```
+
+### EmbedContext
+
+*interface*. What the page's `generate`, `preview`, `credits` and `note` functions are told.
+
+```ts
+interface EmbedContext {
+    /** The tab: `html`, `module`, `react`, `vue`, `angular`, `svelte`, `iframe`, or one the page added. */
+    kind: string;
+    /** The size chosen, in pixels across. */
+    size: number;
+    /** True when the text is for the picture beside the code, not for the reader to copy: a page may use a relative address there so the picture works from where the page is. */
+    preview: boolean;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/embed-panel/define`
+
+1 value and 0 types.
+
+```js
+import { defineEmbedPanel } from '@johnmorrisdotca/kazoku-ui/embed-panel/define';
+```
+
+### defineEmbedPanel
+
+*function*
+
+```ts
+function defineEmbedPanel(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`
