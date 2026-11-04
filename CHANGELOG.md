@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-04
+
+The embed panel asks for one frame at a time.
+
+- **Fixed: the embed panel cancelled its fit frame and asked again**, so a page that counts animation frames (wakusei-planets' freeze test) saw several asked-for frames at once. The panel now asks for one frame and keeps it, reading the choices when it runs. New test in `e2e/embed-panel.demo.mjs`: no frame at rest, and never more than one pending, whatever is pressed.
+
 ## [0.15.0] - 2026-11-03
 
 One "Put it in your page" panel for every package of the family.
