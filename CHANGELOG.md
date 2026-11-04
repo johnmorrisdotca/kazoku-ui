@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-04
+
 Which way Auto-turn goes is the reader's to choose.
 
 - **Left and Right buttons** (KAZOKU-UI-34 and KAZOKU-UI-22). Under More, beside the speed buttons, a pair of buttons chooses which way Auto-turn goes. The choice is kept in the new `direction` attribute (`left` or `right`) and in the address as `?direction=left`; the angle goes on from where it was, at the same speed. By the drag rule `yaw` goes up as the hand goes right, so right is the positive `speed`. With no `direction`, the sign of `speed` decides (a negative `speed` starts the turn to the left, as before), and the address keeps a way only when it is not the page's own start. `address-keys` can rename the key (`direction:dir`). New words in both languages: `direction` (Turn direction, 回る向き), `turnLeft` (Left, 左へ), `turnRight` (Right, 右へ). A package with its own Reverse button (senshu-jerseys, dougu-sports' old `?dir=cw`) can drop it for these.
