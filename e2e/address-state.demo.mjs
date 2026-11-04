@@ -79,9 +79,9 @@ test("every change is heard by a subscriber, from this page's buttons and from t
   await size(page, "l").click();
   await page.locator('kazoku-theme-switch button[data-v="dark"]').click();
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
-  const lines = await page.locator("#log li").allTextContents();
-  expect(lines).toEqual(expect.arrayContaining(["set: size - -> l", "set: theme - -> dark", "set: lang - -> ja"]));
-  await expect.poll(() => search(page)).toBe("?theme=dark&lang=ja&size=l");
+  // The page's own choice is written a quarter of a second after the click and the other parts' at once, so the order of the parameters is the order of the writes, which a slow machine changes: compare the parts, not the order.
+  await expect.poll(() => page.locator("#log li").allTextContents()).toEqual(expect.arrayContaining(["set: size - -> l", "set: theme - -> dark", "set: lang - -> ja"]));
+  await expect.poll(async () => Object.fromEntries(new URL(`http://page.test/${await search(page)}`).searchParams)).toEqual({ theme: "dark", lang: "ja", size: "l" });
 });
 
 test("going back and forward is heard, and the page follows", async ({ page }) => {

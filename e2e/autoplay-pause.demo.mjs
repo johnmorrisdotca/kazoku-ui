@@ -24,6 +24,14 @@ const during = async (page, ms) => {
   const after = await count(page);
   return { frames: after.frames - before.frames, auto: after.auto - before.auto };
 };
+/** The view is seen to turn: more than five changes (and frames) arrive, however slow the machine's frames are. It waits for them, not for a fixed time. */
+const turnsAgain = async (page) => {
+  const before = await count(page);
+  await expect.poll(async () => {
+    const now = await count(page);
+    return { auto: now.auto - before.auto > 5, frames: now.frames - before.frames > 5 };
+  }, { timeout: 15_000 }).toEqual({ auto: true, frames: true });
+};
 const play = (page) => page.evaluate((tag) => document.querySelector(tag).play(), BAR);
 const turning = (page) => page.evaluate((tag) => document.querySelector(tag).state.turning, BAR);
 const scrollAway = (page) => page.evaluate(() => {
@@ -42,9 +50,7 @@ const hideTab = (page, hidden) => page.evaluate((value) => {
 
 test("it turns while the view is on screen", async ({ page }) => {
   await play(page);
-  const run = await during(page, 700);
-  expect(run.auto).toBeGreaterThan(5);
-  expect(run.frames).toBeGreaterThan(5);
+  await turnsAgain(page);
 });
 
 test("scrolled out of sight, no change events and no frames; back in sight, it goes on", async ({ page }) => {
@@ -55,8 +61,7 @@ test("scrolled out of sight, no change events and no frames; back in sight, it g
   expect(off).toEqual({ frames: 0, auto: 0 });
   expect(await turning(page)).toBe(true);
   await scrollBack(page);
-  const on = await during(page, 700);
-  expect(on.auto).toBeGreaterThan(5);
+  await turnsAgain(page);
 });
 
 test("a hidden tab sends no change events and asks for no frames; shown again, it goes on", async ({ page }) => {
@@ -66,8 +71,7 @@ test("a hidden tab sends no change events and asks for no frames; shown again, i
   expect(await during(page, 800)).toEqual({ frames: 0, auto: 0 });
   expect(await turning(page)).toBe(true);
   await hideTab(page, false);
-  const on = await during(page, 700);
-  expect(on.auto).toBeGreaterThan(5);
+  await turnsAgain(page);
 });
 
 test("hidden and scrolled away at once needs both undone", async ({ page }) => {
@@ -78,7 +82,7 @@ test("hidden and scrolled away at once needs both undone", async ({ page }) => {
   await hideTab(page, false);
   expect(await during(page, 600)).toEqual({ frames: 0, auto: 0 });
   await scrollBack(page);
-  expect((await during(page, 700)).auto).toBeGreaterThan(5);
+  await turnsAgain(page);
 });
 
 test("autoplay-for stops the turn by itself, counting only the time it turned", async ({ page }) => {

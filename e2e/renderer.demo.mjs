@@ -87,16 +87,18 @@ test("at rest nothing is drawn and no frame is asked for", async ({ page }) => {
 
 test("turning draws once a frame, asks for one frame at a time, and stops when the turn does", async ({ page }) => {
   await ready(page);
-  await page.waitForTimeout(500);
+  // The stills of the views in sight are drawn on the same context: let them finish, or their draws are counted as the turn's.
+  await quiet(page);
   const start = await demo(page);
   await page.evaluate(() => window.kazokuDemo.controls.play());
-  await page.waitForTimeout(800);
+  // A slow software frame holds the turn back: wait until it is drawing, not for a fixed time.
+  await expect.poll(async () => (await demo(page)).draws - start.draws, { timeout: 15_000 }).toBeGreaterThan(5);
   const running = await demo(page);
-  expect(running.draws - start.draws).toBeGreaterThan(5);
   expect(running.frames.draws).toBeLessThanOrEqual(running.frames.frames);
   expect(running.frames.requests - running.frames.frames).toBeLessThanOrEqual(1);
   await page.evaluate(() => window.kazokuDemo.controls.pause());
-  await page.waitForTimeout(300);
+  // The frame already asked for is the last: wait for it, then nothing more may be drawn or asked for.
+  await expect.poll(async () => { const { frames } = await demo(page); return frames.requests - frames.frames; }).toBe(0);
   const paused = await readCounts(page);
   await page.waitForTimeout(1000);
   const later = await readCounts(page);
