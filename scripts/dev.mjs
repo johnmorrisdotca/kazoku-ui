@@ -18,7 +18,8 @@ createServer(async (request, response) => {
   const file = vendor ? join(root, "node_modules", "three", "build", rel.slice("vendor/three/".length)) : join(base, rel);
   if (!file.startsWith(root)) { response.writeHead(403).end("no"); return; }
   try {
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": "no-store" }).end(await readFile(file));
+    const body = await readFile(file);
+    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": "no-store" }).end(body);
   } catch {
     response.writeHead(404, { "content-type": "text/plain" }).end("not found");
   }

@@ -13,6 +13,8 @@ import { captureDrawing, composeThumbnails } from "./family-thumbnail.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const onlyThumbnail = process.argv.includes("--thumbnail");
+// ONLY=<guide picture> (a name from GUIDE below, several with commas) takes just those pictures, and leaves the hero, the layouts and the thumbnails as they are.
+const only = process.env.ONLY ? process.env.ONLY.split(",") : undefined;
 const out = process.env.IMAGES_OUT ?? `${root}docs/images`;
 mkdirSync(out, { recursive: true });
 const port = Number(process.env.TEST_PORT ?? 8402);
@@ -47,7 +49,7 @@ try {
     await page.close();
     return Buffer.from(base64, "base64");
   };
-  for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
+  for (const scheme of onlyThumbnail || only ? [] : ["light", "dark"]) {
     const context = await browser.newContext({ viewport: { width: 820, height: 640 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "reduce" });
     const page = await context.newPage();
     await page.goto(`http://127.0.0.1:${port}/?yaw=-32&tilt=14&zoom=1.4`);
@@ -58,7 +60,7 @@ try {
     if (process.env.PNG) writeFileSync(`${out}/hero-${scheme}.png`, png);
     await context.close();
   }
-  for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
+  for (const scheme of onlyThumbnail || only ? [] : ["light", "dark"]) {
     // Every layout side by side, the zoom a little in so the slider shows its fill, and More open on compact so its second step shows too.
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1.5, colorScheme: scheme, reducedMotion: "reduce" });
     const page = await context.newPage();
@@ -82,11 +84,12 @@ try {
     { name: "address", viewport: { width: 820, height: 700 }, url: "/address.html?size=l&dots=on", selector: "main", ready: () => document.querySelector("kazoku-theme-switch")?.shadowRoot?.querySelector("button") },
     { name: "save-image", viewport: { width: 1000, height: 700 }, url: "/save-image.html", selector: ".targets", ready: () => [...document.querySelectorAll("kazoku-save-image")].every((el) => el.shadowRoot?.querySelector("button")) },
     { name: "speed-buttons", viewport: { width: 900, height: 700 }, url: "/speed.html?turn=2&days=10&replay=0.5", selector: ".targets", ready: () => [...document.querySelectorAll("kazoku-speed-buttons")].every((el) => el.shadowRoot?.querySelector("button")) },
+    { name: "embed-panel", viewport: { width: 900, height: 900 }, url: "/embed-panel.html?embed=react&size=240", selector: '[data-testid="panel"]', ready: () => document.querySelector('[data-testid="panel"]')?.shadowRoot?.querySelector('[part="preview"] demo-badge') },
     { name: "renderer", viewport: { width: 1000, height: 900 }, url: "/renderer.html", selector: "main", ready: () => document.querySelector('.host[data-live="1"]') && document.querySelectorAll(".host img").length > 8, settle: 1500 },
     { name: "builder", viewport: { width: 1100, height: 900 }, url: "/builder.html?kazoku-view-controls.layout=horizontal&kazoku-view-controls.level=advanced", selector: "main", ready: () => document.querySelector("#stage kazoku-view-controls")?.shadowRoot?.querySelector(".bar") },
   ];
   for (const scheme of onlyThumbnail ? [] : ["light", "dark"]) {
-    for (const guide of GUIDE) {
+    for (const guide of GUIDE.filter((one) => only === undefined || only.includes(one.name))) {
       const context = await browser.newContext({ viewport: guide.viewport, deviceScaleFactor: guide.viewport.width < 500 ? 2 : 1.5, colorScheme: scheme, reducedMotion: "reduce" });
       const page = await context.newPage();
       await page.goto(`http://127.0.0.1:${port}${guide.url}`);
@@ -121,7 +124,7 @@ try {
     return captureDrawing(page, "#thumbnail-stage");
   };
   const taken = {};
-  for (const [kind, scheme] of [["light", "light"], ["dark", "dark"], ["icon", "light"]]) {
+  for (const [kind, scheme] of only ? [] : [["light", "light"], ["dark", "dark"], ["icon", "light"]]) {
     const context = await browser.newContext({ viewport: { width: 1000, height: 900 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "reduce" });
     const page = await context.newPage();
     taken[kind] = await stage(page, kind !== "icon");

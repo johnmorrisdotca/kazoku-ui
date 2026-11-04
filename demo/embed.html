@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: embed page of the demo badge</title>
+  <style>html, body { margin: 0; background: transparent; } body { display: grid; place-items: center; min-height: 100vh; }</style>
+</head>
+<body>
+<script type="module">
+  import "./badge.js";
+  const query = new URLSearchParams(location.search);
+  const badge = document.createElement("demo-badge");
+  badge.setAttribute("color", query.get("color") ?? "ember");
+  if (query.has("ring")) badge.setAttribute("ring", "");
+  document.body.append(badge);
+</script>
+</body>
+</html>
