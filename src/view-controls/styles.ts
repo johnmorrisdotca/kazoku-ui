@@ -64,6 +64,9 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
 .bar { --_bar-ink: var(--_ink); --_bar-surface: var(--_surface); --_bar-line: var(--_line); --_bar-accent: var(--_accent); }
 .pace { --kazoku-ink: var(--_bar-ink); --kazoku-surface: var(--_bar-surface); --kazoku-line: var(--_bar-line); --kazoku-accent: var(--_bar-accent); }
 /* One small button: the word over the speed, so it takes little room. It comes in on Auto-turn's left, so Auto-turn stays under the pointer that just pressed it. The angle's running number makes the room, so the turning bar is never wider than the still one and adds no row; it stays for a screen reader. */
+/* The speed buttons and the Left and Right buttons are one row (two when the room is short) and take the place the speed buttons had. */
+.pacing { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.dir button { padding: 0 12px; }
 .pace-now { flex-direction: column; gap: 0; padding: 0 10px; line-height: 1.1; }
 .pace-now .lbl { font-size: 0.7em; font-weight: 400; }
 :host([data-turning][data-level="basic"]) .field.angle { flex-basis: 110px; }
@@ -80,7 +83,7 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
   ${CLASSIC} .play { grid-area: play; }
   ${CLASSIC} .more { grid-area: more; }
   ${CLASSIC} .front { grid-area: front; padding: 0 12px; }
-  ${CLASSIC} .pace { grid-area: pace; justify-self: end; flex-wrap: nowrap; }
+  ${CLASSIC} .pacing { grid-area: pace; justify-self: end; }
   ${CLASSIC} .zoom { grid-area: zoom; justify-self: end; flex-wrap: nowrap; }
   ${CLASSIC} .zoom button { padding: 0 8px; }
   ${CLASSIC} .zoom button.level { padding: 0 6px; }
@@ -122,7 +125,7 @@ ${H} .angle, ${V} .angle, ${C} .angle { grid-area: angle; }
 ${H} .tilt, ${V} .tilt, ${C} .tilt { grid-area: tilt; }
 ${H} .pace-now, ${V} .pace-now { grid-area: speed; }
 ${H} .play, ${V} .play, ${C} .play { grid-area: play; }
-${H} .pace, ${V} .pace, ${C} .pace { grid-area: pace; flex-wrap: nowrap; }
+${H} .pacing, ${V} .pacing, ${C} .pacing { grid-area: pace; }
 ${H} .front, ${V} .front, ${C} .front { grid-area: front; justify-self: start; }
 ${H} .zoom, ${V} .zoom { grid-area: zoom; }
 ${H} .pan, ${V} .pan, ${C} .pan { grid-area: pan; justify-self: start; }
@@ -198,7 +201,7 @@ ${C} .play:hover:not(:disabled), ${C} .more:hover:not(:disabled), ${C} .zoom but
 ${C} .play .text, ${C} .more .text { ${UNSEEN} }
 ${C} .play, ${C} .more { padding: 0; }
 ${C} .pace-now { display: none; }
-${C} .pace { flex-wrap: wrap; }
+${C} .pacing { flex-wrap: wrap; }
 ${V} .centre, ${C} .centre { justify-self: start; }
 /* The row stays one row: Centre is with Fit, one press of More away. */
 :host([data-layout="compact"][data-level="basic"]) .centre { display: none; }

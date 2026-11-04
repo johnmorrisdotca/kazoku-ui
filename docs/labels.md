@@ -30,6 +30,9 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `zoomReset` | back to Fit | 全体に戻す | zentai ni modosu, put back to the whole |
 | `more` | More | 詳細 | shōsai, details |
 | `speed` | Speed | 速さ | hayasa, speed |
+| `direction` | Turn direction | 回る向き | mawaru muki, the way it turns (the Left and Right buttons' group) |
+| `turnLeft` | Left | 左へ | hidari e, to the left |
+| `turnRight` | Right | 右へ | migi e, to the right |
 | `slow` | Slow | ゆっくり | yukkuri, slowly |
 | `medium` | Medium | ふつう | futsū, normal |
 | `fast` | Fast | はやい | hayai, fast |

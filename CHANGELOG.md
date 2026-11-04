@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+Which way Auto-turn goes is the reader's to choose.
+
+- **Left and Right buttons** (KAZOKU-UI-34 and KAZOKU-UI-22). Under More, beside the speed buttons, a pair of buttons chooses which way Auto-turn goes. The choice is kept in the new `direction` attribute (`left` or `right`) and in the address as `?direction=left`; the angle goes on from where it was, at the same speed. By the drag rule `yaw` goes up as the hand goes right, so right is the positive `speed`. With no `direction`, the sign of `speed` decides (a negative `speed` starts the turn to the left, as before), and the address keeps a way only when it is not the page's own start. `address-keys` can rename the key (`direction:dir`). New words in both languages: `direction` (Turn direction, 回る向き), `turnLeft` (Left, 左へ), `turnRight` (Right, 右へ). A package with its own Reverse button (senshu-jerseys, dougu-sports' old `?dir=cw`) can drop it for these.
+- **`autoplay-for` limits every turn** (KAZOKU-UI-22). A turn the Auto-turn button or `element.play()` starts now stops after `autoplay-for` seconds of turning, as the one `autoplay` starts always did; `play(seconds)` takes a limit of its own. Without `autoplay-for` nothing changes. A page that sets `autoplay-for` and wants its Auto-turn button unlimited keeps its own timer instead.
+- **Flaky tests fixed at the cause** (KAZOKU-UI-11, 31, 25, 36, 32; tests and a template only, no change to the package's code). `address-state` wrote the page's own choice a quarter of a second after the click and the theme and language at once, so the order of the parameters was the order of the writes, which a slow machine changes: the test compares the parts, not the order (13 of 160 runs failed before, 0 of 160 after). The renderer's "turning draws once a frame" counted the stills' draws as the turn's and a fixed 800 ms of a slow software frame as too few: it now waits for the stills to finish and for the turn to be drawing, and for the last frame after the pause. The autoplay tests' "it turns while the view is on screen" waited a fixed 700 ms: they wait for the changes to arrive. The docs site's Tab test (new family template `templates/docs-site.demo.mjs`, to replace the copy in chikyu-earth and wakusei-planets) presses Alt+Tab where WebKit on a Mac does not Tab to links.
+
 ## [0.15.2] - 2026-11-04
 
 The embed panel no longer scrolls the page.

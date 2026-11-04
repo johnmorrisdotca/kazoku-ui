@@ -73,8 +73,9 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `object-size` | `w,h`: the object's size at Fit in CSS pixels when it is smaller than the view; a pan then keeps at least a quarter of it in view. |
 | `grab-radius` | Exact grab for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit`. A drag then keeps the touched point under the pointer. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
-| `autoplay-for` | Seconds of turning after which the `autoplay` turn stops by itself. |
-| `speed` | Degrees a second at a pace of 1 (30). |
+| `autoplay-for` | Seconds of turning after which a turn stops by itself: the one `autoplay` starts, and one the Auto-turn button or `play()` starts. `play(seconds)` takes its own limit. |
+| `speed` | Degrees a second at a pace of 1 (30). A negative number starts the turn to the left. |
+| `direction` | Which way Auto-turn goes, `left` or `right`. The reader's choice of the Left and Right buttons (under More) is written here and kept in the address as `direction`; the angle goes on from where it was, at the same speed. Left out, the sign of `speed` decides. |
 | `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.5 and 2 on the default buttons. The reader's choice is written here and kept in the address as `pace`. The buttons are the family's [speed buttons](speed-buttons.md). |
 | `paces` | The speeds the buttons stand for: `0.5 1 2` by default; any numbers (`paces="1 4 8"`). |
 | `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. |
@@ -82,7 +83,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
@@ -91,7 +92,7 @@ Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, til
 
 ## The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the drag choice and the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address, and a page's own `speed` parameter is never touched). The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
+Only what a reader chose is kept: angle, tilt, zoom, the drag choice, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";

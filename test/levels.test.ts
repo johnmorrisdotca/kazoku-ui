@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { formatAddress, parseAddress, parseKeys, type AddressChoices } from "../src/view-controls/address.ts";
-import { PACE_FACTOR, PACES, parseLevel, parsePace, zoomText } from "../src/view-controls/levels.ts";
+import { PACE_FACTOR, PACES, parseDirection, parseLevel, parsePace, zoomText } from "../src/view-controls/levels.ts";
 import { WORDS } from "../src/view-controls/words.ts";
 
 const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1, drag: "move" };
@@ -46,8 +46,22 @@ test("a page's own speed parameter is never read or written by the pace", () => 
   assert.deepEqual(parseAddress("?pace=nonsense"), {});
 });
 
+test("the way Auto-turn goes is left or right, kept in the address only when it is not the page's start", () => {
+  assert.equal(parseDirection("left"), "left");
+  assert.equal(parseDirection("right"), "right");
+  assert.equal(parseDirection("reverse"), undefined);
+  assert.equal(parseDirection(null), undefined);
+  assert.equal(formatAddress("", { ...plain, direction: "left" }), "?direction=left");
+  assert.equal(formatAddress("?direction=left", { ...plain, direction: null }), "");
+  assert.equal(formatAddress("?direction=left&yaw=3", { ...plain, yaw: 3 }), "?direction=left&yaw=3", "left out of the choices, the key is not touched");
+  assert.equal(formatAddress("", { ...plain, direction: "right" }, parseKeys("direction:dir")), "?dir=right");
+  assert.deepEqual(parseAddress("?direction=left&zoom=2"), { direction: "left", zoom: 2 });
+  assert.deepEqual(parseAddress("?dir=right", parseKeys("direction:dir")), { direction: "right" });
+  assert.deepEqual(parseAddress("?direction=backwards"), {});
+});
+
 test("every new label is in both languages", () => {
-  for (const key of ["zoomLevel", "zoomReset", "more", "speed", "slow", "medium", "fast"] as const) {
+  for (const key of ["zoomLevel", "zoomReset", "more", "speed", "slow", "medium", "fast", "direction", "turnLeft", "turnRight"] as const) {
     assert.ok(WORDS.en[key] !== "" && WORDS.ja[key] !== "", key);
   }
 });

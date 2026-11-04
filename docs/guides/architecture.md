@@ -54,7 +54,7 @@ The controller (`controller.ts`) owns the camera `{ yaw, tilt, zoom, panX, panY 
 
 ## What the family copies
 
-`templates/` holds files the family's other package repositories copy unchanged: `AGENTS.md`, `check-standard.mjs` (the must-have list as a check) and `e2e-ground.mjs` with its types (the shared browser check of the drag rule). `.github/workflows/reusable-release.yml` is the release written once. They are changed here, with a new version, and then in every repository's copy; a package never edits its copy.
+`templates/` holds files the family's other package repositories copy unchanged: `AGENTS.md`, `check-standard.mjs` (the must-have list as a check) and `e2e-ground.mjs` with its types (the shared browser check of the drag rule) and `docs-site.demo.mjs` (the documentation site's browser test). `.github/workflows/reusable-release.yml` is the release written once. They are changed here, with a new version, and then in every repository's copy; a package never edits its copy.
 
 ## Tests
 

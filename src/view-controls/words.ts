@@ -25,6 +25,10 @@ export interface ViewWords {
   zoomReset: string;
   more: string;
   speed: string;
+  /** The name of the pair of buttons that choose which way Auto-turn goes. */
+  direction: string;
+  turnLeft: string;
+  turnRight: string;
   slow: string;
   medium: string;
   fast: string;
@@ -57,6 +61,9 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomReset: "back to Fit",
     more: "More",
     speed: "Speed",
+    direction: "Turn direction",
+    turnLeft: "Left",
+    turnRight: "Right",
     slow: "Slow",
     medium: "Medium",
     fast: "Fast",
@@ -85,6 +92,9 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomReset: "全体に戻す",
     more: "詳細",
     speed: "速さ",
+    direction: "回る向き",
+    turnLeft: "左へ",
+    turnRight: "右へ",
     slow: "ゆっくり",
     medium: "ふつう",
     fast: "はやい",

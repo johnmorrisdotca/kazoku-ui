@@ -33,7 +33,7 @@ test("More shows tilt, speed, Front and, once zoomed, the pan pad; and shows the
   await ready(page);
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "front", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "out", "level", "in", "fit", "more"]);
   await button(page, "in").click();
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
   const plain = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id));
@@ -131,6 +131,66 @@ test("the speed buttons 0.5×, 1× and 2× change the turn's speed and keep it t
   await speed(page, 1).click();
   expect(await rate()).toBe(30);
   await expect(page).not.toHaveURL(/pace=/);
+});
+
+test("Left and Right choose which way Auto-turn goes, keep the angle and the speed, and are kept in the attribute and the address", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  const rate = () => page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed);
+  const turn = (name) => button(page, name);
+  await expect(turn("turn-right")).toHaveAttribute("aria-pressed", "true");
+  await expect(turn("turn-left")).toHaveAttribute("aria-pressed", "false");
+  await page.evaluate(() => document.querySelector("kazoku-view-controls").set({ yaw: 40 }));
+  await button(page, "play").click();
+  await speed(page, 2).click();
+  await turn("turn-left").click();
+  expect(await rate()).toBe(-60);
+  expect((await stateOf(page)).turning).toBe(true);
+  await expect(turn("turn-left")).toHaveAttribute("aria-pressed", "true");
+  await expect(turn("turn-right")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(BAR)).toHaveAttribute("direction", "left");
+  await expect(page).toHaveURL(/direction=left/);
+  await expect(page).toHaveURL(/pace=2/);
+  // It goes on from where it was, the other way: the angle comes back below the 40 it was set to.
+  await expect.poll(async () => (await stateOf(page)).yaw, { timeout: 15_000 }).toBeLessThan(40);
+  await turn("turn-right").click();
+  expect(await rate()).toBe(60);
+  await expect(page).not.toHaveURL(/direction=/);
+  await expect(page).toHaveURL(/pace=2/);
+  expect(await page.locator(BAR).getAttribute("direction")).toBe("right");
+});
+
+test("an address that says left comes up turning left, and a negative speed starts the turn to the left", async ({ page }) => {
+  await ready(page, "?controls=advanced&direction=left");
+  await expect(button(page, "turn-left")).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => document.querySelector("kazoku-view-controls").controller.speed)).toBe(-30);
+  const made = (attributes) => page.evaluate((list) => {
+    const el = document.createElement("kazoku-view-controls");
+    for (const [name, value] of list) el.setAttribute(name, value);
+    document.body.append(el);
+    const out = { speed: el.controller.speed, left: el.shadowRoot.querySelector('[data-b="turn-left"]').getAttribute("aria-pressed") };
+    el.remove();
+    return out;
+  }, attributes);
+  expect(await made([["speed", "-20"]])).toEqual({ speed: -20, left: "true" });
+  expect(await made([["speed", "-20"], ["direction", "right"]])).toEqual({ speed: 20, left: "false" });
+  expect(await made([["direction", "left"]])).toEqual({ speed: -30, left: "true" });
+  expect(await made([])).toEqual({ speed: 30, left: "false" });
+});
+
+test("a page that starts the turn to the left keeps Right in the address, and the labels are in Japanese too", async ({ page }) => {
+  await ready(page, "?controls=advanced&lang=ja");
+  await page.evaluate(() => {
+    const el = document.querySelector("kazoku-view-controls");
+    el.setAttribute("lang", "ja");
+    el.setAttribute("speed", "-30");
+  });
+  await expect(button(page, "turn-left")).toHaveAttribute("aria-pressed", "true");
+  await expect(button(page, "turn-left")).toContainText("左へ");
+  await expect(button(page, "turn-right")).toContainText("右へ");
+  await button(page, "turn-right").click();
+  await expect(page).toHaveURL(/direction=right/);
+  await button(page, "turn-left").click();
+  await expect(page).not.toHaveURL(/direction=/);
 });
 
 test("the faster the pace the faster the angle moves", async ({ page }) => {

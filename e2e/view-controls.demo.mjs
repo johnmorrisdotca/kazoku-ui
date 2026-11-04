@@ -35,8 +35,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle, tilt, auto-turn, three speeds, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
-  expect(report.count).toBe(19);
+  // Angle, tilt, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
+  expect(report.count).toBe(21);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);

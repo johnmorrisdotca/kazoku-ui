@@ -6,7 +6,7 @@ import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { type Layout, LEVEL_STORAGE_KEY, type Level, parseLayout, parseLevel, zoomText } from "./levels.ts";
+import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseDirection, parseLayout, parseLevel, zoomText } from "./levels.ts";
 import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import "../speed-buttons/define.ts";
@@ -49,7 +49,13 @@ const HTML = `
   <div class="field tilt adv" part="field tilt"><label data-w="tilt" for="tilt"></label><input id="tilt" type="range" min="-30" max="30" step="1" value="0" part="slider" /><output for="tilt" data-o="tilt">0°</output></div>
   <button type="button" class="pace-now" data-b="pace-now" part="button" hidden><span class="lbl" data-w="speed"></span><span data-o="pace"></span></button>
   <button type="button" class="play" data-b="play" aria-pressed="false" part="button">${ICON.play}${ICON.pause}<span class="text" data-w="autoTurn"></span></button>
-  <kazoku-speed-buttons class="pace adv" data-g="pace"></kazoku-speed-buttons>
+  <div class="pacing adv" data-g="pacing">
+    <kazoku-speed-buttons class="pace" data-g="pace"></kazoku-speed-buttons>
+    <div class="group dir" role="group" data-g="direction">
+      <button type="button" data-b="turn-left" aria-pressed="false" part="button">${ICON.left}<span data-w="turnLeft"></span></button>
+      <button type="button" data-b="turn-right" aria-pressed="true" part="button">${ICON.right}<span data-w="turnRight"></span></button>
+    </div>
+  </div>
   <button type="button" class="front adv" data-b="front" part="button"><span data-w="front"></span></button>
   <button type="button" class="centre" data-b="centre" part="button" hidden>${ICON.centre}<span class="text" data-w="centre"></span></button>
   <div class="group zoom" role="group" data-g="zoom">
@@ -76,7 +82,7 @@ const HTML = `
 /**
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
- * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop that turn by itself after this many seconds of turning), `speed` (degrees a second at a pace of 1), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice of the buttons is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice of the Left and Right buttons is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice of the buttons is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself zooms),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
@@ -84,7 +90,7 @@ const HTML = `
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "pace", "paces", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "direction", "pace", "paces", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -104,6 +110,10 @@ export class ViewControlsElement extends HTMLElement {
   /** The zoom the slider shows now; NaN until it has shown one, and again when the marks are redrawn for new limits. */
   #zoomShown = Number.NaN;
   #pace = 1;
+  /** Which way the turn goes now, and the way the page itself starts it (its `direction`, else the sign of its `speed`): the address keeps a way only when it is not the start. */
+  #direction: Direction = "right";
+  #start: Direction | undefined;
+  #writing = false;
   #labels: ViewWords = wordsFor("en");
   #said = "";
   #sayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -138,8 +148,9 @@ export class ViewControlsElement extends HTMLElement {
     this.#label();
   }
 
-  play(): void {
-    this.#ensure().play();
+  /** Turn by itself. With `seconds`, stop after that many seconds of turning; else the `autoplay-for` attribute's, if there is one. */
+  play(seconds?: number): void {
+    this.#ensure().play(seconds ?? this.#playLimit());
   }
 
   pause(): void {
@@ -193,11 +204,15 @@ export class ViewControlsElement extends HTMLElement {
       const value = Number(this.getAttribute(key));
       if (this.hasAttribute(key) && Number.isFinite(value)) start[key] = value;
     }
-    const { pace, ...chosen } = this.hasAttribute("address") ? parseAddress(globalThis.location?.search ?? "", this.#keys, c.limits) : {};
+    const { pace, direction, ...chosen } = this.hasAttribute("address") ? parseAddress(globalThis.location?.search ?? "", this.#keys, c.limits) : {};
     Object.assign(start, chosen);
     c.turnable = !this.hasAttribute("flat");
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
+    // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
+    const first = this.#start === undefined;
+    this.#start ??= this.#startDirection();
+    this.#direction = direction ?? (first ? this.#start : this.#direction);
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
     for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size"]) this.#option(name);
@@ -217,7 +232,7 @@ export class ViewControlsElement extends HTMLElement {
       // Taken off the page already, perhaps put back: then this controller is gone and a newer microtask speaks for the new one.
       if (this.#controller !== c) return;
       this.#dispatch(c.state, { final: true, reason: "init" });
-      if (this.hasAttribute("autoplay") && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) c.play(Number(this.getAttribute("autoplay-for")));
+      if (this.hasAttribute("autoplay") && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) c.play(this.#playLimit());
     });
   }
 
@@ -248,7 +263,19 @@ export class ViewControlsElement extends HTMLElement {
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
     else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
-    else if (name === "speed") this.#speed();
+    else if (name === "speed") {
+      // The page's own start follows its speed's sign, unless the reader has chosen the other way.
+      const start = this.#startDirection();
+      if (this.#direction === (this.#start ?? start)) this.#direction = start;
+      this.#start = start;
+      this.#speed();
+      this.#show();
+    } else if (name === "direction") {
+      if (this.#writing) return;
+      this.#start = this.#direction = this.#startDirection();
+      this.#speed();
+      this.#show();
+    }
     else if (name === "pace" || name === "paces") {
       this.#pace = this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? this.#pace);
       this.#speed();
@@ -338,7 +365,10 @@ export class ViewControlsElement extends HTMLElement {
     slider("tilt");
     this.#zoomSlider(q<HTMLInputElement>("#zoom"), c);
     const on = (b: string, run: () => void): void => q<HTMLButtonElement>(`[data-b="${b}"]`).addEventListener("click", run);
-    on("play", () => c().toggle());
+    on("play", () => {
+      if (c().state.turning) c().pause();
+      else c().play(this.#playLimit());
+    });
     on("front", () => c().front());
     on("out", () => c().zoomBy(1 / ZOOM_STEP));
     on("in", () => c().zoomBy(ZOOM_STEP));
@@ -359,6 +389,8 @@ export class ViewControlsElement extends HTMLElement {
       if (reason === "user") this.#choosePace(value);
     });
     on("pace-now", () => speeds.step(1));
+    on("turn-left", () => this.#chooseDirection("left"));
+    on("turn-right", () => this.#chooseDirection("right"));
     on("left", () => c().panBy(-1, 0));
     on("right", () => c().panBy(1, 0));
     on("up", () => c().panBy(0, -1));
@@ -460,9 +492,33 @@ export class ViewControlsElement extends HTMLElement {
     if (this.hasAttribute("address")) this.#save();
   }
 
-  /** The turn's degrees a second: the `speed` attribute (30) times the pace. */
+  /** The way the page itself starts the turn: its `direction`, else left for a negative `speed` and right for the rest. */
+  #startDirection(): Direction {
+    return parseDirection(this.getAttribute("direction")) ?? (Number(this.getAttribute("speed")) < 0 ? "left" : "right");
+  }
+
+  /** The seconds `autoplay-for` limits a turn to, or `undefined` for none. */
+  #playLimit(): number | undefined {
+    const seconds = Number(this.getAttribute("autoplay-for"));
+    return seconds > 0 && Number.isFinite(seconds) ? seconds : undefined;
+  }
+
+  /** A way was pressed. It is written to the `direction` attribute and the address; the angle goes on from where it was, at the same speed. */
+  #chooseDirection(direction: Direction): void {
+    this.#direction = direction;
+    this.#speed();
+    if (this.getAttribute("direction") !== direction) {
+      this.#writing = true;
+      this.setAttribute("direction", direction);
+      this.#writing = false;
+    }
+    this.#show();
+    if (this.hasAttribute("address")) this.#save();
+  }
+
+  /** The turn's degrees a second: the size of the `speed` attribute (30) times the pace, going left when it is negative. */
   #speed(): void {
-    this.#ensure().speed = (Number(this.getAttribute("speed")) || 30) * this.#pace;
+    this.#ensure().speed = Math.abs(Number(this.getAttribute("speed")) || 30) * this.#pace * (this.#direction === "left" ? -1 : 1);
   }
 
   #limits(): void {
@@ -519,6 +575,7 @@ export class ViewControlsElement extends HTMLElement {
     set('[data-b="in"]', words.zoomIn);
     set('[data-g="zoom"]', words.zoom);
     set('[data-g="pan"]', words.pan);
+    set('[data-g="direction"]', words.direction);
     set('[data-g="drag"]', words.drag);
     const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
     speeds?.setAttribute("lang", language);
@@ -577,6 +634,8 @@ export class ViewControlsElement extends HTMLElement {
     const pace = speedText(this.#pace);
     write(q('[data-o="pace"]'), pace);
     say(q('[data-b="pace-now"]'), `${words.speed}: ${pace}`);
+    q<HTMLButtonElement>('[data-b="turn-left"]').setAttribute("aria-pressed", String(this.#direction === "left"));
+    q<HTMLButtonElement>('[data-b="turn-right"]').setAttribute("aria-pressed", String(this.#direction === "right"));
     const more = q<HTMLButtonElement>('[data-b="more"]');
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;
@@ -587,7 +646,7 @@ export class ViewControlsElement extends HTMLElement {
     // A flat view cannot turn: the angle, tilt, auto-turn and front are not shown, and a drag only moves.
     const flat = !c.turnable;
     for (const selector of [".angle", ".play"]) q<HTMLElement>(selector).hidden = flat;
-    for (const selector of [".tilt", ".front", '[data-g="drag"]', '[data-g="pace"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
+    for (const selector of [".tilt", ".front", '[data-g="drag"]', '[data-g="pacing"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
     // The speed is always in sight while the view turns: one small button in basic, which steps through the three; advanced always has the three.
     q<HTMLElement>(".pace-now").hidden = flat || advanced || !s.turning;
     this.toggleAttribute("data-turning", s.turning);
@@ -622,7 +681,7 @@ export class ViewControlsElement extends HTMLElement {
   #save(): void {
     this.#writer.write((search) => {
       const s = this.#ensure().state;
-      return formatAddress(search, { ...s, pace: this.#pace }, this.#keys, s.turning, this.#ensure().startZoom);
+      return formatAddress(search, { ...s, pace: this.#pace, direction: this.#direction === (this.#start ?? this.#direction) ? null : this.#direction }, this.#keys, s.turning, this.#ensure().startZoom);
     });
   }
 }

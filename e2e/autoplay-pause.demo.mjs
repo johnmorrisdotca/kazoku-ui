@@ -101,6 +101,26 @@ test("autoplay-for stops the turn by itself, counting only the time it turned", 
   expect(after.auto).toBe(0);
 });
 
+test("autoplay-for also stops a turn the Play button or play() starts", async ({ page }) => {
+  await page.evaluate(() => {
+    const controls = document.createElement("kazoku-view-controls");
+    controls.id = "intro";
+    controls.setAttribute("for", "scene");
+    controls.setAttribute("autoplay-for", "1");
+    document.body.append(controls);
+  });
+  const state = () => page.evaluate(() => document.getElementById("intro").state.turning);
+  await page.locator("#intro").evaluate((el) => el.shadowRoot.querySelector('[data-b="play"]').click());
+  await expect.poll(state).toBe(true);
+  await expect.poll(state, { timeout: 5000 }).toBe(false);
+  await page.evaluate(() => document.getElementById("intro").play());
+  await expect.poll(state).toBe(true);
+  await expect.poll(state, { timeout: 5000 }).toBe(false);
+  await page.evaluate(() => document.getElementById("intro").play(60));
+  await page.waitForTimeout(1500);
+  expect(await state()).toBe(true);
+});
+
 test("autoplay without autoplay-for keeps turning", async ({ page }) => {
   await page.evaluate(() => {
     const controls = document.createElement("kazoku-view-controls");

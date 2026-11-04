@@ -406,6 +406,8 @@ interface AddressChoices {
     drag: DragMode;
     /** The auto-turn speed as a multiple of the element's `speed`: the number of the button that is on. */
     pace?: number;
+    /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
+    direction?: Direction | null;
 }
 ```
 
@@ -421,6 +423,8 @@ interface AddressKeys {
     drag: string;
     /** The auto-turn speed, a number (`0.5`, `2`; 1 is the start and leaves the address). `pace` by default, because a page's own `speed` (a clock's, a replay's) is its own. */
     speed?: string;
+    /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
+    direction?: string;
 }
 ```
 
@@ -686,6 +690,10 @@ interface ViewWords {
     zoomReset: string;
     more: string;
     speed: string;
+    /** The name of the pair of buttons that choose which way Auto-turn goes. */
+    direction: string;
+    turnLeft: string;
+    turnRight: string;
     slow: string;
     medium: string;
     fast: string;
@@ -746,7 +754,8 @@ class ViewControlsElement extends HTMLElement {
     set view(element: HTMLElement | undefined);
     /** Your own labels over the language's, for example `{ front: "Home" }`. */
     set words(words: Partial<ViewWords>);
-    play(): void;
+    /** Turn by itself. With `seconds`, stop after that many seconds of turning; else the `autoplay-for` attribute's, if there is one. */
+    play(seconds?: number): void;
     pause(): void;
     front(): void;
     /** Put the object back in the middle at Fit and the default angle, with a brief move (at once for a reader who prefers reduced motion, or with `false`). */

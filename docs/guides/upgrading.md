@@ -7,6 +7,15 @@ description: What each version from 0.7 to 0.14 asks of you, which defaults chan
 
 The package is in early development (0.x), so a minor version can add to the interface. This page lists what asks something of you, newest first. The complete, dated record is the [changelog](../../CHANGELOG.md).
 
+## To 0.16
+
+Two things can change what a page does; neither asks for anything.
+
+- **Auto-turn has a direction.** Under More, beside the speed buttons, Left and Right choose which way it goes, kept in the new `direction` attribute and in the address as `?direction=left`. A page that has its own Reverse button or its own `?dir=` can drop it. A negative `speed` still starts the turn to the left.
+- **`autoplay-for` limits every turn, not only the one `autoplay` starts.** A turn the Auto-turn button or `play()` starts now stops after those seconds of turning too. A page that sets `autoplay-for` and wants its button unlimited should leave the attribute off and keep its own timer.
+
+The family's `templates/docs-site.demo.mjs` is the documentation site's browser test, with the Tab test made to work on WebKit on a Mac; chikyu-earth and wakusei-planets take it, with its new hash, when they are next touched.
+
 ## To 0.15
 
 Nothing is asked of you. A new part, `<kazoku-embed-panel>` from `@johnmorrisdotca/kazoku-ui/embed-panel/define`, is the family's one "Put it in your page" panel; see [The embed panel](embed-panel.md). The family's must-have list has a new item, `embed-panel`, in `templates/check-standard.mjs`: a package that copies the new check into its repository needs the panel in its demo (or a reason in `family.notApplicable`). The demo server, `scripts/dev.mjs`, no longer stops on a missing file.

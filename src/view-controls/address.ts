@@ -1,6 +1,6 @@
 // The choices kept in the page's address: pure string functions, so a server or a test can use them. Only what a person chose is kept
 // (angle, tilt, zoom, what a drag does); the pan is in pixels of one screen and the turning of a moment, so neither is.
-import { PACE_FACTOR, parsePace } from "./levels.ts";
+import { type Direction, PACE_FACTOR, parseDirection, parsePace } from "./levels.ts";
 import { clamp, DEFAULT_LIMITS, type Limits, wrapYaw } from "./math.ts";
 
 export type DragMode = "move" | "turn";
@@ -12,9 +12,11 @@ export interface AddressKeys {
   drag: string;
   /** The auto-turn speed, a number (`0.5`, `2`; 1 is the start and leaves the address). `pace` by default, because a page's own `speed` (a clock's, a replay's) is its own. */
   speed?: string;
+  /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
+  direction?: string;
 }
 
-export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", drag: "drag", speed: "pace" };
+export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", drag: "drag", speed: "pace", direction: "direction" };
 
 export interface AddressChoices {
   yaw: number;
@@ -23,6 +25,8 @@ export interface AddressChoices {
   drag: DragMode;
   /** The auto-turn speed as a multiple of the element's `speed`: the number of the button that is on. */
   pace?: number;
+  /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
+  direction?: Direction | null;
 }
 
 const rounded = (value: number, places: number): number => Number(value.toFixed(places));
@@ -50,6 +54,8 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
   const named = parsePace(said);
   const value = named !== undefined ? PACE_FACTOR[named] : said === null || said.trim() === "" ? Number.NaN : Number(said);
   if (Number.isFinite(value)) out.pace = value;
+  const direction = parseDirection(params.get(keys.direction ?? "direction"));
+  if (direction !== undefined) out.direction = direction;
   return out;
 }
 
@@ -70,6 +76,7 @@ export function formatAddress(search: string, choices: AddressChoices, keys: Add
   // The pace key is touched only when the caller has a pace; the start (1) leaves it off the address.
   const paceKey = keys.speed ?? "pace";
   if (choices.pace !== undefined) set(paceKey, choices.pace === 1 ? undefined : String(rounded(choices.pace, 3)));
+  if (choices.direction !== undefined) set(keys.direction ?? "direction", choices.direction === null ? undefined : choices.direction);
   const text = params.toString();
   return text === "" ? "" : `?${text}`;
 }
