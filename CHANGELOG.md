@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The family `templates/AGENTS.md` has the rules that keep every `main` green (all of a release's checks before a push; a red main fixed or reverted within the hour; a flaky test ticketed and fixed; a shared file tried in every repo's CI first; machine1's daily check), from KAZOKU-UI-41. A repo takes them with the rest of the family part when it next replaces everything above the marker.
+
 ## [0.15.1] - 2026-11-04
 
 The embed panel asks for one frame at a time.
