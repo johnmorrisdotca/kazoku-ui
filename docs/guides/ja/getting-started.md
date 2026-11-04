@@ -26,6 +26,7 @@ npm install @johnmorrisdotca/kazoku-ui
 | 言語の選択 | `<kazoku-language-picker>` | `@johnmorrisdotca/kazoku-ui/language-picker/define` |
 | 画像の保存 | `<kazoku-save-image>` | `@johnmorrisdotca/kazoku-ui/save-image/define` |
 | 速さのボタン | `<kazoku-speed-buttons>` | `@johnmorrisdotca/kazoku-ui/speed-buttons/define` |
+| 埋め込みパネル | `<kazoku-embed-panel>` | `@johnmorrisdotca/kazoku-ui/embed-panel/define` |
 
 共有レンダラー（`/renderer`）、フリーズ検査（`/testing`）、アドレスの状態（`/address-state`）には、要素がありません。
 
@@ -91,6 +92,7 @@ console.log(JSON.stringify(where.search), state.get("size"));
 
 - キャンバス、SVG、任意の要素を画像にする：[画像の保存](save-image.md)
 - 速さを1列のボタンで選ぶ（0.5×、1×、2×、または自由なステップ）：[速さのボタン](speed-buttons.md)
+- パッケージのデモに置く、共通の「自分のページに入れる」パネル：[埋め込みパネル](embed-panel.md)
 - 多数の3Dビューを1つのWebGLコンテキストで：[共有レンダラー](renderer.md)
 - React、Vue、Svelte、Angular、厳格なContent-Security-Policy：[フレームワークとCSP](frameworks-and-csp.md)
 - 全体の作り：[アーキテクチャ](architecture.md)

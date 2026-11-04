@@ -7,6 +7,10 @@ description: What each version from 0.7 to 0.14 asks of you, which defaults chan
 
 The package is in early development (0.x), so a minor version can add to the interface. This page lists what asks something of you, newest first. The complete, dated record is the [changelog](../../CHANGELOG.md).
 
+## To 0.15
+
+Nothing is asked of you. A new part, `<kazoku-embed-panel>` from `@johnmorrisdotca/kazoku-ui/embed-panel/define`, is the family's one "Put it in your page" panel; see [The embed panel](embed-panel.md). The family's must-have list has a new item, `embed-panel`, in `templates/check-standard.mjs`: a package that copies the new check into its repository needs the panel in its demo (or a reason in `family.notApplicable`). The demo server, `scripts/dev.mjs`, no longer stops on a missing file.
+
 ## To 0.14
 
 - **The Auto-turn speeds are numbers: 0.5×, 1×, 2×.** The buttons that said Slow, Medium and Fast are now the family's [speed buttons](speed-buttons.md), and say `0.5×`, `1×` and `2×`. The speed is the new `pace` attribute (a multiple of `speed`, 1 by default) and the address key is now `pace` (`?pace=2`), not `speed`: `speed` is a page's own parameter, such as a clock's, and the controls no longer read or write it. A link made with `?speed=fast` shows Medium; `?pace=fast` and `?pace=slow` still read as 2 and 0.5. `paces` (for example `paces="1 4 8"`) names other buttons.

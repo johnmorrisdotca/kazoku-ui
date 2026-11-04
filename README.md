@@ -11,7 +11,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Speed buttons](docs/guides/speed-buttons.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Speed buttons](docs/guides/speed-buttons.md) · [Embed panel](docs/guides/embed-panel.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
 
 ## In 30 seconds
 
@@ -58,6 +58,7 @@ console.log(zoomText(2.44)); // 2.4×
 - **Theme switch** (Light, Dark, Auto) and **language picker** (each language in its own name) that write `data-theme` and `lang` and tell the page.
 - **Save image** for a canvas, an SVG or any element, as PNG or SVG.
 - **Speed buttons**: one row of 0.5×, 1×, 2× (or the steps you name: a solar system's days a second, a replay's speeds) for the whole family, kept in an attribute and the address.
+- **Embed panel**: the family's one "Put it in your page" panel: a compact picker, a size, a tab for HTML, ES module, React, Vue, Angular, Svelte and iframe (and your own, such as an image), a live picture that always fits its box, Copy, the embed page, the docs and the credit line.
 - **Address state**, with no element: choices kept in the link with `replaceState`.
 - **A shared 3D renderer** and its **freeze checks**: one WebGL context, shared assets, stills, a pixel budget.
 - **Labels in English and Japanese**, light and dark, 48 px touch targets, reduced motion respected.
@@ -160,6 +161,9 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 | `@johnmorrisdotca/kazoku-ui/speed-buttons` | The steps, how a speed reads, the nearest step and the address key of the speed buttons. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/speed-buttons/element` | The `SpeedButtonsElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/speed-buttons/define` | Registers `<kazoku-speed-buttons>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/embed-panel` | The seven ways a page is made and their text (`embedSnippet`), the sizes, the picker's search and the labels of the embed panel. Imports on a server. |
+| `@johnmorrisdotca/kazoku-ui/embed-panel/element` | The `EmbedPanelElement` class (needs a browser). |
+| `@johnmorrisdotca/kazoku-ui/embed-panel/define` | Registers `<kazoku-embed-panel>` (once, and only if the tag is free). |
 | `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
@@ -440,6 +444,22 @@ What a picture of an element cannot carry (web fonts, `::before`, cross-origin i
 ```
 
 See [the guide](docs/guides/speed-buttons.md) for the attributes, the event and the functions without the element.
+
+## Embed panel
+
+`<kazoku-embed-panel>` is the "Put it in your page" panel every package of the family shares: a compact picker for the thing being embedded, a size, a tab for each way a page is made, the picture the code makes (scaled to fit its box), Copy with its name on it, Open the embed page, Read the docs and the credit line. The package gives it `generate` (the code of a tab) and `preview` (the picture); `embedSnippet` writes all seven tabs from one description of the element.
+
+```html
+<kazoku-embed-panel id="panel" kinds="html module react vue angular svelte iframe" docs-href="docs/"></kazoku-embed-panel>
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/embed-panel/define";
+  import { embedSnippet } from "@johnmorrisdotca/kazoku-ui/embed-panel";
+  document.getElementById("panel").generate = ({ kind, size }) =>
+    embedSnippet(kind, { package: "@scope/dial", cdn: "https://cdn.jsdelivr.net/npm/@scope/dial@1.0.0", tag: "scope-dial", element: "element", entries: [], attrs: [["size", String(size)]], name: "dial", iframe: { src: "https://example.com/embed.html", title: "Dial", width: size, height: size } });
+</script>
+```
+
+See [the guide](docs/guides/embed-panel.md) for the slots (a package's own choices and buttons), the picker, the events and a package that draws nothing, and [the survey](docs/embed-panel-survey.md) for which package's panel does each part best.
 
 ## Shared 3D renderer
 

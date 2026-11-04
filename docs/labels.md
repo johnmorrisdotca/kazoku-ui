@@ -1,6 +1,6 @@
 # Labels
 
-The labels of the view controls, the theme switch, the language picker, the save-image buttons and the speed buttons, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
+The labels of the view controls, the theme switch, the language picker, the save-image buttons, the speed buttons and the embed panel, in English and Japanese. `lang="ja"` (on the element or on a parent) chooses Japanese; anything else is English. Every key is in both
 languages, and `test/controller.test.ts` holds that. Your own words go over either set: `element.words = { front: "Home" }`, or `wordsFor("ja", { front: "ホーム" })`.
 
 The Japanese is written for the interface and has not yet been read by a native speaker.
@@ -68,3 +68,28 @@ One label. The languages themselves are never translated: each is written in its
 | `group` | Speed | 速さ | hayasa, speed (the group's name; a `label` attribute replaces it) |
 
 The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no translation.
+
+## Embed panel
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `title` | Put it in your page | 自分のページに入れる | jibun no pēji ni ireru, put it in your own page |
+| `size` | Size | 大きさ | ōkisa, size |
+| `kinds` | How your page is made | ページの作り方 | pēji no tsukurikata, how the page is made |
+| `pick` | What to put in | 入れるもの | ireru mono, the thing to put in |
+| `search` | Search | さがす | sagasu, to look for |
+| `all` | All | すべて | subete, all |
+| `none` | Nothing matches | 見つかりません | mitsukarimasen, nothing was found |
+| `preview` | Preview | プレビュー | purebyū, preview |
+| `code` | Code | コード | kōdo, code |
+| `copy` | Copy code | コードをコピー | kōdo o kopī, copy the code |
+| `copied` | Copied | コピーしました | kopī shimashita, it was copied |
+| `copyFail` | Select the code and copy it by hand. | コードを選んで、手でコピーしてください。 | kōdo o erande, te de kopī shite kudasai, select the code and copy it by hand |
+| `open` | Open the embed page | 埋め込みページを開く | umekomi pēji o hiraku, open the embed page |
+| `docs` | Read the docs | ドキュメントを読む | dokyumento o yomu, read the documents |
+| `credits` | Credit | クレジット | kurejitto, credit |
+| `kind_module` | ES module | ESモジュール | ES mojūru, ES module |
+| `kind_image` | Image | 画像 | gazō, picture |
+| `kind_element` | Custom element | カスタム要素 | kasutamu yōso, custom element |
+
+The other tabs (`kind_url` (an iframe address), `kind_html`, `kind_react`, `kind_vue`, `kind_angular`, `kind_svelte`, `kind_iframe`, `kind_svg`) are product and format names and read the same in both languages. A package's own tab names go in `element.labels`.

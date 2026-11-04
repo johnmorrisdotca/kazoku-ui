@@ -24,6 +24,7 @@ Each part has its own subpath. The `define` file registers the tag, once, and on
 | Language picker | `<kazoku-language-picker>` | `@johnmorrisdotca/kazoku-ui/language-picker/define` |
 | Save image | `<kazoku-save-image>` | `@johnmorrisdotca/kazoku-ui/save-image/define` |
 | Speed buttons | `<kazoku-speed-buttons>` | `@johnmorrisdotca/kazoku-ui/speed-buttons/define` |
+| Embed panel | `<kazoku-embed-panel>` | `@johnmorrisdotca/kazoku-ui/embed-panel/define` |
 
 The shared renderer (`/renderer`), the freeze checks (`/testing`) and the address state (`/address-state`) have no element.
 
@@ -89,6 +90,7 @@ A value at its default leaves the address, the page's other parameters and its `
 
 - A canvas, an SVG or any element as a picture: [Save image](save-image.md).
 - One row of 0.5×, 1×, 2× (or your own steps) for any speed: [Speed buttons](speed-buttons.md).
+- One "Put it in your page" panel for a package's demo: [The embed panel](embed-panel.md).
 - Many 3D views, one WebGL context: [The shared renderer](renderer.md).
 - React, Vue, Svelte, Angular and a strict Content-Security-Policy: [Frameworks and CSP](frameworks-and-csp.md).
 - How it is put together: [Architecture](architecture.md).
