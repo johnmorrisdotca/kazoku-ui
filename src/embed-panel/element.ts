@@ -702,7 +702,14 @@ export class EmbedPanelElement extends HTMLElement {
       }),
     );
     (box.querySelector(".none") as HTMLElement).textContent = shown.length === 0 ? words.none : "";
-    list.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView?.({ block: "nearest" });
+    // Only the list scrolls to the pressed button: scrollIntoView would also scroll the page to the panel each time it draws.
+    const pressed = list.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (pressed !== null) {
+      const room = list.getBoundingClientRect();
+      const at = pressed.getBoundingClientRect();
+      if (at.top < room.top) list.scrollTop -= room.top - at.top;
+      else if (at.bottom > room.bottom) list.scrollTop += at.bottom - room.bottom;
+    }
   }
 
   #dispatch(reason: EmbedChangeDetail["reason"]): void {

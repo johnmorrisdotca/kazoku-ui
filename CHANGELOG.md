@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-11-04
+
+The embed panel no longer scrolls the page.
+
 - The family `templates/AGENTS.md` has the rules that keep every `main` green (all of a release's checks before a push; a red main fixed or reverted within the hour; a flaky test ticketed and fixed; a shared file tried in every repo's CI first; machine1's daily check), from KAZOKU-UI-41. A repo takes them with the rest of the family part when it next replaces everything above the marker.
+- **Fixed: every draw of the embed panel's picker scrolled the page to the panel.** The picker kept the pressed button in view with `scrollIntoView`, which scrolls the page too, so a page with the panel below the fold jumped to it on load and again each time the language changed. Only the picker's own list scrolls now. New test in `e2e/embed-panel.demo.mjs`.
 
 ## [0.15.1] - 2026-11-04
 

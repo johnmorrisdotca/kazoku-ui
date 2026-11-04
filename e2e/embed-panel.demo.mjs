@@ -58,6 +58,25 @@ test("each tab shows its way of putting the badge in a page", async ({ page }) =
   await expect(page.locator(`${P} [part="note"]`)).toBeHidden();
 });
 
+test("drawing the panel again never scrolls the page to it", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    const spacer = document.createElement("div");
+    spacer.style.height = "4000px";
+    document.body.prepend(spacer);
+    window.scrollTo(0, 0);
+    document.documentElement.lang = "ja";
+  });
+  await expect(page.locator(`${P} [part="copy"]`)).toHaveText(/コピー/);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page.evaluate(() => {
+    document.documentElement.lang = "en";
+    document.querySelector('[data-testid="panel"]').value = "chalk";
+  });
+  await expect(page.locator(`${P} [part="copy"]`)).toHaveText(/Copy/);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("the arrow keys, Home and End move between the tabs", async ({ page }) => {
   await ready(page);
   await tab(page, "html").focus();
