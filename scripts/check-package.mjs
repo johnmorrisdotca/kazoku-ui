@@ -52,6 +52,13 @@ const PARTS = [
   assert.equal(pure.stepFrom(2, [0.5, 1, 2]), 0.5);`,
   },
   {
+    name: "embed-panel", tag: "kazoku-embed-panel", cls: "EmbedPanelElement", define: "defineEmbedPanel",
+    pure: ["DEFAULT_KINDS", "DEFAULT_SIZES", "EMBED_KINDS", "embedSnippet", "attrText", "filterItems", "groupsOf", "kindLabel", "nearestSize", "parseKinds", "parseSizes", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.deepEqual(pure.parseSizes("480 160"), [160, 480]);
+  assert.equal(pure.embedSnippet("iframe", { package: "p", cdn: "c", tag: "x-y", element: "", entries: [], attrs: [], name: "y", iframe: { src: "e.html", title: "T", width: 160, height: 160 } }).includes('width="160"'), true);
+  assert.deepEqual(pure.filterItems([{ id: "a", label: "Mars" }, { id: "b", label: "Sun" }], "ma").map((i) => i.id), ["a"]);`,
+  },
+  {
     name: "renderer", pure: ["createSharedRenderer", "createScheduler", "createAssetCache", "createStillCache", "pixelRatioFor", "disposeDeep", "MAX_PIXELS", "MAX_SIDE", "MAX_RATIO"],
     run: `assert.ok(pure.pixelRatioFor(5120, 2880, 2) < 2);
   const cache = pure.createAssetCache({ lingerMs: 0 });
