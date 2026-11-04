@@ -16,6 +16,7 @@ node scripts/check-standard.mjs        # prints what is missing, exit 1; or "ok"
 | `pages` | `.github/workflows/pages.yml` deploying it, with GitHub Pages switched on for the repository |
 | `homepage` | `package.json`'s `homepage` is `https://johnmorrisdotca.github.io/<package>/`, the README links it, and it is the repository's homepage |
 | `embed` | `demo/embed.html` (or `demo/embed/index.html`): a page made for an `<iframe>`, drawing what its address says |
+| `embed-panel` | the demo's "Put it in your page" is kazoku-ui's `<kazoku-embed-panel>` (a demo page in `demo/` holds the tag), filled with the package's own choices and code |
 | `family-files` | `scripts/family-template.mjs` (listing the package, with the kazoku-ui language picker and theme switch in the header), `scripts/family-readme.mjs`, `demo/family.css` |
 | `docs-site` | `scripts/docs-site.mjs`, `docs/site.json`, and the guides in `docs/guides/` |
 | `ja-guides` | a Japanese twin in `docs/guides/ja/` for every guide, one language to a page |
@@ -38,5 +39,9 @@ A reason shorter than a sentence is refused, and so is an item that is not on th
 1. Copy `templates/check-standard.mjs` to `scripts/check-standard.mjs`.
 2. Add `"check:standard": "node scripts/check-standard.mjs"` and a test that runs `standardOf(".")` and compares the file's hash to the recorded one (chikyu-earth's `test/standard.test.ts` is the pattern).
 3. Fill what it says is missing. [chikyu-earth](https://github.com/johnmorrisdotca/chikyu-earth) has every item and is the example to copy: its `examples/`, `scripts/check-usage.ts`, `docs/guides/`, `demo/embed.html`.
+
+## The embed panel
+
+The `embed-panel` item (STANDARD_VERSION 2026-11-03) asks for the one shared panel, not a copy of it: a picker, a size, a tab for HTML, ES module, React, Vue, Angular, Svelte and iframe (and the package's own, such as an image), a live picture that fits its box, Copy with its name on it, Open the embed page, Read the docs and the credit line. [The guide](guides/embed-panel.md) says how; [the survey](embed-panel-survey.md) says which package's panel does each part best and what each package's panel has today, so that nothing a package has is lost when it adopts the shared one. A package that draws nothing still adopts it: `no-preview no-size` and the tabs that make sense. A package that has no demo page to put it in says so in `family.notApplicable`.
 
 A change to the list is a change to this file in kazoku-ui, with a new `STANDARD_VERSION`, and then to every repository's copy and recorded hash.

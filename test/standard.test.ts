@@ -30,7 +30,8 @@ Vite, webpack, React, Vue, Svelte, Angular and TypeScript: see the guides.
 const FILES: Record<string, string> = {
   "package.json": JSON.stringify({ name: "@johnmorrisdotca/sample-pkg", homepage: HOME, scripts: { "test:usage": "node scripts/check-usage.ts" } }),
   "README.md": README,
-  "demo/index.html": "<!doctype html>",
+  "demo/index.html": "<!doctype html><kazoku-embed-panel></kazoku-embed-panel>",
+  "demo/builder.html": "<!doctype html><kazoku-embed-panel kinds=\"html\"></kazoku-embed-panel>",
   "demo/embed.html": "<!doctype html>",
   "demo/family.css": "/* css */",
   "scripts/family-template.mjs": 'export const FAMILY = [{ id: "sample-pkg" }]; const header = "<kazoku-language-picker></kazoku-language-picker><kazoku-theme-switch></kazoku-theme-switch>";',
@@ -74,6 +75,7 @@ test("each item, taken away, is named, and only it", () => {
     pages: (files) => (files[".github/workflows/pages.yml"] = null),
     homepage: (files) => (files["package.json"] = JSON.stringify({ name: "@johnmorrisdotca/sample-pkg", scripts: { "test:usage": "x" } })),
     embed: (files) => (files["demo/embed.html"] = null),
+    "embed-panel": (files) => ((files["demo/index.html"] = "<!doctype html>"), (files["demo/builder.html"] = "<!doctype html>")),
     "family-files": (files) => (files["scripts/family-template.mjs"] = 'export const FAMILY = [{ id: "other" }];'),
     "docs-site": (files) => (files["scripts/docs-site.mjs"] = null),
     "ja-guides": (files) => (files["docs/guides/ja/getting-started.md"] = null),
