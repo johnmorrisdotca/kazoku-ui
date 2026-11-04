@@ -106,8 +106,8 @@ console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
 // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction"}
 ```
 
 ## シーンの自然な大きさで開く

@@ -83,7 +83,7 @@ console.log(Object.keys(DEFAULT_KEYS).join(" "));
 // button, a, input, select, textarea, label, [data-kazoku-ignore]
 // {"tiltMax":30,"zoomMin":1,"zoomMax":5}
 // kazoku-view-controls kazoku-viewchange kazoku-view-controls
-// yaw tilt zoom drag speed
+// yaw tilt zoom drag speed direction
 ```
 
 ## 自分で決めた点を中心にズームする
