@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-05
+
 The view turns on all three axes (KAZOKU-UI-55).
 
 - **Roll, beside Angle and Tilt.** One slider, and chips for Angle, Tilt, Roll and All. The slider sets the axis the chips name (All keeps the angle). `roll` and `roll-max` (180) sit next to `tilt` and `tilt-max`.

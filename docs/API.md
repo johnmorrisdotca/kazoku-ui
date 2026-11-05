@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.16.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.17.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-45 values and 19 types.
+54 values and 23 types.
 
 ```js
-import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseKeys, parseLayout, parseLevel, parsePace, pinchTo, SLIDER_STEP, SNAP_PX, TAG, TILT_ACROSS, TURN_ACROSS, WHEEL_GESTURE_MS, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -114,6 +114,18 @@ const degreesPerPixel: (radius: number) => number;
 function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips: boolean, limits?: Limits, step?: number, grabRadius?: number): Pick<Camera, "yaw" | "tilt">;
 ```
 
+### eulerFromQuat
+
+*function*. The yaw, tilt and roll a quaternion shows on the sliders. Tilt stays within a right angle; the quaternion itself does not flip.
+
+```ts
+function eulerFromQuat(q: Quat): {
+    yaw: number;
+    tilt: number;
+    roll: number;
+};
+```
+
 ### EVENT
 
 *constant*
@@ -194,6 +206,14 @@ const PAN_STEP = 0.25;
 function parseAddress(search: string, keys?: AddressKeys, limits?: Limits): Partial<AddressChoices>;
 ```
 
+### parseAxis
+
+*constant*
+
+```ts
+const parseAxis: (text: string | null | undefined) => TurnAxis | undefined;
+```
+
 ### parseKeys
 
 *function*. Read `address-keys`: `yaw:a,tilt:b` renames the keys it names and leaves the others.
@@ -226,12 +246,44 @@ const parseLevel: (text: string | null | undefined) => Level | undefined;
 const parsePace: (text: string | null | undefined) => Pace | undefined;
 ```
 
+### pendulumTilt
+
+*constant*. Tilt swinging inside `amplitude` degrees. `phase` is radians of the swing. At the ends it comes back, so a limited tilt never rolls over.
+
+```ts
+const pendulumTilt: (phase: number, amplitude: number) => number;
+```
+
 ### pinchTo
 
 *function*. The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, and the middle of the fingers also drags the view. `centre` is the view's middle in client pixels.
 
 ```ts
 function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits?: Limits): Camera;
+```
+
+### quatFromEuler
+
+*function*. Yaw about Y, then tilt about X, then roll about Z, in degrees. Past a right angle the numbers fold, so a tumble that rolls over keeps its quaternion and only shows these for the sliders.
+
+```ts
+function quatFromEuler(yaw: number, tilt: number, roll: number): Quat;
+```
+
+### quatIdentity
+
+*constant*
+
+```ts
+const quatIdentity: () => Quat;
+```
+
+### rateSign
+
+*constant*. Which way a signed rate points: -1 or 1. Zero and anything that is not a number count as 1.
+
+```ts
+const rateSign: (value: number) => number;
 ```
 
 ### SLIDER_STEP
@@ -250,6 +302,14 @@ const SLIDER_STEP = 1.1;
 const SNAP_PX = 8;
 ```
 
+### spinLocal
+
+*function*. Turn `q` by `yaw`, `tilt` and `roll` degrees about its own axes (Y, X, then Z). Small steps stay continuous through the poles: the up vector never jumps.
+
+```ts
+function spinLocal(q: Quat, yaw: number, tilt: number, roll: number): Quat;
+```
+
 ### TAG
 
 *constant*
@@ -266,12 +326,28 @@ const TAG = "kazoku-view-controls";
 const TILT_ACROSS = 60;
 ```
 
+### tumbleRates
+
+*function*. Degrees a second for a tumble. The three rates differ, and each drifts on its own incommensurate wave, so the motion does not repeat.
+
+```ts
+function tumbleRates(seconds: number, speed: number, signs: TumbleSigns): TumbleSigns;
+```
+
 ### TURN_ACROSS
 
 *constant*. Degrees of turn across the view's whole width (a half turn), and of tilt across its whole height.
 
 ```ts
 const TURN_ACROSS = 180;
+```
+
+### upVector
+
+*function*. The view's up axis after `q`.
+
+```ts
+function upVector(q: Quat): Vec3;
 ```
 
 ### WHEEL_GESTURE_MS
@@ -408,6 +484,13 @@ interface AddressChoices {
     pace?: number;
     /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
     direction?: Direction | null;
+    roll?: number;
+    /** Which axis Auto-turn drives. `angle` is the start and leaves the address. Left out, the key is not touched. */
+    axis?: TurnAxis | null;
+    /** Tilt's own way. `null` leaves it off the address; left out, the key is not touched. */
+    tiltDirection?: Direction | null;
+    /** Roll's own way. `null` leaves it off the address; left out, the key is not touched. */
+    rollDirection?: Direction | null;
 }
 ```
 
@@ -425,6 +508,14 @@ interface AddressKeys {
     speed?: string;
     /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
     direction?: string;
+    /** The roll, degrees. `roll` by default. */
+    roll?: string;
+    /** Which axis Auto-turn drives. `axis` by default. */
+    axis?: string;
+    /** Which way tilt's auto-turn goes. `tiltDirection` by default. */
+    tiltDirection?: string;
+    /** Which way roll's auto-turn goes. `rollDirection` by default. */
+    rollDirection?: string;
 }
 ```
 
@@ -436,6 +527,8 @@ interface AddressKeys {
 interface Camera {
     yaw: number;
     tilt: number;
+    /** Degrees about the view's forward axis. Left out, it is 0. */
+    roll?: number;
     zoom: number;
     panX: number;
     panY: number;
@@ -505,6 +598,8 @@ type Level = "basic" | "advanced";
 ```ts
 interface Limits {
     tiltMax: number;
+    /** How far a hand may roll, in degrees. 180 (the default) is a full turn. */
+    rollMax: number;
     zoomMin: number;
     zoomMax: number;
 }
@@ -541,6 +636,19 @@ interface Point {
 }
 ```
 
+### Quat
+
+*interface*. A rotation. `w` is the real part. The identity is `{ x: 0, y: 0, z: 0, w: 1 }`.
+
+```ts
+interface Quat {
+    x: number;
+    y: number;
+    z: number;
+    w: number;
+}
+```
+
 ### Size
 
 *interface*
@@ -549,6 +657,38 @@ interface Point {
 interface Size {
     width: number;
     height: number;
+}
+```
+
+### TumbleSigns
+
+*interface*
+
+```ts
+interface TumbleSigns {
+    yaw: number;
+    tilt: number;
+    roll: number;
+}
+```
+
+### TurnAxis
+
+*type*. Which axis Auto-turn drives. `angle` is yaw, the default. `all` is a tumble on yaw, tilt and roll at once.
+
+```ts
+type TurnAxis = "angle" | "tilt" | "roll" | "all";
+```
+
+### Vec3
+
+*interface*
+
+```ts
+interface Vec3 {
+    x: number;
+    y: number;
+    z: number;
 }
 ```
 
@@ -561,6 +701,12 @@ interface ViewController {
     readonly state: ViewState;
     turnable: boolean;
     speed: number;
+    /** Which axis `play` turns. `angle` is yaw. `all` tumbles on three axes. */
+    turnAxis: TurnAxis;
+    /** Tilt's own direction while `turnAxis` is `all` (and the sign of `speed` while it is `tilt`). 1 or -1. */
+    tiltSign: number;
+    /** Roll's own direction. 1 or -1. */
+    rollSign: number;
     readonly limits: Limits;
     /** What a pointer press leaves alone inside the view (see `ViewControllerOptions.ignore`). Can be changed at any time. */
     ignore: string;
@@ -618,8 +764,10 @@ interface ViewControllerOptions {
     initial?: Partial<ViewState>;
     /** False for a flat view that cannot turn: a drag then always moves it and the angle and tilt never change. */
     turnable?: boolean;
-    /** Degrees a second when it turns by itself. */
+    /** Degrees a second when it turns by itself. The sign is the active axis's direction. */
     speed?: number;
+    /** Which axis turns by itself. `angle` (yaw) by default. */
+    turnAxis?: TurnAxis;
     limits?: Partial<Limits>;
     /** The starting zoom: "fit" (the default) or a scale where 1 is the scene's natural size; it opens at that scale divided by `fitScale`. With `fitScale` left at 1 a number is a zoom as `ViewState.zoom` has it. `initial.zoom` is used only when this is left out. */
     zoom?: "fit" | number;
@@ -653,6 +801,8 @@ interface ViewControllerOptions {
 
 ```ts
 interface ViewState extends Camera {
+    /** The pose the page should draw. A tumble keeps this continuous when the slider numbers fold at a pole. */
+    orientation: Quat;
     /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
     turning: boolean;
     /** What a plain drag does while zoomed in: move the view, or turn the piece. */
@@ -669,6 +819,11 @@ interface ViewWords {
     group: string;
     angle: string;
     tilt: string;
+    roll: string;
+    /** The name of the button that tumbles on all three axes. */
+    tumble: string;
+    /** The name of the row that chooses which axis Auto-turn drives. */
+    axis: string;
     autoTurn: string;
     front: string;
     zoom: string;
