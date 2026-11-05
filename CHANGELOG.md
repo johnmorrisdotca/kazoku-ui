@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The vertical demo sits beside the view.** The axis chips made that column tall enough that Centre's row scrolled the page and Auto-turn left the pointer. On a desk the column stands beside the scene, so Centre adds its row and Auto-turn stays where it was.
+
 ## [0.17.0] - 2026-11-05
 
 The view turns on all three axes (KAZOKU-UI-55), and a shared replay bar (KAZOKU-UI-57).

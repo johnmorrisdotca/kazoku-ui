@@ -34,6 +34,14 @@ h1 { margin: 0; font-size: 1.25rem; }
 .edge-t { transform: rotateX(90deg) translateZ(105px); }
 .edge-b { transform: rotateX(-90deg) translateZ(105px); }
 kazoku-view-controls { margin-top: 6px; }
+/* Vertical is a column beside the view. Under the scene, the axis chips make the column tall enough that Centre's row scrolls the page and Auto-turn leaves the pointer. */
+@media (min-width: 641px) {
+  main:has(> kazoku-view-controls[layout="vertical"]) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: start; }
+  main:has(> kazoku-view-controls[layout="vertical"]) > .top,
+  main:has(> kazoku-view-controls[layout="vertical"]) > .intro,
+  main:has(> kazoku-view-controls[layout="vertical"]) > .readout { grid-column: 1 / -1; }
+  main:has(> kazoku-view-controls[layout="vertical"]) > kazoku-view-controls { margin-top: 0; }
+}
 .readout { display: block; margin-top: 6px; color: var(--muted); font: 0.8rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
 @media (max-width: 640px) {
   main { padding: 4px 12px 16px; }
