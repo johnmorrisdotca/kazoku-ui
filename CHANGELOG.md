@@ -2,14 +2,13 @@
 
 ## [Unreleased]
 
-- **`<kazoku-replay-bar>`** (KAZOKU-UI-57). Play, pause, back to the start and repeat, with the family's speed buttons on the same row. The bar reports the choice (`kazoku-replay` with `{ action, playing, repeat, reason }`) and the page moves the thing. `playing` and `repeat` are attributes; `address` keeps them (`play=on`, `repeat=on`), and `address-keys` can rename either. The speed buttons use `steps` and `speed`, and their own address key `replay-speed` (`speed-key` renames it), so they do not share a view's `pace`. Reduced motion leaves play off. New part: `@johnmorrisdotca/kazoku-ui/replay-bar`, `/element` and `/define`.
-
 ## [0.17.0] - 2026-11-05
 
-The view turns on all three axes (KAZOKU-UI-55).
+The view turns on all three axes (KAZOKU-UI-55), and a shared replay bar (KAZOKU-UI-57).
 
 - **Roll, beside Angle and Tilt.** One slider, and chips for Angle, Tilt, Roll and All. The slider sets the axis the chips name (All keeps the angle). `roll` and `roll-max` (180) sit next to `tilt` and `tilt-max`.
 - **Auto-turn chooses an axis:** Angle, Tilt, Roll or All. All is a tumble: three rates that drift, so it does not repeat. Each axis has its own direction. Tilt swings inside `tilt-max` and, at 90 or more, rolls over on a quaternion (`orientation` on the event) so the up axis does not flip. Off under reduced motion, as before. The choice is the `axis` attribute and `?axis=all`.
+- **`<kazoku-replay-bar>`** (KAZOKU-UI-57). Play, pause, back to the start and repeat, with the family's speed buttons on the same row. The bar reports the choice (`kazoku-replay` with `{ action, playing, repeat, reason }`) and the page moves the thing. `playing` and `repeat` are attributes; `address` keeps them (`play=on`, `repeat=on`), and `address-keys` can rename either. The speed buttons use `steps` and `speed`, and their own address key `replay-speed` (`speed-key` renames it), so they do not share a view's `pace`. Reduced motion leaves play off. New part: `@johnmorrisdotca/kazoku-ui/replay-bar`, `/element` and `/define`.
 
 ## [0.16.0] - 2026-11-04
 

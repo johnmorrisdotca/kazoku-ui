@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar"];
 ```
 
 ### Part
@@ -2230,6 +2230,210 @@ import { defineSpeedButtons } from '@johnmorrisdotca/kazoku-ui/speed-buttons/def
 
 ```ts
 function defineSpeedButtons(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/replay-bar`
+
+11 values and 2 types.
+
+```js
+import { addressKeys, DEFAULT_STEPS, EVENT, flagOn, languageOf, PLAY_KEY, REPEAT_KEY, SPEED_KEY, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/replay-bar';
+```
+
+### addressKeys
+
+*function*. The address keys for play and repeat. `play:p,repeat:r` renames either; an unknown name is ignored.
+
+```ts
+function addressKeys(spec: string | null | undefined): {
+    play: string;
+    repeat: string;
+};
+```
+
+### DEFAULT_STEPS
+
+*constant*. A replay's usual speeds. A page sets its own with `steps`.
+
+```ts
+const DEFAULT_STEPS = "0.25 0.5 1 2 4";
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-replay";
+```
+
+### flagOn
+
+*function*. Whether an address or attribute value means on. Anything else, including nothing, is off.
+
+```ts
+function flagOn(value: string | null | undefined): boolean;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### PLAY_KEY
+
+*constant*. The address key for playing, unless `address-keys` names another.
+
+```ts
+const PLAY_KEY = "play";
+```
+
+### REPEAT_KEY
+
+*constant*. The address key for the repeat loop, unless `address-keys` names another.
+
+```ts
+const REPEAT_KEY = "repeat";
+```
+
+### SPEED_KEY
+
+*constant*. The address key the bar's speed buttons use, so they do not share a view's `pace`.
+
+```ts
+const SPEED_KEY = "replay-speed";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-replay-bar";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, ReplayWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<ReplayWords>) => ReplayWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### ReplayWords
+
+*interface*
+
+```ts
+interface ReplayWords {
+    /** The name of the bar, said by a screen reader. */
+    group: string;
+    /** The button that starts playback. */
+    play: string;
+    /** The same button while playback is going. */
+    pause: string;
+    /** The button that goes back to the start. */
+    start: string;
+    /** The button that loops. */
+    repeat: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/replay-bar/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, ReplayBarElement, TAG } from '@johnmorrisdotca/kazoku-ui/replay-bar/element';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-replay";
+```
+
+### ReplayBarElement
+
+*class*. Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
+
+```ts
+class ReplayBarElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Whether playback is going. Reduced motion keeps this false. */
+    get playing(): boolean;
+    set playing(next: boolean);
+    /** Whether the page should loop when it reaches the end. */
+    get repeat(): boolean;
+    set repeat(next: boolean);
+    /** Your own labels over the language's. */
+    set words(words: Partial<ReplayWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-replay-bar";
+```
+
+### ReplayDetail
+
+*interface*. What the `kazoku-replay` event carries in `detail`.
+
+```ts
+interface ReplayDetail {
+    /** What was pressed. `play` and `pause` are the one button. */
+    action: "play" | "pause" | "start" | "repeat";
+    playing: boolean;
+    repeat: boolean;
+    /** `init` (once, when it comes up), `user` (a button) or `set` (a property or attribute). */
+    reason: "init" | "user" | "set";
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/replay-bar/define`
+
+1 value and 0 types.
+
+```js
+import { defineReplayBar } from '@johnmorrisdotca/kazoku-ui/replay-bar/define';
+```
+
+### defineReplayBar
+
+*function*
+
+```ts
+function defineReplayBar(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/embed-panel`
