@@ -72,6 +72,16 @@ One label. The languages themselves are never translated: each is written in its
 
 The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no translation.
 
+## Replay bar
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Playback | 再生の操作 | saisei no sōsa, controls of playback (the bar's name) |
+| `play` | Play | 再生 | saisei, play |
+| `pause` | Pause | 一時停止 | ichiji teishi, pause |
+| `start` | Start | 最初へ | saisho e, to the start |
+| `repeat` | Repeat | 繰り返し | kurikaeshi, repeat |
+
 ## Embed panel
 
 | Key | English | 日本語 | Reading and meaning |

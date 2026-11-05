@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **`<kazoku-replay-bar>`** (KAZOKU-UI-57). Play, pause, back to the start and repeat, with the family's speed buttons on the same row. The bar reports the choice (`kazoku-replay` with `{ action, playing, repeat, reason }`) and the page moves the thing. `playing` and `repeat` are attributes; `address` keeps them (`play=on`, `repeat=on`), and `address-keys` can rename either. The speed buttons use `steps` and `speed`, and their own address key `replay-speed` (`speed-key` renames it), so they do not share a view's `pace`. Reduced motion leaves play off. New part: `@johnmorrisdotca/kazoku-ui/replay-bar`, `/element` and `/define`.
+
 ## [0.17.0] - 2026-11-05
 
 The view turns on all three axes (KAZOKU-UI-55).

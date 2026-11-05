@@ -56,7 +56,8 @@
     "./dist/language-picker/define.js",
     "./dist/save-image/define.js",
     "./dist/speed-buttons/define.js",
-    "./dist/embed-panel/define.js"
+    "./dist/embed-panel/define.js",
+    "./dist/replay-bar/define.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -146,6 +147,21 @@
       "types": "./dist/speed-buttons/define.d.ts",
       "import": "./dist/speed-buttons/define.js",
       "default": "./dist/speed-buttons/define.js"
+    },
+    "./replay-bar": {
+      "types": "./dist/replay-bar/index.d.ts",
+      "import": "./dist/replay-bar/index.js",
+      "default": "./dist/replay-bar/index.js"
+    },
+    "./replay-bar/element": {
+      "types": "./dist/replay-bar/element.d.ts",
+      "import": "./dist/replay-bar/element.js",
+      "default": "./dist/replay-bar/element.js"
+    },
+    "./replay-bar/define": {
+      "types": "./dist/replay-bar/define.d.ts",
+      "import": "./dist/replay-bar/define.js",
+      "default": "./dist/replay-bar/define.js"
     },
     "./embed-panel": {
       "types": "./dist/embed-panel/index.d.ts",

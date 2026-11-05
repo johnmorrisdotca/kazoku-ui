@@ -1,0 +1,64 @@
+// <kazoku-replay-bar>: play, pause, back to the start, repeat and the speed buttons. The page moves; the bar only reports.
+import { expect, test } from "@playwright/test";
+
+const bar = (page) => page.locator('[data-testid="bar"]');
+const act = (page, name) => bar(page).locator(`button[data-act="${name}"]`);
+
+test("play, pause, start and repeat are one row, a finger wide, and play is in the address", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
+  await page.goto("/replay.html");
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(act(page, "start")).toHaveText("Start");
+  await expect(act(page, "repeat")).toHaveText("Repeat");
+  await expect(act(page, "play")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("details, summary")).toHaveCount(0);
+  const boxes = await bar(page).locator("button").evaluateAll((all) => all.map((node) => { const box = node.getBoundingClientRect(); return [box.width, box.height]; }));
+  expect(boxes.length).toBeGreaterThanOrEqual(4);
+  for (const [width, height] of boxes) {
+    expect(width).toBeGreaterThanOrEqual(47.5);
+    expect(height).toBeGreaterThanOrEqual(47.5);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.evaluate(() => { window.heard = []; document.getElementById("bar").addEventListener("kazoku-replay", (event) => window.heard.push(event.detail.action)); });
+  await act(page, "play").click();
+  await expect(act(page, "play")).toHaveText("Pause");
+  await expect(bar(page)).toHaveAttribute("playing", "");
+  await expect(page).toHaveURL(/play=on/);
+  await act(page, "repeat").click();
+  await expect(act(page, "repeat")).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/repeat=on/);
+  await act(page, "start").click();
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(page).not.toHaveURL(/play=/);
+  await expect(page.locator('[data-testid="out"]')).toContainText("at 0.0");
+  expect(await page.evaluate(() => window.heard)).toEqual(["play", "repeat", "start"]);
+  expect(errors).toEqual([]);
+});
+
+test("a page opened on the address starts there, and reduced motion leaves play off", async ({ page }) => {
+  await page.goto("/replay.html?play=on&repeat=on&replay-speed=60");
+  await expect(act(page, "play")).toHaveText("Pause");
+  await expect(act(page, "repeat")).toHaveAttribute("aria-pressed", "true");
+  await expect(bar(page).locator('kazoku-speed-buttons button[aria-pressed="true"]')).toHaveAttribute("data-v", "60");
+  expect(await bar(page).locator("kazoku-speed-buttons").evaluate((el) => el.value)).toBe(60);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/replay.html?play=on");
+  await expect(act(page, "play")).toBeDisabled();
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(bar(page)).not.toHaveAttribute("playing", "");
+  expect(new URL(page.url()).searchParams.get("play")).toBe("on");
+});
+
+test("Japanese labels follow the page", async ({ page }) => {
+  await page.goto("/replay.html");
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await expect(act(page, "play")).toHaveText("再生");
+  await act(page, "play").click();
+  await expect(act(page, "play")).toHaveText("一時停止");
+  await expect(act(page, "start")).toHaveText("最初へ");
+  await expect(act(page, "repeat")).toHaveText("繰り返し");
+});
