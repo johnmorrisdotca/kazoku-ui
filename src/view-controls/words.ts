@@ -81,7 +81,7 @@ export const WORDS: Record<Language, ViewWords> = {
     angle: "角度",
     tilt: "傾き",
     roll: "ロール",
-    tumble: "全部",
+    tumble: "すべて",
     axis: "自動回転の軸",
     autoTurn: "自動回転",
     front: "正面",
