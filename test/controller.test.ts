@@ -124,7 +124,7 @@ test("every change reports the whole state, and a frame of the automatic turn is
   const last = seen.at(-1);
   assert.equal(last?.reason, "zoom");
   assert.equal(last?.final, true);
-  assert.deepEqual(Object.keys(last?.state ?? {}).sort(), ["drag", "panX", "panY", "tilt", "turning", "yaw", "zoom"]);
+  assert.deepEqual(Object.keys(last?.state ?? {}).sort(), ["drag", "orientation", "panX", "panY", "roll", "tilt", "turning", "yaw", "zoom"]);
   assert.equal(last?.state.turning, true);
 });
 

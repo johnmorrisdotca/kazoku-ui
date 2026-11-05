@@ -22,6 +22,11 @@ export type Direction = "left" | "right";
 
 export const parseDirection = (text: string | null | undefined): Direction | undefined => (text === "left" || text === "right" ? text : undefined);
 
+/** Which axis Auto-turn drives. `angle` is yaw, the default. `all` is a tumble on yaw, tilt and roll at once. */
+export type TurnAxis = "angle" | "tilt" | "roll" | "all";
+
+export const parseAxis = (text: string | null | undefined): TurnAxis | undefined => (text === "angle" || text === "tilt" || text === "roll" || text === "all" ? text : undefined);
+
 /** The zoom as the readout shows it: `1×`, `2.4×`; below 1, two figures, so a small zoom never reads `0×`. */
 export const zoomText = (zoom: number): string => `${Number(zoom < 1 ? zoom.toPrecision(2) : zoom.toFixed(1))}×`;
 

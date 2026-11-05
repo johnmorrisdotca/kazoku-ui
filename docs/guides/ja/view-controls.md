@@ -13,7 +13,7 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 
 ## ユーザーが得られるもの
 
-- **2つのレベルで、バーを簡潔に保ちます。** 既定の`controls="basic"`では、角度のスライダー、自動回転、ズームの縮小と拡大（**数値表示**つき。`2.4×`のように出て、押すと全体表示に戻ります）、全体表示、小さな「詳細」ボタンが出ます。「詳細」を押すと、傾き、速さのボタン（0.5×、1×、2×）、回る向き（左へ、右へ）、正面、矢印パッドが加わり、その選択は記憶されます。
+- **2つのレベルで、バーを簡潔に保ちます。** 既定の`controls="basic"`では、スライダーが1つと、自動回転の軸（角度、傾き、ロール、全部）が出ます。スライダーは、選んだ軸の値を変えます（全部のときは角度です）。そのあと、自動回転、ズームの縮小と拡大（**数値表示**つき。`2.4×`のように出て、押すと全体表示に戻ります）、全体表示、小さな「詳細」ボタンが出ます。「詳細」を押すと、速さのボタン（0.5×、1×、2×）、回る向き（左へ、右へ）、正面、矢印パッドが加わり、その選択は記憶されます。
 - ドラッグで回転します（等倍のとき。指では傾かないので、ページのスクロールは使えます）。ズームしているときのドラッグは、ビューを動かします。ビューの上でのホイール、ピンチ、またはCtrlかCommandを押しながらのホイールで、ポインターを中心にズームします。Shiftを押しながらのホイール、または横へのスワイプで回転します。ビューの外では、ホイールでページがスクロールします。ズームがその向きの端に達しているときに、ホイールを新たに回し始めた場合も、ページがスクロールします。
 - **どの操作も、回転を止めたり、リセットしたりしません。** ズーム、傾き、移動、全体表示、正面のどれでも、自動回転は続きます。
 - ビュー上のキー：矢印キーで回転と傾き、`+`と`-`でズーム、`0`かHomeで正面と全体表示です。
@@ -48,7 +48,9 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | フィールド | 意味 |
 |---|---|
 | `yaw` | 度。-180から180。垂直軸のまわりの回転。右にドラッグすると大きくなります。 |
-| `tilt` | 度。`tilt-max`（30）の正負に制限。大きいほど上側が奥へ傾きます（上にドラッグ）。 |
+| `tilt` | 度。`tilt-max`（30）の正負に制限。大きいほど上側が奥へ傾きます（上にドラッグ）。制限の内側では自動回転が振り子のように往復し、90以上では回転し続け、`orientation`は連続したままです。 |
+| `roll` | 前方向の軸の周りの度。`roll-max`（180）の正負に制限。 |
+| `orientation` | 姿勢を表す四元数 `{ x, y, z, w }`。直角を超えて転がるときはこちらを描くと、上方向が反転しません。 |
 | `zoom` | 1から5（`zoom-min`、`zoom-max`）。1が全体表示。シーンは`zoom * fitScale`で描きます。 |
 | `panX`、`panY` | ズームした絵を、ビューの中心から動かしたCSSピクセル。等倍では0。 |
 | `turning` | 自動回転が動いている間は真。 |
@@ -77,14 +79,16 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | `autoplay` | 最初から自動で回します。動きの軽減を求めるユーザーには回しません。 |
 | `autoplay-for` | 回転が、この秒数だけ回ったあと自分で止まります。`autoplay`で始まる回転にも、「自動回転」ボタンや`play()`で始まる回転にも効きます。`play(seconds)`は、その回だけの秒数を決められます。 |
 | `speed` | `pace`が1のときの、1秒あたりの度数（30）。負の数なら、最初は左へ回ります。 |
-| `direction` | 自動回転の向き：`left`（左へ）か`right`（右へ）。ユーザーが「詳細」の中の「左へ」「右へ」で選んだ内容はここに書き戻され、アドレスの`direction`にも残ります。向きを変えても角度はそのままで、同じ速さで続きます。書かなければ、`speed`の正負で決まります。 |
+| `direction` | 角度の自動回転の向き：`left`（左へ）か`right`（右へ）。「左へ」「右へ」は、今選んでいる軸の向きを変えます（「全部」のときは3軸とも）。アドレスの`direction`に残ります。書かなければ、`speed`の正負で決まります。 |
+| `axis` | 自動回転が回す軸：`angle`（既定）、`tilt`、`roll`、`all`。`all`は3つの速さが少しずつずれて、同じ動きを繰り返さない回転です。4つのボタンは常にバーに出ます。アドレスの`axis`に残ります（`angle`は残しません）。 |
+| `tilt-direction`, `roll-direction` | その軸の向き。右以外のとき、アドレスの`tiltDirection`と`rollDirection`に残ります。 |
 | `pace` | 自動回転の速さを、`speed`に対する倍率で表します。既定は1で、既定のボタンでは0.5と2も選べます。ユーザーの選択はここに書き戻され、アドレスの`pace`にも残ります。ボタンは、ファミリー共通の[速さのボタン](speed-buttons.md)です。 |
 | `paces` | ボタンが表す速さです。既定は`0.5 1 2`で、数字は自由に決められます（`paces="1 4 8"`）。 |
 | `controls` | `basic`（既定）か`advanced`。ユーザーが「詳細」で選んだ内容は`localStorage`に記憶され、優先されます。 |
 | `layout` | `classic`（既定）、`horizontal`、`vertical`、`compact`：[レイアウトとズームスライダー](layouts-and-zoom.md)を参照。 |
 | `storage` | レベルを記憶する`localStorage`のキー（`kazoku-view-controls`）。 |
 | `flat` | ビューは回りません。角度、傾き、自動回転、正面はなく、ドラッグは移動になります。 |
-| `tilt-max`、`zoom-min`、`zoom-max` | 上限と下限（30、1、5）。 |
+| `tilt-max`、`roll-max`、`zoom-min`、`zoom-max` | 上限と下限（30、180、1、5）。傾きの自動回転は90未満で振り子、90以上で回転し続けます。 |
 | `address` | 選んだ内容をページのアドレスに残します（`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`）。 |
 | `address-keys` | 別のキー名：`yaw:a,zoom:z`。 |
 | `theme` | `light`か`dark`。なければページの配色。 |
@@ -106,8 +110,8 @@ console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
 // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
 ```
 
 ## シーンの自然な大きさで開く

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+The view turns on all three axes (KAZOKU-UI-55).
+
+- **Roll, beside Angle and Tilt.** One slider, and chips for Angle, Tilt, Roll and All. The slider sets the axis the chips name (All keeps the angle). `roll` and `roll-max` (180) sit next to `tilt` and `tilt-max`.
+- **Auto-turn chooses an axis:** Angle, Tilt, Roll or All. All is a tumble: three rates that drift, so it does not repeat. Each axis has its own direction. Tilt swings inside `tilt-max` and, at 90 or more, rolls over on a quaternion (`orientation` on the event) so the up axis does not flip. Off under reduced motion, as before. The choice is the `axis` attribute and `?axis=all`.
+
 ## [0.16.0] - 2026-11-04
 
 Which way Auto-turn goes is the reader's to choose.

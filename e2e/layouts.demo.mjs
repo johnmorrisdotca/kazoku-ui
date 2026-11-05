@@ -39,9 +39,10 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   const phone = narrow(page);
   const still = await look(page);
   // On a phone the readout is Fit, which leaves the slider room for its marks.
-  expect(still.shown).toEqual(phone ? ["yaw", "play", "zoom", "out", "level", "in", "more"] : ["yaw", "play", "zoom", "out", "level", "in", "fit", "more"]);
+  const axes = ["axis-angle", "axis-tilt", "axis-roll", "axis-all"];
+  expect(still.shown).toEqual(phone ? ["yaw", ...axes, "play", "zoom", "out", "level", "in", "more"] : ["yaw", ...axes, "play", "zoom", "out", "level", "in", "fit", "more"]);
   // On a phone the slider has a row of its own, so its marks have room, and the buttons sit under it.
-  const rows = phone ? 3 : 2;
+  const rows = phone ? 4 : 3;
   expect(still.rows).toBe(rows);
   expect(still.least).toBeGreaterThanOrEqual(47.5);
   expect(still.fits).toBe(true);
@@ -56,7 +57,7 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   await button(page, "more").click();
   await button(page, "in").click();
   const advanced = await look(page);
-  expect(advanced.shown).toEqual(expect.arrayContaining(["tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right", "move", "turn"]));
+  expect(advanced.shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right", "move", "turn"]));
   expect(advanced.fits).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -65,13 +66,13 @@ test("horizontal: one row when its own width allows", async ({ page }) => {
   test.skip(narrow(page), "a phone is narrower than that");
   await ready(page, "?layout=horizontal");
   await page.locator(BAR).evaluate((el) => { el.closest("main").style.maxWidth = "1240px"; });
-  await expect.poll(async () => (await look(page)).rows).toBe(1);
+  await expect.poll(async () => (await look(page)).rows).toBe(2);
 });
 
 test("vertical: a column beside the view, Auto-turn and More at the top, and More stays put when it opens", async ({ page }) => {
   const errors = await ready(page, "?layout=vertical");
   const still = await look(page);
-  expect(still.shown).toEqual(["yaw", "play", "zoom", "out", "level", "in", "fit", "more"]);
+  expect(still.shown).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "zoom", "out", "level", "in", "fit", "more"]);
   expect(still.width).toBeLessThanOrEqual(16 * 16 + 1);
   expect(still.least).toBeGreaterThanOrEqual(47.5);
   const top = (name) => button(page, name).evaluate((node) => Math.round(node.getBoundingClientRect().top));
@@ -79,7 +80,7 @@ test("vertical: a column beside the view, Auto-turn and More at the top, and Mor
   const more = await button(page, "more").boundingBox();
   await button(page, "more").click();
   expect(await button(page, "more").boundingBox()).toEqual(more);
-  expect((await look(page)).shown).toEqual(expect.arrayContaining(["tilt", "pace-0.5", "front"]));
+  expect((await look(page)).shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.5", "front"]));
   expect(errors).toEqual([]);
 });
 
@@ -99,7 +100,7 @@ test("compact: one row, the same row while it turns, and the rest one press of M
   await expect(button(page, "level")).toHaveText("1×");
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect((await look(page)).shown).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "zoom", "out", "level", "in", "fit", "more"]);
+  expect((await look(page)).shown).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "zoom", "out", "level", "in", "fit", "more"]);
   expect((await look(page)).fits).toBe(true);
   await button(page, "more").click();
   expect((await look(page)).rows).toBe(1);

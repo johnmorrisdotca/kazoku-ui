@@ -1,6 +1,6 @@
 // The choices kept in the page's address: pure string functions, so a server or a test can use them. Only what a person chose is kept
 // (angle, tilt, zoom, what a drag does); the pan is in pixels of one screen and the turning of a moment, so neither is.
-import { type Direction, PACE_FACTOR, parseDirection, parsePace } from "./levels.ts";
+import { type Direction, PACE_FACTOR, parseAxis, parseDirection, parsePace, type TurnAxis } from "./levels.ts";
 import { clamp, DEFAULT_LIMITS, type Limits, wrapYaw } from "./math.ts";
 
 export type DragMode = "move" | "turn";
@@ -14,9 +14,17 @@ export interface AddressKeys {
   speed?: string;
   /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
   direction?: string;
+  /** The roll, degrees. `roll` by default. */
+  roll?: string;
+  /** Which axis Auto-turn drives. `axis` by default. */
+  axis?: string;
+  /** Which way tilt's auto-turn goes. `tiltDirection` by default. */
+  tiltDirection?: string;
+  /** Which way roll's auto-turn goes. `rollDirection` by default. */
+  rollDirection?: string;
 }
 
-export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", drag: "drag", speed: "pace", direction: "direction" };
+export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", drag: "drag", speed: "pace", direction: "direction", roll: "roll", axis: "axis", tiltDirection: "tiltDirection", rollDirection: "rollDirection" };
 
 export interface AddressChoices {
   yaw: number;
@@ -27,6 +35,13 @@ export interface AddressChoices {
   pace?: number;
   /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
   direction?: Direction | null;
+  roll?: number;
+  /** Which axis Auto-turn drives. `angle` is the start and leaves the address. Left out, the key is not touched. */
+  axis?: TurnAxis | null;
+  /** Tilt's own way. `null` leaves it off the address; left out, the key is not touched. */
+  tiltDirection?: Direction | null;
+  /** Roll's own way. `null` leaves it off the address; left out, the key is not touched. */
+  rollDirection?: Direction | null;
 }
 
 const rounded = (value: number, places: number): number => Number(value.toFixed(places));
@@ -46,6 +61,10 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
   const zoom = number(keys.zoom);
   if (yaw !== undefined) out.yaw = rounded(wrapYaw(yaw), 0);
   if (tilt !== undefined) out.tilt = rounded(clamp(tilt, -limits.tiltMax, limits.tiltMax), 0);
+  const roll = number(keys.roll ?? "roll");
+  if (roll !== undefined) out.roll = rounded(clamp(wrapYaw(roll), -limits.rollMax, limits.rollMax), 0);
+  const axis = parseAxis(params.get(keys.axis ?? "axis"));
+  if (axis !== undefined) out.axis = axis;
   if (zoom !== undefined) out.zoom = rounded(clamp(zoom, limits.zoomMin, limits.zoomMax), 2);
   const drag = params.get(keys.drag);
   if (drag === "turn" || drag === "move") out.drag = drag;
@@ -56,6 +75,10 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
   if (Number.isFinite(value)) out.pace = value;
   const direction = parseDirection(params.get(keys.direction ?? "direction"));
   if (direction !== undefined) out.direction = direction;
+  const tiltDirection = parseDirection(params.get(keys.tiltDirection ?? "tiltDirection"));
+  if (tiltDirection !== undefined) out.tiltDirection = tiltDirection;
+  const rollDirection = parseDirection(params.get(keys.rollDirection ?? "rollDirection"));
+  if (rollDirection !== undefined) out.rollDirection = rollDirection;
   return out;
 }
 
@@ -69,14 +92,20 @@ export function formatAddress(search: string, choices: AddressChoices, keys: Add
     if (value === undefined) params.delete(key);
     else params.set(key, value);
   };
-  if (!leaveYaw) set(keys.yaw, Math.round(choices.yaw) === 0 ? undefined : String(rounded(wrapYaw(choices.yaw), 0)));
-  set(keys.tilt, Math.round(choices.tilt) === 0 ? undefined : String(rounded(choices.tilt, 0)));
+  if (!leaveYaw) {
+    set(keys.yaw, Math.round(choices.yaw) === 0 ? undefined : String(rounded(wrapYaw(choices.yaw), 0)));
+    set(keys.tilt, Math.round(choices.tilt) === 0 ? undefined : String(rounded(choices.tilt, 0)));
+    if (choices.roll !== undefined) set(keys.roll ?? "roll", Math.round(choices.roll) === 0 ? undefined : String(rounded(wrapYaw(choices.roll), 0)));
+  }
   set(keys.zoom, Math.abs(choices.zoom - startZoom) < 0.005 ? undefined : String(rounded(choices.zoom, 2)));
   set(keys.drag, choices.drag === "turn" ? "turn" : undefined);
   // The pace key is touched only when the caller has a pace; the start (1) leaves it off the address.
   const paceKey = keys.speed ?? "pace";
   if (choices.pace !== undefined) set(paceKey, choices.pace === 1 ? undefined : String(rounded(choices.pace, 3)));
   if (choices.direction !== undefined) set(keys.direction ?? "direction", choices.direction === null ? undefined : choices.direction);
+  if (choices.axis !== undefined) set(keys.axis ?? "axis", choices.axis === null || choices.axis === "angle" ? undefined : choices.axis);
+  if (choices.tiltDirection !== undefined) set(keys.tiltDirection ?? "tiltDirection", choices.tiltDirection === null || choices.tiltDirection === "right" ? undefined : choices.tiltDirection);
+  if (choices.rollDirection !== undefined) set(keys.rollDirection ?? "rollDirection", choices.rollDirection === null || choices.rollDirection === "right" ? undefined : choices.rollDirection);
   const text = params.toString();
   return text === "" ? "" : `?${text}`;
 }

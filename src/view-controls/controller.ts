@@ -3,9 +3,12 @@
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
 import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
-import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, type Limits, PAN_STEP, type PinchStart, pinchTo, type Point, type Size, WHEEL_GESTURE_MS, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import type { TurnAxis } from "./levels.ts";
+import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
+  /** The pose the page should draw. A tumble keeps this continuous when the slider numbers fold at a pole. */
+  orientation: Quat;
   /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
   turning: boolean;
   /** What a plain drag does while zoomed in: move the view, or turn the piece. */
@@ -34,8 +37,10 @@ export interface ViewControllerOptions {
   initial?: Partial<ViewState>;
   /** False for a flat view that cannot turn: a drag then always moves it and the angle and tilt never change. */
   turnable?: boolean;
-  /** Degrees a second when it turns by itself. */
+  /** Degrees a second when it turns by itself. The sign is the active axis's direction. */
   speed?: number;
+  /** Which axis turns by itself. `angle` (yaw) by default. */
+  turnAxis?: TurnAxis;
   limits?: Partial<Limits>;
   /** The starting zoom: "fit" (the default) or a scale where 1 is the scene's natural size; it opens at that scale divided by `fitScale`. With `fitScale` left at 1 a number is a zoom as `ViewState.zoom` has it. `initial.zoom` is used only when this is left out. */
   zoom?: "fit" | number;
@@ -66,6 +71,12 @@ export interface ViewController {
   readonly state: ViewState;
   turnable: boolean;
   speed: number;
+  /** Which axis `play` turns. `angle` is yaw. `all` tumbles on three axes. */
+  turnAxis: TurnAxis;
+  /** Tilt's own direction while `turnAxis` is `all` (and the sign of `speed` while it is `tilt`). 1 or -1. */
+  tiltSign: number;
+  /** Roll's own direction. 1 or -1. */
+  rollSign: number;
   readonly limits: Limits;
   /** What a pointer press leaves alone inside the view (see `ViewControllerOptions.ignore`). Can be changed at any time. */
   ignore: string;
@@ -136,11 +147,14 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let destroyed = false;
   let centring = 0;
   let stepping = false;
+  let tiltPhase = 0;
   let fitScale = positive(options.fitScale) ?? 1;
   let start: "fit" | number = positive(options.zoom) ?? "fit";
   let atStart = true;
   const startState = (): number => (start === "fit" ? 1 : start / fitScale);
-  const state: ViewState = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0, turning: false, drag: "move", ...options.initial };
+  const state: ViewState = { yaw: 0, tilt: 0, roll: 0, orientation: quatIdentity(), zoom: 1, panX: 0, panY: 0, turning: false, drag: "move", ...options.initial };
+  if (state.orientation === undefined) state.orientation = quatIdentity();
+  state.roll ??= 0;
 
   if (start !== "fit") state.zoom = clamp(startState(), limits.zoomMin, limits.zoomMax);
   atStart = state.zoom === clamp(startState(), limits.zoomMin, limits.zoomMax);
@@ -167,15 +181,24 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   const camera = (): Camera => ({ yaw: state.yaw, tilt: state.tilt, zoom: state.zoom, panX: state.panX, panY: state.panY });
 
   /** Take a camera in, held to the limits and, once the view's size is known, to the room the zoom gives. */
+  const pose = (): void => {
+    state.orientation = quatFromEuler(state.yaw, state.tilt, state.roll ?? 0);
+  };
+
   const take = (next: Camera): void => {
     if (!stepping) stopCentre();
-    const held = clampPan({ ...next, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size(), controller.objectSize);
+    const rollMax = limits.rollMax;
+    const roll = clamp(wrapYaw(next.roll ?? state.roll ?? 0), -rollMax, rollMax);
+    const held = clampPan({ ...next, roll, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size(), controller.objectSize);
     state.yaw = controller.turnable ? wrapYaw(held.yaw) : state.yaw;
     state.tilt = controller.turnable ? held.tilt : state.tilt;
+    state.roll = controller.turnable ? roll : state.roll;
     if (held.zoom !== state.zoom) atStart = false;
     state.zoom = held.zoom;
     state.panX = held.panX;
     state.panY = held.panY;
+    pose();
+    tiltPhase = Math.asin(clamp(state.tilt / (limits.tiltMax || 1), -1, 1));
   };
 
   const centre = (): Point => {
@@ -200,19 +223,70 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       last = 0;
       return;
     }
-    const dt = last === 0 ? 0 : Math.min(0.1, (now - last) / 1000);
+    const gap = last === 0 ? 0 : (now - last) / 1000;
+    // The picture moves at most a tenth of a second in one frame, so a late frame does not jump. The limit counts the time that really passed, up to a second, so a turn that stops itself does so when that time has passed.
+    const dt = Math.min(0.1, gap);
     last = now;
-    if (dt === 0) return;
-    state.yaw = wrapYaw(state.yaw + controller.speed * dt);
-    turned += dt;
+    if (gap === 0) return;
+    const rate = controller.speed;
+    if (controller.turnAxis === "tilt") stepTilt(dt, rate);
+    else if (controller.turnAxis === "roll") stepRoll(dt, rate);
+    else if (controller.turnAxis === "all") stepAll(dt);
+    else {
+      state.yaw = wrapYaw(state.yaw + rate * dt);
+      pose();
+    }
+    turned += Math.min(gap, 1);
     emit(false, "auto");
     if (limit > 0 && turned >= limit) controller.pause();
+  };
+
+  /** Tilt within the limit swings back. At 90 degrees or more it rolls over on the quaternion, so the up axis never flips. */
+  const stepTilt = (dt: number, rate: number): void => {
+    if (limits.tiltMax >= 90) {
+      state.orientation = spinLocal(state.orientation, 0, rate * dt, 0);
+      const euler = eulerFromQuat(state.orientation);
+      state.yaw = euler.yaw;
+      state.tilt = euler.tilt;
+      state.roll = euler.roll;
+      return;
+    }
+    tiltPhase += (rate * dt * Math.PI) / 180;
+    state.tilt = pendulumTilt(tiltPhase, limits.tiltMax);
+    pose();
+  };
+
+  const stepRoll = (dt: number, rate: number): void => {
+    const max = limits.rollMax;
+    state.roll = max >= 180 ? wrapYaw((state.roll ?? 0) + rate * dt) : clamp((state.roll ?? 0) + rate * dt, -max, max);
+    pose();
+  };
+
+  const stepAll = (dt: number): void => {
+    const signs = { yaw: controller.speed, tilt: controller.tiltSign, roll: controller.rollSign };
+    const rates = tumbleRates(turned, Math.abs(controller.speed), signs);
+    if (limits.tiltMax >= 90) {
+      state.orientation = spinLocal(state.orientation, rates.yaw * dt, rates.tilt * dt, rates.roll * dt);
+      const euler = eulerFromQuat(state.orientation);
+      state.yaw = euler.yaw;
+      state.tilt = euler.tilt;
+      state.roll = euler.roll;
+      return;
+    }
+    state.yaw = wrapYaw(state.yaw + rates.yaw * dt);
+    state.roll = wrapYaw((state.roll ?? 0) + rates.roll * dt);
+    tiltPhase += (rates.tilt * dt * Math.PI) / 180;
+    state.tilt = pendulumTilt(tiltPhase, limits.tiltMax);
+    pose();
   };
 
   const controller: ViewController = {
     state,
     turnable: options.turnable ?? true,
     speed: options.speed ?? 30,
+    turnAxis: options.turnAxis ?? "angle",
+    tiltSign: 1,
+    rollSign: 1,
     limits,
     ignore: options.ignore ?? DEFAULT_IGNORE,
     anchor: options.anchor,
@@ -292,7 +366,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       last = 0;
     },
     front() {
-      take({ ...camera(), yaw: 0, tilt: 0 });
+      take({ ...camera(), yaw: 0, tilt: 0, roll: 0 });
       emit(true, "front");
     },
     fit() {
@@ -302,7 +376,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     centre(animate = true) {
       stopCentre();
       const from = camera();
-      const to: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
+      const to: Camera = { yaw: 0, tilt: 0, roll: 0, zoom: 1, panX: 0, panY: 0 };
       const reduced = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
       const same = from.yaw === 0 && from.tilt === 0 && from.zoom === 1 && from.panX === 0 && from.panY === 0;
       if (!animate || reduced || same || destroyed) {

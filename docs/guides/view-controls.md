@@ -11,7 +11,7 @@ description: The view-controls element in full: what the reader gets, every attr
 
 ## What the reader gets
 
-- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds tilt, the speed buttons (0.5×, 1×, 2×), Front and the arrow pad, and the choice is remembered.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
 - A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. The wheel over the view, a pinch, or Ctrl or Command with the wheel zooms about the pointer; Shift and the wheel, or a sideways swipe, turns it. Elsewhere the wheel scrolls the page, and so does a new turn of the wheel once the zoom is at its end that way.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
@@ -46,7 +46,9 @@ Put the element on the view or right beside it, so it is on screen with the view
 | Field | Meaning |
 |---|---|
 | `yaw` | Degrees, -180 up to 180: the turn about the vertical. Dragging right makes it larger. |
-| `tilt` | Degrees, held to plus or minus `tilt-max` (30): the top tips away as it gets larger (dragging up). |
+| `tilt` | Degrees, held to plus or minus `tilt-max` (30): the top tips away as it gets larger (dragging up). Within that limit Auto-turn swings it back and forth. At 90 or more it rolls over, and `orientation` stays continuous. |
+| `roll` | Degrees about the forward axis, held to plus or minus `roll-max` (180). |
+| `orientation` | The pose as a quaternion `{ x, y, z, w }`. Draw this when a tumble rolls past a right angle, so the up axis does not flip. |
 | `zoom` | 1 to 5 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale`. |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
@@ -62,7 +64,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 |---|---|
 | `for` | The id of the view the hands bind to. Or set `element.view = someElement`. |
 | `lang` | `en` or `ja`. Otherwise the nearest `lang` above it, else English. |
-| `yaw`, `tilt` | The starting angle and tilt. |
+| `yaw`, `tilt`, `roll` | The starting angle, tilt and roll. |
 | `zoom` | The starting zoom: `fit` (the default) or a scale where 1 is the scene's natural size; it opens at that number divided by `fit-scale`. |
 | `fit-scale` | The scale your page draws the scene at when it is at Fit (event `zoom` 1). 1 by default. Or call `element.setFitScale(n)` once the scene is measured. |
 | `ignore` | A CSS selector for what inside the view a press leaves alone, so its click goes through: `button, a, input, select, textarea, label, [data-kazoku-ignore]` by default. |
@@ -75,14 +77,16 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which a turn stops by itself: the one `autoplay` starts, and one the Auto-turn button or `play()` starts. `play(seconds)` takes its own limit. |
 | `speed` | Degrees a second at a pace of 1 (30). A negative number starts the turn to the left. |
-| `direction` | Which way Auto-turn goes, `left` or `right`. The reader's choice of the Left and Right buttons (under More) is written here and kept in the address as `direction`; the angle goes on from where it was, at the same speed. Left out, the sign of `speed` decides. |
+| `direction` | Which way the angle's Auto-turn goes, `left` or `right`. The Left and Right buttons set the axis that is on (all three when All is on). Kept in the address as `direction`. Left out, the sign of `speed` decides. |
+| `axis` | Which axis Auto-turn drives: `angle` (the default), `tilt`, `roll` or `all`. `all` is a tumble, three rates that drift so the motion does not repeat. The four buttons are always on the bar. Kept in the address as `axis` (`angle` leaves it off). |
+| `tilt-direction`, `roll-direction` | Which way those axes turn, `left` or `right`. Kept as `tiltDirection` and `rollDirection` when they are not to the right. |
 | `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.5 and 2 on the default buttons. The reader's choice is written here and kept in the address as `pace`. The buttons are the family's [speed buttons](speed-buttons.md). |
 | `paces` | The speeds the buttons stand for: `0.5 1 2` by default; any numbers (`paces="1 4 8"`). |
 | `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. |
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: see [Layouts and the zoom slider](layouts-and-zoom.md). |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
-| `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
+| `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 1, 5). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
 | `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
@@ -104,8 +108,8 @@ console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
 // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
 ```
 
 ## Opening at the scene's natural size

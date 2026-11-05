@@ -40,7 +40,10 @@ export const STYLES = `
 [hidden] { display: none !important; }
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 8px; box-sizing: border-box; }
 .field { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
-.field.tilt { flex-basis: 150px; }
+/* One slider stands for the axis the chips name. The other two stay in the tree for the address and the tests that read them, and take no room. The chips take their own row, so the speed button can come in beside Auto-turn without moving it. */
+.field.tilt, .field.roll { display: none; }
+.axes { order: 8; flex: 1 0 100%; }
+.axes button { padding: 0 12px; }
 .field label { flex: none; }
 .field output { flex: none; min-width: 3.2em; text-align: end; font-variant-numeric: tabular-nums; }
 .group { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
@@ -75,9 +78,11 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
 .more { margin-inline-start: auto; }
 /* The classic bar on a phone: two rows to start with (angle, Auto-turn and More; the zoom), more rows when the reader asks for more; labels read only by a screen reader. */
 @media (max-width: 640px) {
-  ${CLASSIC} .bar { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; grid-template-areas: "angle play more" "tilt tilt front" "pace pace pace" "zoom zoom zoom" "pan pan pan"; gap: 0 8px; padding: 2px 8px; }
+  ${CLASSIC} .bar { display: grid; grid-template-columns: minmax(0, 1fr) 48px 48px; grid-template-areas: "angle play more" "tilt tilt front" "roll roll roll" "axes axes axes" "pace pace pace" "zoom zoom zoom" "pan pan pan"; gap: 0 8px; padding: 2px 8px; }
   ${CLASSIC} .field.angle { grid-area: angle; }
   ${CLASSIC} .field.tilt { grid-area: tilt; }
+  ${CLASSIC} .field.roll { grid-area: roll; }
+  ${CLASSIC} .axes { grid-area: axes; }
   ${CLASSIC} .field label, ${CLASSIC} .field output, ${CLASSIC} .play .text, ${CLASSIC} .more .text, ${CLASSIC} .pace::part(label) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   ${CLASSIC} .play, ${CLASSIC} .more { padding: 0; }
   ${CLASSIC} .play { grid-area: play; }
@@ -119,10 +124,12 @@ ${H} .zslide, ${V} .zslide, ${C} .zslide { display: flex; }
 ${H} { container-type: inline-size; }
 ${H} .bar, ${V} .bar, ${C} .bar { display: grid; row-gap: 0; align-items: center; }
 ${H} .bar > *, ${V} .bar > *, ${C} .zoom > * { margin-block: 2px; }
-${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-areas: "angle speed play more" "tilt tilt front front" "pace pace pace pace" "zoom zoom zoom centre" "pan pan pan pan"; column-gap: 8px; padding: 4px 8px; }
+${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto; grid-template-areas: "angle speed play more" "tilt tilt front front" "roll roll roll roll" "axes axes axes axes" "pace pace pace pace" "zoom zoom zoom centre" "pan pan pan pan"; column-gap: 8px; padding: 4px 8px; }
 :host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "zoom centre more" "pan pan pan"; }
 ${H} .angle, ${V} .angle, ${C} .angle { grid-area: angle; }
 ${H} .tilt, ${V} .tilt, ${C} .tilt { grid-area: tilt; }
+${H} .roll, ${V} .roll, ${C} .roll { grid-area: roll; }
+${H} .axes, ${V} .axes, ${C} .axes { grid-area: axes; }
 ${H} .pace-now, ${V} .pace-now { grid-area: speed; }
 ${H} .play, ${V} .play, ${C} .play { grid-area: play; }
 ${H} .pacing, ${V} .pacing, ${C} .pacing { grid-area: pace; }
@@ -157,7 +164,8 @@ ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padd
 }
 /* Wide enough for the turn, Auto-turn, the zoom with its slider, Centre and More on one row, with the angle slider still a slider. */
 @container (min-width: 1040px) {
-  ${H} .bar { grid-template-columns: minmax(0, 1fr) auto auto auto auto auto; grid-template-areas: "angle speed play zoom centre more" "tilt tilt tilt pace front front" "pan pan pan pan pan pan"; column-gap: 12px; }
+  ${H} .bar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto auto; grid-template-areas: "angle angle speed play zoom centre" "axes axes axes axes front more" "pace pace pace pace pace pace" "pan pan pan pan pan pan"; column-gap: 12px; }
+  ${H} .axes { flex-wrap: nowrap; }
   :host([data-layout="horizontal"][data-flat]) .bar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "zoom centre more" "pan pan pan"; }
   ${H} .zslide { width: 15rem; }
   ${H} .zoom { display: grid; grid-auto-flow: column; grid-auto-columns: auto; }
@@ -166,8 +174,9 @@ ${H} .zoom button.level, ${V} .zoom button.level, ${C} .zoom button.level { padd
 
 /* Vertical: a column beside the view, its width --kazoku-column-width (16rem). Auto-turn and More at the top, so More stays put when it opens; then the turn, the zoom and its slider. */
 ${V} { width: var(--kazoku-column-width, 16rem); max-width: 100%; }
-${V} .bar { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "play speed . more" "angle angle angle angle" "tilt tilt tilt tilt" "pace pace pace pace" "front front front front" "zoom zoom zoom zoom" "centre centre centre centre" "pan pan pan pan"; column-gap: 8px; padding: 6px 8px; }
+${V} .bar { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "play speed . more" "angle angle angle angle" "tilt tilt tilt tilt" "roll roll roll roll" "axes axes axes axes" "pace pace pace pace" "front front front front" "zoom zoom zoom zoom" "centre centre centre centre" "pan pan pan pan"; column-gap: 8px; padding: 6px 8px; }
 ${V} .field { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label value" "slider slider"; gap: 0 8px; }
+${V} .field.tilt, ${V} .field.roll { display: none; }
 ${V} .field label { grid-area: label; padding-top: 4px; }
 ${V} .field output { grid-area: value; padding-top: 4px; }
 ${V} .field input, ${V} .zbox { grid-area: slider; }
@@ -187,7 +196,7 @@ ${C} { display: block; }
 /* Over a card, an open More never reaches past the card's top: the controls scroll inside themselves. */
 :host([data-layout="compact"][overlay]) { display: flex; flex-direction: column; max-height: calc(100% - 16px); }
 :host([data-layout="compact"][overlay]) .bar { min-height: 0; overflow-y: auto; }
-${C} .bar { width: fit-content; max-width: 100%; grid-template-columns: repeat(5, auto); grid-template-areas: "play out level in more" "zs zs zs zs fit" "centre centre centre centre centre" "angle angle angle angle angle" "tilt tilt tilt tilt tilt" "pace pace pace pace pace" "front front front front front" "pan pan pan pan pan"; column-gap: 2px; padding: 2px 4px; border: 1px solid var(--_line); border-radius: 28px; background: var(--_surface); }
+${C} .bar { width: fit-content; max-width: 100%; grid-template-columns: repeat(5, auto); grid-template-areas: "play out level in more" "zs zs zs zs fit" "centre centre centre centre centre" "angle angle angle angle angle" "tilt tilt tilt tilt tilt" "roll roll roll roll roll" "axes axes axes axes axes" "pace pace pace pace pace" "front front front front front" "pan pan pan pan pan"; column-gap: 2px; padding: 2px 4px; border: 1px solid var(--_line); border-radius: 28px; background: var(--_surface); }
 :host([data-layout="compact"][data-level="advanced"]) .bar { border-radius: 20px; padding: 2px 8px 6px; column-gap: 4px; }
 :host([data-layout="compact"][data-flat]) .bar { grid-template-areas: "out level in more ." "zs zs zs fit fit" "centre centre centre centre centre" "pan pan pan pan pan"; }
 ${C} .zoom { display: contents; }
@@ -205,5 +214,5 @@ ${C} .pacing { flex-wrap: wrap; }
 ${V} .centre, ${C} .centre { justify-self: start; }
 /* The row stays one row: Centre is with Fit, one press of More away. */
 :host([data-layout="compact"][data-level="basic"]) .centre { display: none; }
-:host([data-layout="compact"][data-level="basic"]) .angle, :host([data-layout="compact"][data-level="basic"]) .zslide, :host([data-layout="compact"][data-level="basic"]) [data-b="fit"] { display: none; }
+:host([data-layout="compact"][data-level="basic"]) .angle, :host([data-layout="compact"][data-level="basic"]) .tilt, :host([data-layout="compact"][data-level="basic"]) .roll, :host([data-layout="compact"][data-level="basic"]) .axes, :host([data-layout="compact"][data-level="basic"]) .zslide, :host([data-layout="compact"][data-level="basic"]) [data-b="fit"] { display: none; }
 `;

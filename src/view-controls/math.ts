@@ -14,6 +14,8 @@ export interface Size {
 export interface Camera {
   yaw: number;
   tilt: number;
+  /** Degrees about the view's forward axis. Left out, it is 0. */
+  roll?: number;
   zoom: number;
   panX: number;
   panY: number;
@@ -21,11 +23,13 @@ export interface Camera {
 
 export interface Limits {
   tiltMax: number;
+  /** How far a hand may roll, in degrees. 180 (the default) is a full turn. */
+  rollMax: number;
   zoomMin: number;
   zoomMax: number;
 }
 
-export const DEFAULT_LIMITS: Limits = { tiltMax: 30, zoomMin: 1, zoomMax: 5 };
+export const DEFAULT_LIMITS: Limits = { tiltMax: 30, rollMax: 180, zoomMin: 1, zoomMax: 5 };
 
 /** Degrees of turn across the view's whole width (a half turn), and of tilt across its whole height. */
 export const TURN_ACROSS = 180;
@@ -97,7 +101,7 @@ export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips
 export function between(from: Camera, to: Camera, fraction: number): Camera {
   const t = 1 - (1 - clamp(fraction, 0, 1)) ** 3;
   const mix = (a: number, b: number): number => a + (b - a) * t;
-  return { yaw: mix(from.yaw, to.yaw), tilt: mix(from.tilt, to.tilt), zoom: mix(from.zoom, to.zoom), panX: mix(from.panX, to.panX), panY: mix(from.panY, to.panY) };
+  return { yaw: mix(from.yaw, to.yaw), tilt: mix(from.tilt, to.tilt), roll: mix(from.roll ?? 0, to.roll ?? 0), zoom: mix(from.zoom, to.zoom), panX: mix(from.panX, to.panX), panY: mix(from.panY, to.panY) };
 }
 
 /**
@@ -112,3 +116,107 @@ export const wheelZoomFactor = (deltaY: number, deltaMode: number, kind: "pinch"
 
 /** Wheel steps closer together than this, in milliseconds, belong to one turn of the wheel or one swipe (with its glide). */
 export const WHEEL_GESTURE_MS = 300;
+
+/** A rotation. `w` is the real part. The identity is `{ x: 0, y: 0, z: 0, w: 1 }`. */
+export interface Quat {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}
+
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+const DEG = Math.PI / 180;
+
+export const quatIdentity = (): Quat => ({ x: 0, y: 0, z: 0, w: 1 });
+
+/** Which way a signed rate points: -1 or 1. Zero and anything that is not a number count as 1. */
+export const rateSign = (value: number): number => (value < 0 ? -1 : 1);
+
+const finite = (value: number): number => (Number.isFinite(value) ? value : 0);
+
+export const normalizeQuat = (q: Quat): Quat => {
+  const n = Math.hypot(finite(q.x), finite(q.y), finite(q.z), finite(q.w)) || 1;
+  return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n };
+};
+
+const axisQuat = (x: number, y: number, z: number, radians: number): Quat => {
+  const half = finite(radians) / 2;
+  const s = Math.sin(half);
+  return { x: x * s, y: y * s, z: z * s, w: Math.cos(half) };
+};
+
+const mulQuat = (a: Quat, b: Quat): Quat => ({
+  x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+  y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+  z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+  w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+});
+
+/**
+ * Yaw about Y, then tilt about X, then roll about Z, in degrees. Past a right angle the numbers fold, so a tumble that rolls over keeps its quaternion and only shows these for the sliders.
+ */
+export function quatFromEuler(yaw: number, tilt: number, roll: number): Quat {
+  const qy = axisQuat(0, 1, 0, finite(yaw) * DEG);
+  const qx = axisQuat(1, 0, 0, finite(tilt) * DEG);
+  const qz = axisQuat(0, 0, 1, finite(roll) * DEG);
+  return normalizeQuat(mulQuat(mulQuat(qy, qx), qz));
+}
+
+/** The yaw, tilt and roll a quaternion shows on the sliders. Tilt stays within a right angle; the quaternion itself does not flip. */
+export function eulerFromQuat(q: Quat): { yaw: number; tilt: number; roll: number } {
+  const { x, y, z, w } = normalizeQuat(q);
+  const tilt = Math.asin(clamp(2 * (w * x - y * z), -1, 1)) / DEG;
+  const yaw = Math.atan2(2 * (w * y + z * x), 1 - 2 * (x * x + y * y)) / DEG;
+  const roll = Math.atan2(2 * (w * z + x * y), 1 - 2 * (x * x + z * z)) / DEG;
+  return { yaw: wrapYaw(yaw), tilt, roll: wrapYaw(roll) };
+}
+
+/**
+ * Turn `q` by `yaw`, `tilt` and `roll` degrees about its own axes (Y, X, then Z). Small steps stay continuous through the poles: the up vector never jumps.
+ */
+export function spinLocal(q: Quat, yaw: number, tilt: number, roll: number): Quat {
+  const turn = mulQuat(mulQuat(axisQuat(0, 1, 0, finite(yaw) * DEG), axisQuat(1, 0, 0, finite(tilt) * DEG)), axisQuat(0, 0, 1, finite(roll) * DEG));
+  return normalizeQuat(mulQuat(normalizeQuat(q), turn));
+}
+
+/** The view's up axis after `q`. */
+export function upVector(q: Quat): Vec3 {
+  const { x, y, z, w } = normalizeQuat(q);
+  return {
+    x: 2 * (x * y - w * z),
+    y: 1 - 2 * (x * x + z * z),
+    z: 2 * (y * z + w * x),
+  };
+}
+
+/**
+ * Tilt swinging inside `amplitude` degrees. `phase` is radians of the swing. At the ends it comes back, so a limited tilt never rolls over.
+ */
+export const pendulumTilt = (phase: number, amplitude: number): number => finite(amplitude) * Math.sin(finite(phase));
+
+export interface TumbleSigns {
+  yaw: number;
+  tilt: number;
+  roll: number;
+}
+
+/**
+ * Degrees a second for a tumble. The three rates differ, and each drifts on its own incommensurate wave, so the motion does not repeat.
+ * `speed` is the size of the angle's rate. A sign below 0 reverses that axis.
+ */
+export function tumbleRates(seconds: number, speed: number, signs: TumbleSigns): TumbleSigns {
+  const t = finite(seconds);
+  const base = finite(speed);
+  const wave = (hz: number, phase: number): number => 1 + 0.08 * Math.sin(t * hz + phase);
+  return {
+    yaw: base * rateSign(signs.yaw) * wave(0.17 * Math.PI, 0.4),
+    tilt: base * rateSign(signs.tilt) * 0.61 * wave(0.13 * Math.E, 1.7),
+    roll: base * rateSign(signs.roll) * 0.43 * wave(0.11 * Math.SQRT2, 2.5),
+  };
+}

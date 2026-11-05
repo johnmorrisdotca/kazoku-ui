@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { between, clamp, clampPan, type Camera, degreesPerPixel, dragTurn, pinchTo, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
+import { between, clamp, clampPan, type Camera, degreesPerPixel, dragTurn, eulerFromQuat, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, spinLocal, tumbleRates, upVector, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
 
 const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
 
@@ -34,7 +34,7 @@ test("zoom is held to its limits and returns to the middle at 1x", () => {
   assert.equal(zoomAbout(start, 99, { x: 0, y: 0 }).zoom, 5);
   const z = zoomAbout({ ...start, zoom: 2, panX: 40, panY: 40 }, 1, { x: 10, y: 10 });
   assert.deepEqual([z.zoom, z.panX, z.panY], [1, 0, 0]);
-  assert.equal(zoomAbout(start, 0.1, { x: 0, y: 0 }, { tiltMax: 30, zoomMin: 0.5, zoomMax: 5 }).zoom, 0.5);
+  assert.equal(zoomAbout(start, 0.1, { x: 0, y: 0 }, { tiltMax: 30, rollMax: 180, zoomMin: 0.5, zoomMax: 5 }).zoom, 0.5);
 });
 
 test("the pan is held so the picture still covers the view", () => {
@@ -131,11 +131,38 @@ test("a pan keeps at least a quarter of a small object in view, and the picture 
 });
 
 test("between eases from one camera to another and holds at the ends", () => {
-  const from: Camera = { yaw: 90, tilt: 20, zoom: 3, panX: 100, panY: -50 };
-  const to: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
+  const from: Camera = { yaw: 90, tilt: 20, roll: 0, zoom: 3, panX: 100, panY: -50 };
+  const to: Camera = { yaw: 0, tilt: 0, roll: 0, zoom: 1, panX: 0, panY: 0 };
   assert.deepEqual(between(from, to, 0), from);
   assert.deepEqual(between(from, to, 1), to);
   assert.deepEqual(between(from, to, 2), to);
   const half = between(from, to, 0.5);
   assert.ok(half.yaw < 45 && half.yaw > 0, "quick at first: past the half way at the half time");
+});
+
+test("wrap, a pendulum and a tumble stay finite, and rolling over does not flip up", () => {
+  for (const angle of [0, 180, -180, 190, -190, 725, -725]) assert.ok(Math.abs(wrapYaw(angle)) <= 180);
+  assert.ok(Math.abs(pendulumTilt(Math.PI / 2, 25) - 25) < 1e-9);
+  assert.ok(pendulumTilt(0.4, 25) > pendulumTilt(0.2, 25), "it swings out");
+  assert.ok(pendulumTilt(2, 25) < pendulumTilt(1.8, 25), "and it swings back");
+  let q = quatIdentity();
+  let up = upVector(q);
+  for (let step = 0; step < 200; step += 1) {
+    q = spinLocal(q, 0, 1, 0);
+    const next = upVector(q);
+    for (const value of [q.x, q.y, q.z, q.w, next.x, next.y, next.z]) assert.ok(Number.isFinite(value));
+    const dot = up.x * next.x + up.y * next.y + up.z * next.z;
+    assert.ok(dot > 0.999, `up jumped at ${step} degrees`);
+    up = next;
+  }
+  assert.ok(up.y < -0.9, "a half turn rolls over");
+  const back = eulerFromQuat(quatFromEuler(40, 10, -15));
+  assert.ok(Math.abs(back.yaw - 40) < 1e-6);
+  assert.ok(Math.abs(back.tilt - 10) < 1e-6);
+  assert.ok(Math.abs(back.roll + 15) < 1e-6);
+  const start = tumbleRates(0, 30, { yaw: 1, tilt: -1, roll: 1 });
+  const later = tumbleRates(2 / 0.17, 30, { yaw: 1, tilt: -1, roll: 1 });
+  assert.ok(start.tilt < 0 && start.yaw > 0 && start.roll > 0);
+  assert.notDeepEqual(start, later);
+  for (const rates of [start, later]) for (const value of Object.values(rates)) assert.ok(Number.isFinite(value));
 });

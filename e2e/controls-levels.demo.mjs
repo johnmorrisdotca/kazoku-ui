@@ -21,7 +21,7 @@ const shown = (page) => page.evaluate(() => {
 
 test("the controls start basic: turn, Auto-turn, zoom, Fit and More, and nothing else", async ({ page }) => {
   const errors = await ready(page);
-  expect(await shown(page)).toEqual(["yaw", "play", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "out", "level", "in", "fit", "more"]);
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "false");
   const sizes = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0).map((el) => el.getBoundingClientRect().height));
   expect(Math.min(...sizes)).toBeGreaterThanOrEqual(47.5);
@@ -33,13 +33,13 @@ test("More shows tilt, speed, Front and, once zoomed, the pan pad; and shows the
   await ready(page);
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect(await shown(page)).toEqual(["yaw", "tilt", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "out", "level", "in", "fit", "more"]);
   await button(page, "in").click();
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeVisible();
   const plain = await page.evaluate(() => [...document.querySelector("kazoku-view-controls").shadowRoot.querySelectorAll("button, input")].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id));
   expect(plain).toEqual([]);
   await button(page, "more").click();
-  expect(await shown(page)).toEqual(["yaw", "play", "centre", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "centre", "out", "level", "in", "fit", "more"]);
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
 });
 
@@ -48,8 +48,8 @@ test("the level is remembered, an attribute is only the start, and the reader's 
   await button(page, "more").click();
   await page.reload();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  await expect(button(page, "tilt")).toHaveCount(0);
-  await expect(page.locator(`${BAR} #tilt`)).toBeVisible();
+  await expect(button(page, "axis-tilt")).toBeVisible();
+  await expect(page.locator(`${BAR} #tilt`)).toBeHidden();
   // What the reader chose beats the controls attribute a page writes in its markup (an element made with the attribute already on it).
   const levelOf = (attribute) => page.evaluate((value) => {
     const el = document.createElement("kazoku-view-controls");
@@ -372,7 +372,7 @@ test("basic shows one small speed button only while it turns; it steps through t
   await expect(now).toBeHidden();
   await button(page, "play").click();
   await expect(now).toBeVisible();
-  expect(await shown(page)).toEqual(["yaw", "pace-now", "play", "out", "level", "in", "fit", "more"]);
+  expect(await shown(page)).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "pace-now", "play", "out", "level", "in", "fit", "more"]);
   await expect(now).toHaveText("Speed1×");
   await expect(now).toHaveAttribute("aria-label", "Speed: 1×");
   await now.click();

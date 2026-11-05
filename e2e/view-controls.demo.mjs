@@ -35,8 +35,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle, tilt, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
-  expect(report.count).toBe(21);
+  // Angle (the one slider), four axis chips, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
+  expect(report.count).toBe(24);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);
@@ -69,7 +69,11 @@ test("it never turns on its own until asked, and a toggle during the turn keeps 
   await advances("after the Move choice");
   await button(page, "right").click();
   await advances("after the pan pad");
-  await page.locator(`${BAR} #tilt`).fill("12");
+  // The tilt field is not shown (the chips pick which axis the one slider sets). Setting it here must not change which axis Auto-turn drives, so the angle keeps moving.
+  await page.locator(`${BAR} #tilt`).evaluate((input) => {
+    input.value = "12";
+    input.dispatchEvent(new window.Event("input", { bubbles: true }));
+  });
   await advances("after the tilt slider");
   await button(page, "fit").click();
   await advances("after Fit");
@@ -560,8 +564,8 @@ test("an item dragged far out of view is held in view, and Centre brings it back
   await button(page, "centre").click();
   await expect.poll(async () => {
     const s = await stateOf(page);
-    return [s.zoom, s.panX, s.panY, s.yaw, s.tilt].join(",");
-  }, { timeout: 4000 }).toBe("1,0,0,0,0");
+    return [s.zoom, s.panX, s.panY, s.yaw, s.tilt, s.roll].join(",");
+  }, { timeout: 4000 }).toBe("1,0,0,0,0,0");
   await expect(page.locator(`${BAR} .centre`)).toBeHidden();
 });
 
@@ -576,5 +580,27 @@ test("Centre goes at once for a reader who prefers reduced motion, and Home does
   await page.locator("#scene").focus();
   await page.keyboard.press("Home");
   const h = await stateOf(page);
-  expect([h.zoom, h.panX, h.panY, h.yaw, h.tilt]).toEqual([1, 0, 0, 0, 0]);
+  expect([h.zoom, h.panX, h.panY, h.yaw, h.tilt, h.roll]).toEqual([1, 0, 0, 0, 0, 0]);
+});
+
+test("the three axes can be set by hand, and auto-turn All moves every one", async ({ page }) => {
+  await ready(page, "?tilt-max=40&roll-max=180");
+  await page.locator(`${BAR} #yaw`).fill("30");
+  await button(page, "axis-tilt").click();
+  await page.locator(`${BAR} #yaw`).fill("12");
+  await button(page, "axis-roll").click();
+  await page.locator(`${BAR} #yaw`).fill("-20");
+  await expect.poll(() => stateOf(page)).toMatchObject({ yaw: 30, tilt: 12, roll: -20 });
+  await button(page, "axis-all").click();
+  await expect(button(page, "axis-all")).toHaveAttribute("aria-pressed", "true");
+  await button(page, "play").click();
+  const before = await stateOf(page);
+  await expect.poll(async () => {
+    const now = await stateOf(page);
+    return now.yaw !== before.yaw && now.tilt !== before.tilt && now.roll !== before.roll;
+  }).toBe(true);
+  const tumbling = await stateOf(page);
+  expect(Number.isFinite(tumbling.orientation.w)).toBe(true);
+  await expect.poll(() => page.url()).toContain("axis=all");
+  await button(page, "play").click();
 });

@@ -6,7 +6,7 @@ import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseDirection, parseLayout, parseLevel, zoomText } from "./levels.ts";
+import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, type TurnAxis, zoomText } from "./levels.ts";
 import { type Point, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import "../speed-buttons/define.ts";
@@ -46,7 +46,14 @@ const THUMB = 28;
 const HTML = `
 <div class="bar" part="bar" role="group">
   <div class="field angle" part="field angle"><label data-w="angle" for="yaw"></label><input id="yaw" type="range" min="-180" max="180" step="1" value="0" part="slider" /><output for="yaw" data-o="yaw">0°</output></div>
-  <div class="field tilt adv" part="field tilt"><label data-w="tilt" for="tilt"></label><input id="tilt" type="range" min="-30" max="30" step="1" value="0" part="slider" /><output for="tilt" data-o="tilt">0°</output></div>
+  <div class="field tilt" part="field tilt"><label data-w="tilt" for="tilt"></label><input id="tilt" type="range" min="-30" max="30" step="1" value="0" part="slider" /><output for="tilt" data-o="tilt">0°</output></div>
+  <div class="field roll" part="field roll"><label data-w="roll" for="roll"></label><input id="roll" type="range" min="-180" max="180" step="1" value="0" part="slider" /><output for="roll" data-o="roll">0°</output></div>
+  <div class="group axes" role="group" data-g="axes">
+    <button type="button" data-b="axis-angle" aria-pressed="true" part="button"><span data-w="angle"></span></button>
+    <button type="button" data-b="axis-tilt" aria-pressed="false" part="button"><span data-w="tilt"></span></button>
+    <button type="button" data-b="axis-roll" aria-pressed="false" part="button"><span data-w="roll"></span></button>
+    <button type="button" data-b="axis-all" aria-pressed="false" part="button"><span data-w="tumble"></span></button>
+  </div>
   <button type="button" class="pace-now" data-b="pace-now" part="button" hidden><span class="lbl" data-w="speed"></span><span data-o="pace"></span></button>
   <button type="button" class="play" data-b="play" aria-pressed="false" part="button">${ICON.play}${ICON.pause}<span class="text" data-w="autoTurn"></span></button>
   <div class="pacing adv" data-g="pacing">
@@ -90,7 +97,7 @@ const HTML = `
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "direction", "pace", "paces", "controls", "layout", "flat", "tilt-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "roll", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "direction", "tilt-direction", "roll-direction", "axis", "pace", "paces", "controls", "layout", "flat", "tilt-max", "roll-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -113,6 +120,9 @@ export class ViewControlsElement extends HTMLElement {
   /** Which way the turn goes now, and the way the page itself starts it (its `direction`, else the sign of its `speed`): the address keeps a way only when it is not the start. */
   #direction: Direction = "right";
   #start: Direction | undefined;
+  #axis: TurnAxis = "angle";
+  #tiltWay: Direction = "right";
+  #rollWay: Direction = "right";
   #writing = false;
   #labels: ViewWords = wordsFor("en");
   #said = "";
@@ -200,12 +210,23 @@ export class ViewControlsElement extends HTMLElement {
     this.#arrange();
     this.#limits();
     const start: Partial<ViewState> = {};
-    for (const key of ["yaw", "tilt"] as const) {
+    for (const key of ["yaw", "tilt", "roll"] as const) {
       const value = Number(this.getAttribute(key));
       if (this.hasAttribute(key) && Number.isFinite(value)) start[key] = value;
     }
-    const { pace, direction, ...chosen } = this.hasAttribute("address") ? parseAddress(globalThis.location?.search ?? "", this.#keys, c.limits) : {};
+    const { pace, direction, axis, tiltDirection, rollDirection, ...chosen } = this.hasAttribute("address") ? parseAddress(globalThis.location?.search ?? "", this.#keys, c.limits) : {};
     Object.assign(start, chosen);
+    this.#axis = axis ?? parseAxis(this.getAttribute("axis")) ?? this.#axis;
+    if (tiltDirection) this.#tiltWay = tiltDirection;
+    else {
+      const tiltWay = parseDirection(this.getAttribute("tilt-direction"));
+      if (tiltWay !== undefined) this.#tiltWay = tiltWay;
+    }
+    if (rollDirection) this.#rollWay = rollDirection;
+    else {
+      const rollWay = parseDirection(this.getAttribute("roll-direction"));
+      if (rollWay !== undefined) this.#rollWay = rollWay;
+    }
     c.turnable = !this.hasAttribute("flat");
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
@@ -257,8 +278,12 @@ export class ViewControlsElement extends HTMLElement {
     const c = this.#ensure();
     if (name === "for") this.#resolveView();
     else if (name === "lang") this.#label();
-    else if (name === "yaw" || name === "tilt") {
+    else if (name === "yaw" || name === "tilt" || name === "roll") {
       if (value !== null && Number.isFinite(Number(value))) c.set({ [name]: Number(value) });
+    } else if (name === "axis") {
+      this.#axis = parseAxis(value) ?? "angle";
+      this.#speed();
+      this.#show();
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
@@ -273,6 +298,14 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "direction") {
       if (this.#writing) return;
       this.#start = this.#direction = this.#startDirection();
+      this.#speed();
+      this.#show();
+    }
+    else if (name === "tilt-direction" || name === "roll-direction") {
+      if (this.#writing) return;
+      const way = parseDirection(value) ?? "right";
+      if (name === "tilt-direction") this.#tiltWay = way;
+      else this.#rollWay = way;
       this.#speed();
       this.#show();
     }
@@ -343,26 +376,30 @@ export class ViewControlsElement extends HTMLElement {
     const q = <T extends Element>(selector: string): T => this.#root.querySelector(selector) as T;
     // The controller in use when a control is pressed: the element keeps these controls when it is moved, and gets a new controller.
     const c = (): ViewController => this.#ensure();
-    const slider = (id: "yaw" | "tilt"): void => {
+    const slider = (id: "yaw" | "tilt" | "roll"): void => {
       const input = q<HTMLInputElement>(`#${id}`);
-      // A hand on the angle slider holds the automatic turn still while it is down; the turn then goes on from where the hand left it.
+      // A hand on a turn slider holds the automatic turn still while it is down; the turn then goes on from where the hand left it.
       const hold = (): void => {
         this.#sliderHeld += 1;
-        if (this.#sliderHeld === 1 && id === "yaw") c().holdTurn();
+        if (this.#sliderHeld === 1) c().holdTurn();
       };
       const free = (): void => {
         if (this.#sliderHeld === 0) return;
         this.#sliderHeld = 0;
-        if (id === "yaw") c().releaseTurn();
+        c().releaseTurn();
       };
       input.addEventListener("pointerdown", () => hold());
       input.addEventListener("pointerup", free);
       input.addEventListener("pointercancel", free);
-      input.addEventListener("input", () => c().set({ [id]: Number(input.value) }, false, "slider"));
-      input.addEventListener("change", () => c().set({ [id]: Number(input.value) }, true, "slider"));
+      input.addEventListener("input", () => c().set({ [id === "yaw" ? this.#hand() : id]: Number(input.value) }, false, "slider"));
+      input.addEventListener("change", () => c().set({ [id === "yaw" ? this.#hand() : id]: Number(input.value) }, true, "slider"));
     };
     slider("yaw");
     slider("tilt");
+    slider("roll");
+    for (const axis of ["angle", "tilt", "roll", "all"] as const) {
+      q<HTMLButtonElement>(`[data-b="axis-${axis}"]`).addEventListener("click", () => this.#chooseAxis(axis));
+    }
     this.#zoomSlider(q<HTMLInputElement>("#zoom"), c);
     const on = (b: string, run: () => void): void => q<HTMLButtonElement>(`[data-b="${b}"]`).addEventListener("click", run);
     on("play", () => {
@@ -503,22 +540,64 @@ export class ViewControlsElement extends HTMLElement {
     return seconds > 0 && Number.isFinite(seconds) ? seconds : undefined;
   }
 
-  /** A way was pressed. It is written to the `direction` attribute and the address; the angle goes on from where it was, at the same speed. */
+  /** A way was pressed. It sets the active axis's direction (all three when All is on). The angle goes on from where it was. */
   #chooseDirection(direction: Direction): void {
-    this.#direction = direction;
+    const axes: TurnAxis[] = this.#axis === "all" ? ["angle", "tilt", "roll"] : [this.#axis];
+    for (const axis of axes) this.#putWay(axis, direction);
     this.#speed();
-    if (this.getAttribute("direction") !== direction) {
-      this.#writing = true;
-      this.setAttribute("direction", direction);
-      this.#writing = false;
-    }
     this.#show();
     if (this.hasAttribute("address")) this.#save();
   }
 
-  /** The turn's degrees a second: the size of the `speed` attribute (30) times the pace, going left when it is negative. */
+  #putWay(axis: TurnAxis, direction: Direction): void {
+    const name = axis === "tilt" ? "tilt-direction" : axis === "roll" ? "roll-direction" : "direction";
+    if (axis === "tilt") this.#tiltWay = direction;
+    else if (axis === "roll") this.#rollWay = direction;
+    else this.#direction = direction;
+    if (this.getAttribute(name) !== direction) {
+      this.#writing = true;
+      this.setAttribute(name, direction);
+      this.#writing = false;
+    }
+  }
+
+  /** Which axis Auto-turn drives, and which slider a reader last named. Angle is the start, so it leaves the attribute. */
+  #chooseAxis(axis: TurnAxis): void {
+    this.#axis = axis;
+    const written = axis === "angle" ? null : axis;
+    if (this.getAttribute("axis") !== written) {
+      this.#writing = true;
+      if (written === null) this.removeAttribute("axis");
+      else this.setAttribute("axis", written);
+      this.#writing = false;
+    }
+    this.#speed();
+    this.#show();
+    if (this.hasAttribute("address")) this.#save();
+  }
+
+  /** The slider shows this axis. All is a tumble, so the slider stays on the angle. */
+  #hand(): "yaw" | "tilt" | "roll" {
+    if (this.#axis === "tilt") return "tilt";
+    if (this.#axis === "roll") return "roll";
+    return "yaw";
+  }
+
+  /** The way Left and Right show for the axis that is on. All shows the angle's way. */
+  #activeWay(): Direction {
+    if (this.#axis === "tilt") return this.#tiltWay;
+    if (this.#axis === "roll") return this.#rollWay;
+    return this.#direction;
+  }
+
+  /** The turn's degrees a second: the size of the `speed` attribute (30) times the pace, going left when the active axis says so. */
   #speed(): void {
-    this.#ensure().speed = Math.abs(Number(this.getAttribute("speed")) || 30) * this.#pace * (this.#direction === "left" ? -1 : 1);
+    const c = this.#ensure();
+    const size = Math.abs(Number(this.getAttribute("speed")) || 30) * this.#pace;
+    c.turnAxis = this.#axis;
+    c.tiltSign = this.#tiltWay === "left" ? -1 : 1;
+    c.rollSign = this.#rollWay === "left" ? -1 : 1;
+    c.speed = size * (this.#activeWay() === "left" ? -1 : 1);
   }
 
   #limits(): void {
@@ -528,12 +607,18 @@ export class ViewControlsElement extends HTMLElement {
       return this.hasAttribute(name) && Number.isFinite(value) && value > 0 ? value : fallback;
     };
     c.limits.tiltMax = read("tilt-max", 30);
+    c.limits.rollMax = read("roll-max", 180);
     c.limits.zoomMin = Math.min(1, read("zoom-min", 1));
     c.limits.zoomMax = Math.max(c.limits.zoomMin, read("zoom-max", 5));
     const tilt = this.#root.querySelector<HTMLInputElement>("#tilt");
     if (tilt !== null) {
       tilt.min = String(-c.limits.tiltMax);
       tilt.max = String(c.limits.tiltMax);
+    }
+    const roll = this.#root.querySelector<HTMLInputElement>("#roll");
+    if (roll !== null) {
+      roll.min = String(-c.limits.rollMax);
+      roll.max = String(c.limits.rollMax);
     }
     this.#drawMarks();
   }
@@ -576,6 +661,7 @@ export class ViewControlsElement extends HTMLElement {
     set('[data-g="zoom"]', words.zoom);
     set('[data-g="pan"]', words.pan);
     set('[data-g="direction"]', words.direction);
+    set('[data-g="axes"]', words.axis);
     set('[data-g="drag"]', words.drag);
     const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
     speeds?.setAttribute("lang", language);
@@ -594,17 +680,35 @@ export class ViewControlsElement extends HTMLElement {
     const q = <T extends Element>(selector: string): T => this.#root.querySelector(selector) as T;
     const yaw = q<HTMLInputElement>("#yaw");
     const tilt = q<HTMLInputElement>("#tilt");
-    yaw.value = String(Math.round(s.yaw));
+    const roll = q<HTMLInputElement>("#roll");
     tilt.value = String(Math.round(s.tilt));
-    q<HTMLOutputElement>('[data-o="yaw"]').value = `${Math.round(s.yaw)}°`;
+    roll.value = String(Math.round(s.roll ?? 0));
+    // The one slider shows the axis the chips have chosen. All keeps the angle, which is where a tumble is read from.
+    const hand = this.#hand();
+    const span = hand === "tilt" ? c.limits.tiltMax : hand === "roll" ? c.limits.rollMax : 180;
+    const value = hand === "tilt" ? s.tilt : hand === "roll" ? (s.roll ?? 0) : s.yaw;
+    const text = String(Math.round(value));
+    if (yaw.max !== String(span)) {
+      yaw.max = String(span);
+      yaw.min = String(-span);
+    }
+    if (yaw.value !== text) yaw.value = text;
+    const words = this.#labels;
+    const name = hand === "tilt" ? words.tilt : hand === "roll" ? words.roll : words.angle;
+    const label = q<HTMLLabelElement>('[data-w="angle"]');
+    if (label.textContent !== name) label.textContent = name;
+    q<HTMLOutputElement>('[data-o="yaw"]').value = `${text}°`;
     q<HTMLOutputElement>('[data-o="tilt"]').value = `${Math.round(s.tilt)}°`;
+    q<HTMLOutputElement>('[data-o="roll"]').value = `${Math.round(s.roll ?? 0)}°`;
+    for (const axis of ["angle", "tilt", "roll", "all"] as const) {
+      q<HTMLButtonElement>(`[data-b="axis-${axis}"]`).setAttribute("aria-pressed", String(this.#axis === axis));
+    }
     q<HTMLButtonElement>('[data-b="play"]').setAttribute("aria-pressed", String(s.turning));
     // Centre comes in once the view has been zoomed or moved, which is when the object can be lost; it puts it back in the middle at Fit and the default angle.
     q<HTMLElement>(".centre").hidden = s.zoom === 1 && s.panX === 0 && s.panY === 0;
     q<HTMLButtonElement>('[data-b="out"]').disabled = s.zoom <= c.limits.zoomMin + 1e-6;
     q<HTMLButtonElement>('[data-b="in"]').disabled = s.zoom >= c.limits.zoomMax - 1e-6;
     const advanced = this.#level === "advanced";
-    const words = this.#labels;
     const zoom = zoomText(s.zoom);
     // A frame of the automatic turn comes through here: what has not changed is not written.
     const write = (node: Element, text: string): void => {
@@ -634,8 +738,9 @@ export class ViewControlsElement extends HTMLElement {
     const pace = speedText(this.#pace);
     write(q('[data-o="pace"]'), pace);
     say(q('[data-b="pace-now"]'), `${words.speed}: ${pace}`);
-    q<HTMLButtonElement>('[data-b="turn-left"]').setAttribute("aria-pressed", String(this.#direction === "left"));
-    q<HTMLButtonElement>('[data-b="turn-right"]').setAttribute("aria-pressed", String(this.#direction === "right"));
+    const way = this.#activeWay();
+    q<HTMLButtonElement>('[data-b="turn-left"]').setAttribute("aria-pressed", String(way === "left"));
+    q<HTMLButtonElement>('[data-b="turn-right"]').setAttribute("aria-pressed", String(way === "right"));
     const more = q<HTMLButtonElement>('[data-b="more"]');
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;
@@ -645,8 +750,8 @@ export class ViewControlsElement extends HTMLElement {
     q<HTMLButtonElement>('[data-b="turn"]').setAttribute("aria-pressed", String(s.drag === "turn"));
     // A flat view cannot turn: the angle, tilt, auto-turn and front are not shown, and a drag only moves.
     const flat = !c.turnable;
-    for (const selector of [".angle", ".play"]) q<HTMLElement>(selector).hidden = flat;
-    for (const selector of [".tilt", ".front", '[data-g="drag"]', '[data-g="pacing"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
+    for (const selector of [".angle", ".tilt", ".roll", ".play", '[data-g="axes"]']) q<HTMLElement>(selector).hidden = flat;
+    for (const selector of [".front", '[data-g="drag"]', '[data-g="pacing"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
     // The speed is always in sight while the view turns: one small button in basic, which steps through the three; advanced always has the three.
     q<HTMLElement>(".pace-now").hidden = flat || advanced || !s.turning;
     this.toggleAttribute("data-turning", s.turning);
@@ -681,7 +786,14 @@ export class ViewControlsElement extends HTMLElement {
   #save(): void {
     this.#writer.write((search) => {
       const s = this.#ensure().state;
-      return formatAddress(search, { ...s, pace: this.#pace, direction: this.#direction === (this.#start ?? this.#direction) ? null : this.#direction }, this.#keys, s.turning, this.#ensure().startZoom);
+      return formatAddress(search, {
+        ...s,
+        pace: this.#pace,
+        direction: this.#direction === (this.#start ?? this.#direction) ? null : this.#direction,
+        axis: this.#axis,
+        tiltDirection: this.#tiltWay === "right" ? null : this.#tiltWay,
+        rollDirection: this.#rollWay === "right" ? null : this.#rollWay,
+      }, this.#keys, s.turning, this.#ensure().startZoom);
     });
   }
 }

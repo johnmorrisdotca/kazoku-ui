@@ -4,6 +4,11 @@ export interface ViewWords {
   group: string;
   angle: string;
   tilt: string;
+  roll: string;
+  /** The name of the button that tumbles on all three axes. */
+  tumble: string;
+  /** The name of the row that chooses which axis Auto-turn drives. */
+  axis: string;
   autoTurn: string;
   front: string;
   zoom: string;
@@ -41,6 +46,9 @@ export const WORDS: Record<Language, ViewWords> = {
     group: "View controls",
     angle: "Angle",
     tilt: "Tilt",
+    roll: "Roll",
+    tumble: "All",
+    axis: "Auto-turn axis",
     autoTurn: "Auto-turn",
     front: "Front",
     zoom: "Zoom",
@@ -72,6 +80,9 @@ export const WORDS: Record<Language, ViewWords> = {
     group: "表示の操作",
     angle: "角度",
     tilt: "傾き",
+    roll: "ロール",
+    tumble: "全部",
+    axis: "自動回転の軸",
     autoTurn: "自動回転",
     front: "正面",
     zoom: "ズーム",
