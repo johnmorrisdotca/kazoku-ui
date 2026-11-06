@@ -4,6 +4,21 @@ import { expect, test } from "@playwright/test";
 const win = (page) => page.locator("#win");
 const title = (page) => win(page).locator('[data-act="title"]');
 
+async function buttonsClear(page) {
+  const boxes = await win(page).locator("button").evaluateAll((all) => all.map((node) => {
+    const box = node.getBoundingClientRect();
+    return { text: node.textContent ?? "", x: box.x, y: box.y, r: box.right, b: box.bottom };
+  }));
+  for (let i = 0; i < boxes.length; i += 1) {
+    for (let j = i + 1; j < boxes.length; j += 1) {
+      const a = boxes[i];
+      const c = boxes[j];
+      const hit = a.x < c.r - 1 && c.x < a.r - 1 && a.y < c.b - 1 && c.y < a.b - 1;
+      expect(hit, `${a.text} overlaps ${c.text}`).toBe(false);
+    }
+  }
+}
+
 test("a drag snaps to a corner, Escape folds it, and the chip opens it again", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("phone"), "a phone shows a sheet, which does not drag");
   const errors = [];
@@ -40,6 +55,7 @@ test("a drag snaps to a corner, Escape folds it, and the chip opens it again", a
 
   await win(page).locator('[data-act="help"]').click();
   await expect(win(page).locator(".help-panel")).toBeVisible();
+  await buttonsClear(page);
   await expect(win(page).locator(".gestures")).toContainText("Shift and a drag");
   await expect(page.locator('#win p[slot="help"]')).toBeVisible();
   await title(page).focus();
@@ -88,6 +104,7 @@ test("Japanese labels follow the page", async ({ page }) => {
   await expect(win(page).locator('[data-act="help"]')).toHaveText("ヘルプ");
   await page.locator("#win").locator('[data-act="help"]').click();
   await expect(win(page)).toContainText("ひねり");
+  await buttonsClear(page);
 });
 
 test("a dark theme paints the card dark", async ({ page }) => {

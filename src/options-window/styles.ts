@@ -10,7 +10,7 @@ export const STYLES = `${BASE_STYLES}
 :host(:not([open])) { width: max-content; height: auto; bottom: auto; }
 .frame { display: flex; flex-direction: column; max-height: 70vh; background: var(--_surface); color: var(--_ink); border: 1px solid var(--_line); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 18%); overflow: hidden; }
 .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; padding: 4px; touch-action: none; cursor: grab; }
-.bar button[data-act="title"] { flex: 1; justify-content: flex-start; min-width: 48px; cursor: grab; }
+.bar button[data-act="title"] { flex: 1 1 auto; justify-content: flex-start; min-width: max-content; overflow: hidden; text-overflow: ellipsis; cursor: grab; }
 .body, .help-panel { padding: 4px 12px 12px; font-weight: 500; }
 .help-panel { border-top: 1px solid var(--_line); }
 .gestures { margin: 0 0 8px; }
