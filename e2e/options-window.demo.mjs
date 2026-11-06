@@ -28,6 +28,9 @@ test("a drag snaps to a corner, Escape folds it, and the chip opens it again", a
   await expect(title(page)).toHaveText("Planet options");
   await expect(win(page)).toHaveAttribute("open", "");
   await expect(win(page)).toContainText("Turn speed");
+  await expect(page.locator('#win .opts button[aria-pressed="true"]')).toHaveCount(3);
+  const plain = await page.locator("#win .opts button").evaluateAll((all) => all.filter((node) => getComputedStyle(node).appearance !== "none" || Number.parseFloat(getComputedStyle(node).borderRadius) < 8).length);
+  expect(plain).toBe(0);
   const icons = await win(page).locator('[data-act="help"], [data-act="fold"]').evaluateAll((all) => all.map((node) => { const box = node.getBoundingClientRect(); return [box.width, box.height]; }));
   expect(icons.length).toBe(2);
   for (const [width, height] of icons) {
@@ -60,6 +63,12 @@ test("a drag snaps to a corner, Escape folds it, and the chip opens it again", a
   await buttonsClear(page);
   await expect(win(page).locator(".gestures")).toContainText("Shift and a drag");
   await expect(page.locator('#win [slot="help"]')).toBeVisible();
+  const help = await page.locator('#win [slot="help"]').evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { list: style.listStyleType, size: style.fontSize };
+  });
+  expect(help.list).toBe("none");
+  expect(Number.parseFloat(help.size)).toBeLessThanOrEqual(13);
   await title(page).focus();
   await page.keyboard.press("Escape");
   await expect(win(page).locator(".help-panel")).toBeHidden();
@@ -83,6 +92,8 @@ test("the shelf frame shows the same content, docked to the right", async ({ pag
   await expect(shelf).toHaveAttribute("data-variant", "shelf");
   await expect(shelf).toHaveAttribute("data-presentation", "edge");
   await expect(win(page)).toHaveAttribute("data-presentation", "float");
+  const globe = await page.locator("#globe").boundingBox();
+  expect(Math.abs(globe.width - globe.height)).toBeLessThan(2);
   if (testInfo.project.name.includes("phone")) return;
   const stage = await page.locator("#shelf-stage").boundingBox();
   const box = await shelf.boundingBox();

@@ -33,6 +33,22 @@ function words() {
 new globalThis.MutationObserver(words).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 words();
 
+function chips(root) {
+  for (const group of root.querySelectorAll(".opts span")) {
+    const buttons = [...group.querySelectorAll("button")];
+    const pick = (button) => {
+      for (const other of buttons) other.setAttribute("aria-pressed", String(other === button));
+    };
+    for (const [index, button] of buttons.entries()) {
+      button.classList.add("pill");
+      button.setAttribute("aria-pressed", String(index === 0));
+      button.addEventListener("click", () => pick(button));
+    }
+  }
+}
+chips(document.getElementById("win"));
+chips(document.getElementById("ship"));
+
 function globe(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
@@ -46,11 +62,16 @@ function globe(canvas) {
   scene.add(sun);
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const draw = () => {
-    const stage = canvas.parentElement.getBoundingClientRect();
-    if (stage.width > 0) {
-      renderer.setSize(stage.width, stage.height, false);
-      camera.aspect = stage.width / Math.max(stage.height, 1);
-      camera.updateProjectionMatrix();
+    const box = canvas.getBoundingClientRect();
+    if (box.width > 2 && box.height > 2) {
+      const width = Math.round(box.width);
+      const height = Math.round(box.height);
+      renderer.setSize(width, height, false);
+      const aspect = width / height;
+      if (camera.aspect !== aspect) {
+        camera.aspect = aspect;
+        camera.updateProjectionMatrix();
+      }
       if (!still) ball.rotation.y += 0.004;
       renderer.render(scene, camera);
     }
