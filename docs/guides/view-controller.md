@@ -101,6 +101,7 @@ The camera is `{ yaw, tilt, zoom, panX, panY }` and every gesture is a pure func
 | `clampPan(camera, size, object?)` | Hold the pan so the object cannot be lost. |
 | `pinchTo(start, a, b, centre, limits?)` | The camera for two fingers now at `a` and `b`. |
 | `dragTurn(start, dx, dy, size, tips, limits?, step?, grabRadius?)` | A one-pointer drag that turns. A finger does not tilt. |
+| `dragRoll(start, dx, size, grabRadius?)` | A sideways drag that rolls. Positive `dx` is clockwise, and the degrees per pixel match a turn. |
 | `degreesPerPixel(radius)` | Degrees of turn for one pixel of drag on a sphere of that on-screen radius. |
 | `wheelMove(event, page?)` | What one wheel event asks: Ctrl, Command or Alt zoom; a plain wheel moves; Shift moves sideways. A positive delta moves the picture up or to the left. |
 | `wheelPanPixels(delta, deltaMode, page?)` | Pixels one axis of a wheel moves. A line is 16 pixels and a page is `page` pixels. |

@@ -66,20 +66,26 @@ export function clampPan(camera: Camera, size: Size | undefined, object?: Size):
   return { ...camera, panX: clamp(camera.panX, -roomX, roomX), panY: clamp(camera.panY, -roomY, roomY) };
 }
 
-/** What a pinch starts from: the distance between two fingers, their middle, and the camera at that moment. */
+/** What a pinch starts from: the distance between two fingers, their middle, the camera at that moment, and the fingers' angle when a twist should roll. */
 export interface PinchStart {
   distance: number;
   middle: Point;
   camera: Camera;
+  /** `atan2` of the fingers, in radians. Left out, a twist does not roll. */
+  angle?: number;
 }
 
-/** The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, and the middle of the fingers also drags the view. `centre` is the view's middle in client pixels. */
+/** The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels. */
 export function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits: Limits = DEFAULT_LIMITS): Camera {
   const distance = Math.hypot(a.x - b.x, a.y - b.y) || 1;
   const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   const zoomed = zoomAbout(start.camera, start.camera.zoom * (distance / start.distance), { x: start.middle.x - centre.x, y: start.middle.y - centre.y }, limits);
-  if (zoomed.zoom <= 1) return zoomed;
-  return { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
+  const placed = zoomed.zoom <= 1 ? zoomed : { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
+  if (start.angle === undefined) return placed;
+  let turned = Math.atan2(b.y - a.y, b.x - a.x) - start.angle;
+  if (turned > Math.PI) turned -= 2 * Math.PI;
+  if (turned < -Math.PI) turned += 2 * Math.PI;
+  return { ...placed, roll: wrapYaw((start.camera.roll ?? 0) + (turned * 180) / Math.PI) };
 }
 
 /** Degrees of turn for one pixel of drag when the piece's on-screen radius is `radius` pixels: the pixel that a point at the middle of a sphere's face moves by, so the touched point stays under the pointer. */
@@ -95,6 +101,16 @@ export function dragTurn(start: Camera, dx: number, dy: number, size: Size, tips
   const raw = start.tilt - (exact > 0 ? dy * exact : (dy / (size.height || 360)) * TILT_ACROSS);
   const tilt = tips ? clamp(step > 0 ? Math.round(raw / step) * step : raw, -limits.tiltMax, limits.tiltMax) : start.tilt;
   return { yaw, tilt };
+}
+
+/**
+ * A sideways drag that rolls about the view axis. Positive `dx` rolls clockwise, so the surface above the middle moves with the pointer.
+ * The degrees per pixel are the same as a turn (`dragTurn`).
+ */
+export function dragRoll(start: Camera, dx: number, size: Size, grabRadius = 0): number {
+  const exact = grabRadius > 0 && Number.isFinite(grabRadius) ? degreesPerPixel(grabRadius) : 0;
+  const turned = exact > 0 ? dx * exact : (dx / (size.width || 360)) * TURN_ACROSS;
+  return wrapYaw((start.roll ?? 0) + turned);
 }
 
 /** The camera `fraction` of the way (0 to 1) from `from` to `to`, eased out: quick at first, slow at the end. */

@@ -7,6 +7,7 @@
 The wheel moves the view, as in Figma: Ctrl, Command or Alt with the wheel zooms.
 
 - **The wheel moves** (KAZOKU-UI-58). The plain wheel over the view moves it, and Shift and the wheel moves it sideways. A two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, and a pinch, zoom about the pointer. The middle button and a drag, or Space and a drag, moves it, and the pointer is a hand while Space is held. A plain left drag still turns. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again. A turn that reaches the edge part-way through stays with the view. `wheelMove` and `wheelPanPixels` are the arithmetic. The help line is the new `gestures` word, in both languages.
+- **Roll follows the hand** (KAZOKU-UI-58). Shift and a left drag rolls about the view axis, clockwise when the drag goes right, so the surface above the middle moves with the pointer. A two-finger twist rolls the same way. Shift and Left or Right rolls by 15 degrees. The Roll slider shows it. A plain drag still turns and leaves roll alone. `dragRoll` is the arithmetic. Reduced motion is unchanged: these are hands, not the automatic turn.
 - **The vertical demo sits beside the view.** The axis chips made that column tall enough that Centre's row scrolled the page and Auto-turn left the pointer. On a desk the column stands beside the scene, so Centre adds its row and Auto-turn stays where it was.
 
 ## [0.17.0] - 2026-11-05

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { between, clamp, clampPan, type Camera, degreesPerPixel, dragTurn, eulerFromQuat, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, spinLocal, tumbleRates, upVector, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
+import { between, clamp, clampPan, type Camera, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, spinLocal, tumbleRates, upVector, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
 
 const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
 
@@ -60,6 +60,18 @@ test("a pinch zooms by the change of distance about where it began, and the fing
   assert.equal(slid.zoom, 2);
   assert.equal(slid.panX, 30);
   assert.ok(pinchTo(begin, { x: 300, y: 150 }, { x: 300, y: 150 }, centre).zoom >= 1);
+});
+
+test("a sideways drag rolls clockwise, and a twist rolls without zooming when the fingers keep their distance", () => {
+  const size = { width: 400, height: 300 };
+  assert.equal(dragRoll(start, 60, size), 27);
+  assert.equal(dragRoll({ ...start, roll: 10 }, -400, size), -170);
+  const centre = { x: 200, y: 150 };
+  const begin = { distance: 80, middle: { x: 140, y: 140 }, angle: 0, camera: start };
+  const twisted = pinchTo(begin, { x: 140, y: 100 }, { x: 140, y: 180 }, centre);
+  assert.ok(Math.abs((twisted.roll ?? 0) - 90) < 1e-6);
+  assert.equal(twisted.zoom, 1);
+  assert.equal(twisted.panX, 0);
 });
 
 test("a drag across the view is a half turn, and a finger does not tilt", () => {

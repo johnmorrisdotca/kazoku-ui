@@ -103,6 +103,7 @@ console.log(Object.keys(DEFAULT_KEYS).join(" "));
 | `clampPan(camera, size, object?)` | オブジェクトを見失わないよう、移動を制限します。 |
 | `pinchTo(start, a, b, centre, limits?)` | 2本の指が`a`と`b`にあるときのカメラ。 |
 | `dragTurn(start, dx, dy, size, tips, limits?, step?, grabRadius?)` | 1点のドラッグによる回転。指では傾きません。 |
+| `dragRoll(start, dx, size, grabRadius?)` | 横ドラッグによるロール。正のdxは時計回りで、1ピクセルあたりの度数は、回転のときと同じです。 |
 | `degreesPerPixel(radius)` | 画面上の半径がその値の球で、1ピクセルのドラッグが回す度数。 |
 | `wheelMove(event, page?)` | ホイール1回の操作。Ctrl、Command、またはAltではズーム。ふつうのホイールでは移動。Shiftでは横へ移動。正のdeltaは、絵を上または左へ動かします。 |
 | `wheelPanPixels(delta, deltaMode, page?)` | ホイールの1軸が動かすピクセル数。1行は16ピクセル、1ページは`page`ピクセルです。 |

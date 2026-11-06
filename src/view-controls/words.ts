@@ -77,7 +77,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "Slow",
     medium: "Medium",
     fast: "Fast",
-    gestures: "The wheel moves the view. Ctrl, Command or Alt with the wheel zooms about the pointer. Space and a drag, or the middle button, moves it.",
+    gestures: "Turn: drag. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Space and a drag, or the middle button. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Front and Fit: Home or 0.",
   },
   ja: {
     group: "表示の操作",
@@ -112,7 +112,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "ゆっくり",
     medium: "ふつう",
     fast: "はやい",
-    gestures: "ホイールでビューが動きます。Ctrl、Command、またはAltを押しながらホイールを回すと、ポインターを中心にズームします。Spaceを押しながらのドラッグ、またはマウスの中ボタンを押したままのドラッグで、ビューが動きます。",
+    gestures: "回転：ドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、Spaceを押しながらのドラッグ、またはマウスの中ボタン。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。正面と全体表示：Homeまたは0。",
   },
 };
 

@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-56 values and 23 types.
+57 values and 23 types.
 
 ```js
-import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -104,6 +104,14 @@ const DEFAULT_LIMITS: Limits;
 
 ```ts
 const degreesPerPixel: (radius: number) => number;
+```
+
+### dragRoll
+
+*function*. A sideways drag that rolls about the view axis. Positive `dx` rolls clockwise, so the surface above the middle moves with the pointer.
+
+```ts
+function dragRoll(start: Camera, dx: number, size: Size, grabRadius?: number): number;
 ```
 
 ### dragTurn
@@ -256,7 +264,7 @@ const pendulumTilt: (phase: number, amplitude: number) => number;
 
 ### pinchTo
 
-*function*. The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, and the middle of the fingers also drags the view. `centre` is the view's middle in client pixels.
+*function*. The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels.
 
 ```ts
 function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits?: Limits): Camera;
@@ -643,13 +651,15 @@ type Pace = "slow" | "medium" | "fast";
 
 ### PinchStart
 
-*interface*. What a pinch starts from: the distance between two fingers, their middle, and the camera at that moment.
+*interface*. What a pinch starts from: the distance between two fingers, their middle, the camera at that moment, and the fingers' angle when a twist should roll.
 
 ```ts
 interface PinchStart {
     distance: number;
     middle: Point;
     camera: Camera;
+    /** `atan2` of the fingers, in radians. Left out, a twist does not roll. */
+    angle?: number;
 }
 ```
 

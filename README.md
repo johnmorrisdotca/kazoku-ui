@@ -173,9 +173,19 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `1×`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, the speed buttons (0.5×, 1×, 2×), Front, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
 - The zoom readout is the view's `zoom` (1× is Fit, whatever `fit-scale` is), one decimal, the one zoom number on the bar: it follows the buttons, the wheel, a pinch, a double press, Fit, the keys, the address, `set` and a changed limit. A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
 - Auto-turn with play and pause; its speed is chosen with the family's [speed buttons](docs/guides/speed-buttons.md): 0.5× (half the `speed` attribute), 1× (the `speed` attribute, 30 degrees a second) or 2× (twice it), kept in the `pace` attribute and in the address as `?pace=0.5` or `?pace=2`. **Left and Right** (under More, beside the speed buttons) choose which way it goes, kept in the `direction` attribute and in the address as `?direction=left`; the angle goes on from where it was, at the same speed.
-- **The wheel moves.** The wheel over the view moves it, and Shift and the wheel moves it sideways. A two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, and a trackpad pinch, zoom about the pointer. The middle button and a drag, or Space and a drag, moves it, and the pointer is a hand while Space is held. A plain left drag still turns. At Fit, with nothing to move to, the wheel scrolls the page; once the view is zoomed in, the wheel moves it, and a new turn of the wheel that starts at the edge of that move scrolls the page again.
-- Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch.
-- Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
+- **The wheel moves.** At Fit, with nothing to move to, the wheel scrolls the page; once the view is zoomed in, the wheel moves it, and a new turn of the wheel that starts at the edge of that move scrolls the page again.
+
+  | Gesture | How |
+  |---|---|
+  | Turn | Drag |
+  | Tilt | Drag up or down |
+  | Roll | Shift and a drag, or a two-finger twist |
+  | Move | The wheel, Shift and the wheel, Space and a drag, or the middle button |
+  | Zoom | Ctrl, Command or Alt with the wheel, or a pinch |
+  | Front and Fit | Home or 0 |
+
+- Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch, and a twist rolls.
+- Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
 - **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 1×, 2× and the ends: see [Layouts](#layouts).
 - Labels in English and Japanese; light and dark; 48 px touch targets; a compact bar on a phone; no automatic turn for a reader who prefers reduced motion.
@@ -313,7 +323,7 @@ In every turnable view the surface under the pointer follows the pointer, the ar
 
 ### Keys, the wheel and the turn
 
-The wheel over the view moves it, and Shift and the wheel moves it sideways. Ctrl, Command or Alt with the wheel zooms about the pointer, and the steps of one such turn stay with the view even when the zoom reaches its end part-way through, so the page does not jump. A new turn at that end, and a plain wheel at Fit, scroll the page. A plain left drag still turns. Arrow Up tips like a drag up (`tilt` gets larger); `key-tilt="wheel"` makes it tip the other way (`tilt` gets smaller), the way the wheel turned up tipped the view before 0.13.0, and Arrow Down the other way. `stop-turn` stops the automatic turn when the reader takes hold of the view with a press, the wheel or a key (a `pause` event is sent first); the defaults keep it turning, and a button or slider never stops it. `tilt-step="1"` makes a drag give whole degrees of tilt.
+The wheel over the view moves it, and Shift and the wheel moves it sideways. Ctrl, Command or Alt with the wheel zooms about the pointer, and the steps of one such turn stay with the view even when the zoom reaches its end part-way through, so the page does not jump. A new turn at that end, and a plain wheel at Fit, scroll the page. A plain left drag still turns and leaves roll alone. Shift and a drag rolls, and so does a two-finger twist. Arrow Up tips like a drag up (`tilt` gets larger); `key-tilt="wheel"` makes it tip the other way (`tilt` gets smaller), the way the wheel turned up tipped the view before 0.13.0, and Arrow Down the other way. `stop-turn` stops the automatic turn when the reader takes hold of the view with a press, the wheel or a key (a `pause` event is sent first); the defaults keep it turning, and a button or slider never stops it. `tilt-step="1"` makes a drag give whole degrees of tilt.
 
 ### Opening at the scene's natural size
 

@@ -475,6 +475,46 @@ test("Space and a drag, or the middle button, moves a zoomed view", async ({ pag
   expect((await stateOf(page)).panX).toBeGreaterThan(20);
 });
 
+test("Shift and a drag rolls, a twist rolls, and a plain drag leaves roll alone", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  const at = await centreOf(page, "#scene");
+  await page.mouse.move(at.x, at.y);
+  await page.keyboard.down("Shift");
+  await page.mouse.down();
+  await page.mouse.move(at.x + 80, at.y);
+  await page.mouse.up();
+  await page.keyboard.up("Shift");
+  const rolled = await stateOf(page);
+  expect(rolled.roll).not.toBe(0);
+  expect(rolled.yaw).toBe(0);
+  expect(rolled.tilt).toBe(0);
+  const shown = await page.locator(BAR).evaluate((el) => {
+    const root = el.shadowRoot;
+    return { slider: root.querySelector("#roll").value, out: root.querySelector('[data-o="roll"]').textContent };
+  });
+  expect(Number(shown.slider)).toBe(Math.round(rolled.roll));
+  expect(shown.out).toBe(`${Math.round(rolled.roll)}°`);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 50, at.y);
+  await page.mouse.up();
+  const turned = await stateOf(page);
+  expect(turned.yaw).not.toBe(0);
+  expect(turned.roll).toBe(rolled.roll);
+  const box = await page.locator("#scene").boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await touch(page, "pointerdown", 1, x - 40, y);
+  await touch(page, "pointerdown", 2, x + 40, y);
+  await touch(page, "pointermove", 1, x, y - 40);
+  await touch(page, "pointermove", 2, x, y + 40);
+  const twisted = await stateOf(page);
+  expect(Math.round(twisted.roll - rolled.roll)).toBe(90);
+  expect(twisted.yaw).toBe(turned.yaw);
+  expect(twisted.tilt).toBe(turned.tilt);
+  expect(twisted.zoom).toBe(1);
+});
+
 test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer, and at Fit the page scrolls", async ({ page }) => {
   await ready(page);
   // Make the page taller than the window, so it has somewhere to scroll.

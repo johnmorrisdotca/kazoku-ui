@@ -11,7 +11,7 @@ The rules are written once, in the repository's contributing guide, and a test o
 
 - **Controls on or right beside the view.** They are visible without scrolling, and changing a control never stops or resets the turn.
 - **48 px touch targets** and no browser-default controls. On a phone the bar is compact and the words are left to a screen reader while the icons stay.
-- **Keyboard.** The theme switch and the language picker are radio groups: one tab stop, arrow keys move the choice. The view takes arrows to turn and tip it, `+` and `-` to zoom, and `0` or Home for Front and Fit, once it has focus (give it a `tabindex`). The zoom slider has its own keys, Page Up and Page Down going from mark to mark.
+- **Keyboard.** The theme switch and the language picker are radio groups: one tab stop, arrow keys move the choice. The view takes arrows to turn and tip it, Shift and Left or Right to roll, `+` and `-` to zoom, and `0` or Home for Front and Fit, once it has focus (give it a `tabindex`). The zoom slider has its own keys, Page Up and Page Down going from mark to mark.
 - **Reduced motion.** A reader who prefers reduced motion gets no automatic turn and no animated Centre move.
 - **Screen readers.** The zoom is announced politely once it has settled ("Zoom level 2.4×"), not on load and not for every step of a pinch. Each language button carries its own `lang`, so a screen reader says `日本語` in Japanese. The save buttons have a status line (Saved, Could not save).
 - **Light and dark.** Every part follows the page's `data-theme` (forced) or the device's, so it is dark in a page forced dark on a light device. `theme="light"` or `theme="dark"` on one element gives it a look of its own.

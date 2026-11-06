@@ -233,10 +233,11 @@ const fakeBound = () => {
       removeEventListener: (type: string) => docListeners.delete(type),
     },
   };
-  const key = (k: string) => { let stopped = false; listeners.get("keydown")?.({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, preventDefault: () => { stopped = true; } }); return stopped; };
+  const key = (k: string, extra: Record<string, unknown> = {}) => { let stopped = false; listeners.get("keydown")?.({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, preventDefault: () => { stopped = true; }, ...extra }); return stopped; };
   const wheel = (init: object) => listeners.get("wheel")?.({ ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, deltaX: 0, deltaY: 0, deltaMode: 0, clientX: 200, clientY: 150, preventDefault: () => undefined, ...init });
-  const press = (x: number, y: number, button = 0) => listeners.get("pointerdown")?.({ target: {}, composedPath: () => [], pointerId: 1, pointerType: "mouse", button, clientX: x, clientY: y, shiftKey: false });
+  const press = (x: number, y: number, button = 0, extra: Record<string, unknown> = {}) => listeners.get("pointerdown")?.({ target: {}, composedPath: () => [], pointerId: 1, pointerType: "mouse", clientX: x, clientY: y, shiftKey: false, button, ...extra });
   const move = (x: number, y: number) => listeners.get("pointermove")?.({ pointerId: 1, pointerType: "mouse", clientX: x, clientY: y });
+  const pointer = (type: string, id: number, x: number, y: number) => listeners.get(type)?.({ pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: y, shiftKey: false, target: {}, composedPath: () => [], type });
   const release = () => listeners.get("pointerup")?.({ pointerId: 1, type: "pointerup", pointerType: "mouse", clientX: 0, clientY: 0, timeStamp: 1e9 });
   const enter = () => listeners.get("pointerenter")?.({});
   const holdSpace = () => {
@@ -244,7 +245,7 @@ const fakeBound = () => {
     docListeners.get("keydown")?.({ key: " ", type: "keydown", target: {}, preventDefault: () => { stopped = true; } });
     return stopped;
   };
-  return { fakeView: fakeView as unknown as HTMLElement, key, wheel, press, move, release, enter, holdSpace };
+  return { fakeView: fakeView as unknown as HTMLElement, key, wheel, press, move, release, enter, holdSpace, pointer };
 };
 
 test("the buttons and keys zoom about the anchor, which stays where it is on screen", () => {
@@ -451,6 +452,37 @@ test("tiltStep rounds the tilt of a drag, and 0 leaves it as it is", () => {
     assert.ok(Math.abs(view.state.tilt - expected) < 1e-9, `step ${tiltStep}`);
     hands.release();
   }
+});
+
+test("Shift and a drag rolls, a twist rolls, and a plain drag leaves roll alone", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  hands.press(100, 100, 0, { shiftKey: true });
+  hands.move(160, 130);
+  hands.release();
+  assert.equal(view.state.roll, 27, "60 px across a 400 px view is 27 degrees, clockwise");
+  assert.equal(view.state.yaw, 0);
+  assert.equal(view.state.tilt, 0);
+  hands.key("ArrowRight", { shiftKey: true });
+  assert.equal(view.state.roll, 42);
+  assert.equal(view.state.yaw, 0, "Shift and Right rolls, it does not turn");
+  hands.press(100, 100);
+  hands.move(180, 100);
+  hands.release();
+  assert.equal(view.state.yaw, 36);
+  assert.equal(view.state.roll, 42, "a plain drag leaves roll alone");
+  const twist = make();
+  const touch = fakeBound();
+  twist.view.bind(touch.fakeView);
+  touch.pointer("pointerdown", 1, 100, 140);
+  touch.pointer("pointerdown", 2, 180, 140);
+  touch.pointer("pointermove", 1, 140, 100);
+  touch.pointer("pointermove", 2, 140, 180);
+  assert.ok(Math.abs((twist.view.state.roll ?? 0) - 90) < 1e-6, "a quarter twist rolls a quarter turn");
+  assert.equal(twist.view.state.yaw, 0);
+  assert.equal(twist.view.state.tilt, 0);
+  assert.equal(twist.view.state.zoom, 1, "the fingers stayed the same distance apart");
 });
 
 test("grabRadius keeps the touched point under the pointer: the same degrees for a pixel on both axes, a bigger piece turns less, a zoomed one too, and off it is the fixed angle", () => {

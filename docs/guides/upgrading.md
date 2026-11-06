@@ -10,6 +10,7 @@ The package is in early development (0.x), so a minor version can add to the int
 ## To 0.18
 
 - **The wheel moves.** The plain wheel over the view moves it, and no longer zooms. Shift and the wheel moves sideways, and a two-finger swipe moves too. Ctrl, Command or Alt with the wheel, and a pinch, zoom about the pointer. Space and a drag, or the middle button, moves the view, and the pointer is a hand while Space is held. A plain left drag still turns. At Fit, with nothing to move to, the wheel scrolls the page. A page that tells readers the wheel zooms should now say the wheel moves, and that Ctrl, Command or Alt with the wheel zooms. `wheelMove` and `wheelPanPixels` are the new arithmetic. `key-tilt="wheel"` still swaps the up and down keys.
+- **Roll follows the hand.** Shift and a left drag rolls, and a two-finger twist rolls. Shift and Left or Right rolls by 15 degrees. The Roll slider shows the angle. A plain drag leaves roll alone. `dragRoll` is the arithmetic.
 
 ## To 0.16
 

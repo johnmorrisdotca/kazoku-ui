@@ -4,7 +4,7 @@
 import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import type { TurnAxis } from "./levels.ts";
-import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragRoll, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
   /** The pose the page should draw. A tumble keeps this continuous when the slider numbers fold at a pole. */
@@ -179,6 +179,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   };
 
   const camera = (): Camera => ({ yaw: state.yaw, tilt: state.tilt, zoom: state.zoom, panX: state.panX, panY: state.panY });
+  const shot = (): Camera => ({ ...camera(), roll: state.roll ?? 0 });
 
   /** Take a camera in, held to the limits and, once the view's size is known, to the room the zoom gives. */
   const pose = (): void => {
@@ -436,7 +437,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   function bindHands(view: HTMLElement): () => void {
     type Gesture =
       | { kind: "pinch"; start: PinchStart }
-      | { kind: "pan" | "turn"; x: number; y: number; camera: Camera; moved: boolean };
+      | { kind: "pan" | "turn" | "roll"; x: number; y: number; camera: Camera; moved: boolean };
     const pointers = new Map<number, Point>();
     let gesture: Gesture | undefined;
     let holding = false;
@@ -518,12 +519,13 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       }
       if (pointers.size === 2) {
         const [a, b] = [...pointers.values()] as [Point, Point];
-        gesture = { kind: "pinch", start: { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, camera: camera() } };
+        gesture = { kind: "pinch", start: { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, angle: Math.atan2(b.y - a.y, b.x - a.x), camera: shot() } };
         release();
       } else if (pointers.size === 1) {
-        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift, the middle or the right button, and Space, move a zoomed view. A flat view cannot turn, so a drag moves it.
-        const pan = space || e.button === 1 || e.button === 2 || e.shiftKey || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn"));
-        gesture = { kind: pan ? "pan" : "turn", x: e.clientX, y: e.clientY, camera: camera(), moved: false };
+        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift and a left drag rolls, and that still works when the view is zoomed. The middle or the right button, and Space, move it. A flat view cannot turn, so a drag moves it. Reduced motion leaves these hands as they are.
+        const rolling = e.shiftKey && e.button === 0 && !space;
+        const pan = !rolling && (space || e.button === 1 || e.button === 2 || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn")));
+        gesture = { kind: rolling ? "roll" : pan ? "pan" : "turn", x: e.clientX, y: e.clientY, camera: shot(), moved: false };
         if (pan && (space || e.button === 1)) view.style.cursor = "grabbing";
         if (!pan) hold();
       }
@@ -544,6 +546,15 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
           take({ ...camera(), panX: gesture.camera.panX + (e.clientX - gesture.x), panY: gesture.camera.panY + (e.clientY - gesture.y) });
           emit(false, "drag");
         }
+      } else if (gesture.kind === "roll") {
+        const dx = e.clientX - gesture.x;
+        const dy = e.clientY - gesture.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) gesture.moved = true;
+        if (!canTurn()) return;
+        const r = view.getBoundingClientRect();
+        const radius = controller.grabRadius === "fit" ? Math.min(r.width, r.height) / 2 : controller.grabRadius;
+        take({ ...gesture.camera, roll: dragRoll(gesture.camera, dx, { width: r.width, height: r.height }, radius * gesture.camera.zoom) });
+        emit(false, "drag");
       } else if (gesture.kind === "turn") {
         const dx = e.clientX - gesture.x;
         const dy = e.clientY - gesture.y;
@@ -621,13 +632,13 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       if (!HANDLED_KEYS.includes(e.key)) return;
       grab();
       const up = controller.keyTilt === "wheel" ? -5 : 5;
-      const big = e.shiftKey ? 45 : 15;
+      const step = 15;
       const turn = (next: Partial<ViewState>): void => {
         if (canTurn()) controller.set(next, true, "key");
       };
       switch (e.key) {
-        case "ArrowLeft": turn({ yaw: state.yaw - big }); break;
-        case "ArrowRight": turn({ yaw: state.yaw + big }); break;
+        case "ArrowLeft": turn(e.shiftKey ? { roll: (state.roll ?? 0) - step } : { yaw: state.yaw - step }); break;
+        case "ArrowRight": turn(e.shiftKey ? { roll: (state.roll ?? 0) + step } : { yaw: state.yaw + step }); break;
         case "ArrowUp": turn({ tilt: state.tilt + up }); break;
         case "ArrowDown": turn({ tilt: state.tilt - up }); break;
         case "+": case "=": controller.zoomBy(1.25); break;
