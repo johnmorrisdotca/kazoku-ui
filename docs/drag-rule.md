@@ -3,7 +3,7 @@
 In every 3D or turnable view of the family (a globe, a garment, a rocket, a card, a device), **the surface under the pointer follows the pointer**:
 
 - Drag right and the surface under the pointer moves right. Drag up and it moves up.
-- The arrow keys agree: Arrow Right moves the surface right, and Arrow Up moves it up (the way a drag up does; `key-tilt="wheel"` swaps only the up and down keys). The wheel zooms about the pointer and never tips; Shift and the wheel, or a sideways swipe, turns.
+- The arrow keys agree: Arrow Right moves the surface right, and Arrow Up moves it up (the way a drag up does; `key-tilt="wheel"` swaps only the up and down keys). The wheel moves the view and never tips; Shift and the wheel moves sideways. Ctrl, Command or Alt with the wheel zooms about the pointer. Space and a drag, or the middle button, moves it. A plain left drag still turns.
 - Auto-turn goes the object's real way: a globe turns west to east, so its surface moves left to right.
 - On a globe, or any piece with a known on-screen radius, the point you touch **stays under the pointer**: a drag of 40 pixels moves the ground at the middle of the globe by 40 pixels. That is *exact grab*.
 

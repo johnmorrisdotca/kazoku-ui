@@ -102,7 +102,9 @@ The camera is `{ yaw, tilt, zoom, panX, panY }` and every gesture is a pure func
 | `pinchTo(start, a, b, centre, limits?)` | The camera for two fingers now at `a` and `b`. |
 | `dragTurn(start, dx, dy, size, tips, limits?, step?, grabRadius?)` | A one-pointer drag that turns. A finger does not tilt. |
 | `degreesPerPixel(radius)` | Degrees of turn for one pixel of drag on a sphere of that on-screen radius. |
-| `wheelZoomFactor(deltaY, deltaMode, kind)` | The factor a wheel turn zooms by: `kind` `"pinch"` (the default, Ctrl or Command and the wheel) or `"wheel"` (a plain wheel, about 1.2 times a notch). |
+| `wheelMove(event, page?)` | What one wheel event asks: Ctrl, Command or Alt zoom; a plain wheel moves; Shift moves sideways. A positive delta moves the picture up or to the left. |
+| `wheelPanPixels(delta, deltaMode, page?)` | Pixels one axis of a wheel moves. A line is 16 pixels and a page is `page` pixels. |
+| `wheelZoomFactor(deltaY, deltaMode, kind)` | The factor a zooming wheel turns by: `kind` `"pinch"` (the default, Ctrl or Command and the wheel) or `"wheel"` (Alt and a mouse wheel, about 1.2 times a notch). |
 | `WHEEL_GESTURE_MS` | Wheel steps closer together than this (300 ms) are one turn of the wheel or one swipe. |
 | `TURN_ACROSS`, `TILT_ACROSS` | Degrees of turn across the view's width (180) and of tilt across its height (60). |
 | `ZOOM_STEP`, `PAN_STEP`, `ZOOMED` | A zoom button's factor (1.4), the arrow pad's step (a quarter of the view) and the zoom at or below which the view counts as not zoomed. |

@@ -104,7 +104,9 @@ console.log(Object.keys(DEFAULT_KEYS).join(" "));
 | `pinchTo(start, a, b, centre, limits?)` | 2本の指が`a`と`b`にあるときのカメラ。 |
 | `dragTurn(start, dx, dy, size, tips, limits?, step?, grabRadius?)` | 1点のドラッグによる回転。指では傾きません。 |
 | `degreesPerPixel(radius)` | 画面上の半径がその値の球で、1ピクセルのドラッグが回す度数。 |
-| `wheelZoomFactor(deltaY, deltaMode, kind)` | ホイール1回のズーム倍率。`kind`は`"pinch"`（既定。CtrlかCommandを押したホイール）か`"wheel"`（ふつうのホイール。1目盛りで約1.2倍）。 |
+| `wheelMove(event, page?)` | ホイール1回の操作。Ctrl、Command、またはAltではズーム。ふつうのホイールでは移動。Shiftでは横へ移動。正のdeltaは、絵を上または左へ動かします。 |
+| `wheelPanPixels(delta, deltaMode, page?)` | ホイールの1軸が動かすピクセル数。1行は16ピクセル、1ページは`page`ピクセルです。 |
+| `wheelZoomFactor(deltaY, deltaMode, kind)` | ズームするホイールの倍率。`kind`は`"pinch"`（既定。CtrlかCommandを押したホイール）か`"wheel"`（Altとマウスホイール。1目盛りで約1.2倍）。 |
 | `WHEEL_GESTURE_MS` | 間隔が300ミリ秒より短いホイールの動きは、ホイールの1回の回転、または1回のスワイプとして扱います。 |
 | `TURN_ACROSS`、`TILT_ACROSS` | ビューの幅いっぱいでの回転の度数（180）と、高さいっぱいでの傾きの度数（60）。 |
 | `ZOOM_STEP`、`PAN_STEP`、`ZOOMED` | ズームボタンの倍率（1.4）、矢印パッドの1歩（ビューの4分の1）、これ以下のズームでは「ズームしていない」と見なす値。 |

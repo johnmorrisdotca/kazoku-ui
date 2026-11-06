@@ -36,6 +36,7 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `slow` | Slow | ゆっくり | yukkuri, slowly |
 | `medium` | Medium | ふつう | futsū, normal |
 | `fast` | Fast | はやい | hayai, fast |
+| `gestures` | The wheel moves the view. Ctrl, Command or Alt with the wheel zooms about the pointer. Space and a drag, or the middle button, moves it. | ホイールでビューが動きます。Ctrl、Command、またはAltを押しながらホイールを回すと、ポインターを中心にズームします。Spaceを押しながらのドラッグ、またはマウスの中ボタンを押したままのドラッグで、ビューが動きます。 | hoīru de byū ga ugokimasu. The wheel moves the view. Not shown; a screen reader reads it. |
 
 ## Theme switch
 

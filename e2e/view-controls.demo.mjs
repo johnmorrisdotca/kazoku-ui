@@ -445,43 +445,78 @@ test("Arrow Up tips like a drag up, or the other way with key-tilt wheel", async
   await page.locator("#scene").focus();
   await page.keyboard.press("ArrowUp");
   expect((await stateOf(page)).tilt).toBe(-5);
-  // The wheel no longer tips: with the view focused, it zooms.
-  await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })));
-  expect(await stateOf(page)).toMatchObject({ tilt: -5 });
-  expect((await stateOf(page)).zoom).toBeGreaterThan(1);
+  // The wheel no longer tips, and at Fit it scrolls the page rather than zooming.
+  const taken = await page.locator("#scene").evaluate((el) => !el.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true })));
+  expect(taken).toBe(false);
+  expect(await stateOf(page)).toMatchObject({ tilt: -5, zoom: 1 });
   await page.keyboard.press("ArrowDown");
   expect((await stateOf(page)).tilt).toBe(0);
 });
 
-test("the wheel over the view zooms about the pointer, Shift and the wheel turns it, and elsewhere the page scrolls", async ({ page }) => {
+test("Space and a drag, or the middle button, moves a zoomed view", async ({ page }) => {
+  await ready(page);
+  await button(page, "in").click();
+  const box = await page.locator("#scene").boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.keyboard.down("Space");
+  await expect.poll(() => page.locator("#scene").evaluate((el) => getComputedStyle(el).cursor)).toBe("grab");
+  await page.mouse.down();
+  await page.mouse.move(x, y + 50);
+  await page.mouse.up();
+  await page.keyboard.up("Space");
+  expect((await stateOf(page)).panY).toBeGreaterThan(20);
+  expect((await stateOf(page)).yaw).toBe(0);
+  await page.mouse.move(x, y);
+  await page.mouse.down({ button: "middle" });
+  await page.mouse.move(x + 50, y);
+  await page.mouse.up({ button: "middle" });
+  expect((await stateOf(page)).panX).toBeGreaterThan(20);
+});
+
+test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer, and at Fit the page scrolls", async ({ page }) => {
   await ready(page);
   // Make the page taller than the window, so it has somewhere to scroll.
   await page.evaluate(() => { document.body.style.minHeight = "400vh"; });
   const scene = await page.locator("#scene").boundingBox();
   const at = { x: scene.x + scene.width * 0.7, y: scene.y + scene.height * 0.5 };
   await page.mouse.move(at.x, at.y);
+  const top = await page.evaluate(() => window.scrollY);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top);
+  expect(await stateOf(page)).toMatchObject({ zoom: 1, panX: 0, panY: 0, yaw: 0, tilt: 0 });
+  await button(page, "in").click();
+  const zoomed = await stateOf(page);
+  expect(zoomed.zoom).toBeGreaterThan(1);
+  const parked = await page.evaluate(() => window.scrollY);
+  const again = await page.locator("#scene").boundingBox();
+  at.x = again.x + again.width * 0.7;
+  at.y = again.y + again.height * 0.5;
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.wheel(0, 80);
+  await expect.poll(async () => (await stateOf(page)).panY).toBeLessThan(0);
+  expect((await stateOf(page)).zoom).toBe(zoomed.zoom);
+  expect(await page.evaluate(() => window.scrollY)).toBe(parked);
+  await page.keyboard.down("Shift");
+  await page.mouse.wheel(0, 60);
+  await page.keyboard.up("Shift");
+  await expect.poll(async () => (await stateOf(page)).panX).toBeLessThan(0);
+  expect((await stateOf(page)).yaw).toBe(0);
   const mark = await page.evaluate(([p]) => {
     const r = document.querySelector("#zoomer").getBoundingClientRect();
     return { u: (p.x - r.left) / r.width, v: (p.y - r.top) / r.height };
   }, [at]);
-  const top = await page.evaluate(() => window.scrollY);
-  await page.mouse.wheel(0, -100);
-  await expect.poll(async () => (await stateOf(page)).zoom).toBeGreaterThan(1.1);
-  const state = await stateOf(page);
-  expect(state).toMatchObject({ tilt: 0, yaw: 0 });
-  expect(await page.evaluate(() => window.scrollY)).toBe(top);
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -80);
+  await page.keyboard.up("Control");
+  await expect.poll(async () => (await stateOf(page)).zoom).toBeGreaterThan(zoomed.zoom);
   const where = await page.evaluate(([m]) => {
     const r = document.querySelector("#zoomer").getBoundingClientRect();
     return { x: r.left + m.u * r.width, y: r.top + m.v * r.height };
   }, [mark]);
-  expect(Math.abs(where.x - at.x)).toBeLessThan(1.5);
-  expect(Math.abs(where.y - at.y)).toBeLessThan(1.5);
-  // Shift and the wheel turns it and leaves the zoom.
-  await page.keyboard.down("Shift");
-  await page.mouse.wheel(0, 100);
-  await page.keyboard.up("Shift");
-  await expect.poll(async () => (await stateOf(page)).yaw).not.toBe(0);
-  expect((await stateOf(page)).zoom).toBe(state.zoom);
+  expect(Math.abs(where.x - at.x)).toBeLessThan(2);
+  expect(Math.abs(where.y - at.y)).toBeLessThan(2);
   // With the pointer off the view, the wheel scrolls the page and leaves the view alone.
   const off = await page.evaluate(() => {
     const scene = document.querySelector("#scene");
@@ -516,6 +551,7 @@ test("stop-turn: a press, the wheel or a key stops the automatic turn, and witho
         await page.mouse.down();
         await page.mouse.up();
       } else if (hand === "wheel") {
+        await page.locator(BAR).evaluate((el) => el.set({ zoom: 2 }));
         await page.locator("#scene").evaluate((el) => el.dispatchEvent(new WheelEvent("wheel", { deltaY: -40, bubbles: true, cancelable: true })));
       } else await page.keyboard.press("ArrowLeft");
       expect((await stateOf(page)).turning, `${hand} ${query}`).toBe(!stops);

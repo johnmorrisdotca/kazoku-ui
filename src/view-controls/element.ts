@@ -83,6 +83,7 @@ const HTML = `
     </div>
   </div>
   <button type="button" class="more" data-b="more" aria-expanded="false" part="button">${ICON.more}<span class="text" data-w="more"></span></button>
+  <span class="vh" data-w="gestures"></span>
   <span class="vh" role="status" aria-live="polite" data-live></span>
 </div>`;
 
@@ -90,7 +91,7 @@ const HTML = `
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
  * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice of the Left and Right buttons is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice of the buttons is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
- * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself zooms),
+ * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself moves),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
  * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light

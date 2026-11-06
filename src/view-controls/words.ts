@@ -37,6 +37,8 @@ export interface ViewWords {
   slow: string;
   medium: string;
   fast: string;
+  /** How the wheel, a pinch and Space move the view. Read out, not shown. */
+  gestures: string;
 }
 
 export type Language = "en" | "ja";
@@ -75,6 +77,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "Slow",
     medium: "Medium",
     fast: "Fast",
+    gestures: "The wheel moves the view. Ctrl, Command or Alt with the wheel zooms about the pointer. Space and a drag, or the middle button, moves it.",
   },
   ja: {
     group: "表示の操作",
@@ -109,6 +112,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "ゆっくり",
     medium: "ふつう",
     fast: "はやい",
+    gestures: "ホイールでビューが動きます。Ctrl、Command、またはAltを押しながらホイールを回すと、ポインターを中心にズームします。Spaceを押しながらのドラッグ、またはマウスの中ボタンを押したままのドラッグで、ビューが動きます。",
   },
 };
 

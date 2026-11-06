@@ -106,7 +106,7 @@ export function between(from: Camera, to: Camera, fraction: number): Camera {
 
 /**
  * The factor a wheel turn zooms by: up (a negative `deltaY`) zooms in. `deltaMode` 1 is lines and 2 is pages. `kind` `"pinch"` (the default) is a
- * trackpad's pinch, which arrives as Ctrl and the wheel in small steps; `"wheel"` is a plain wheel or two-finger scroll, whose steps are larger
+ * trackpad's pinch, which arrives as Ctrl and the wheel in small steps; `"wheel"` is Alt and a mouse wheel, whose steps are larger
  * (about 100 pixels a notch), so one notch zooms about 1.2 times, close to the + key, and one such event never zooms more than 2 times either way.
  */
 export const wheelZoomFactor = (deltaY: number, deltaMode: number, kind: "pinch" | "wheel" = "pinch"): number => {
@@ -116,6 +116,24 @@ export const wheelZoomFactor = (deltaY: number, deltaMode: number, kind: "pinch"
 
 /** Wheel steps closer together than this, in milliseconds, belong to one turn of the wheel or one swipe (with its glide). */
 export const WHEEL_GESTURE_MS = 300;
+
+/** Pixels one axis of a wheel or a swipe moves the view. A line is 16 pixels and a page is `page` pixels. The sign is the event's own. */
+export const wheelPanPixels = (delta: number, deltaMode: number, page = 800): number =>
+  deltaMode === 1 ? delta * 16 : deltaMode === 2 ? delta * page : delta;
+
+/**
+ * What one wheel event asks of the view. Ctrl, Command or Alt zoom about the pointer (a trackpad pinch arrives as Ctrl and small steps).
+ * A plain wheel moves the view, and Shift and the wheel moves it sideways. A positive delta moves the picture up or to the left, the way a page scrolls.
+ */
+export function wheelMove(
+  event: { deltaX: number; deltaY: number; deltaMode: number; shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean },
+  page = 800,
+): { zoom: boolean; panX: number; panY: number } {
+  if (event.ctrlKey || event.metaKey || event.altKey) return { zoom: true, panX: 0, panY: 0 };
+  const dx = wheelPanPixels(event.shiftKey ? event.deltaY + event.deltaX : event.deltaX, event.deltaMode, page);
+  const dy = event.shiftKey ? 0 : wheelPanPixels(event.deltaY, event.deltaMode, page);
+  return { zoom: false, panX: -dx, panY: -dy };
+}
 
 /** A rotation. `w` is the real part. The identity is `{ x: 0, y: 0, z: 0, w: 1 }`. */
 export interface Quat {

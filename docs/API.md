@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-54 values and 23 types.
+56 values and 23 types.
 
 ```js
-import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -356,6 +356,34 @@ function upVector(q: Quat): Vec3;
 
 ```ts
 const WHEEL_GESTURE_MS = 300;
+```
+
+### wheelMove
+
+*function*. What one wheel event asks of the view. Ctrl, Command or Alt zoom about the pointer (a trackpad pinch arrives as Ctrl and small steps).
+
+```ts
+function wheelMove(event: {
+    deltaX: number;
+    deltaY: number;
+    deltaMode: number;
+    shiftKey?: boolean;
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    altKey?: boolean;
+}, page?: number): {
+    zoom: boolean;
+    panX: number;
+    panY: number;
+};
+```
+
+### wheelPanPixels
+
+*constant*. Pixels one axis of a wheel or a swipe moves the view. A line is 16 pixels and a page is `page` pixels. The sign is the event's own.
+
+```ts
+const wheelPanPixels: (delta: number, deltaMode: number, page?: number) => number;
 ```
 
 ### wheelZoomFactor
@@ -777,7 +805,7 @@ interface ViewControllerOptions {
     ignore?: string;
     /** The point the zoom buttons and keys zoom about, in content coordinates: CSS pixels from the view's middle when it is at Fit (zoom 1, no pan). It moves with the picture, so the point stays where it is on screen while the view zooms. Left out, they zoom about the view's middle. */
     anchor?: Point;
-    /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
+    /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel moves now). */
     keyTilt?: KeyTilt;
     /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
     stopTurn?: boolean;
@@ -852,6 +880,8 @@ interface ViewWords {
     slow: string;
     medium: string;
     fast: string;
+    /** How the wheel, a pinch and Space move the view. Read out, not shown. */
+    gestures: string;
 }
 ```
 

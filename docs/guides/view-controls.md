@@ -12,7 +12,7 @@ description: The view-controls element in full: what the reader gets, every attr
 ## What the reader gets
 
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
-- A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. The wheel over the view, a pinch, or Ctrl or Command with the wheel zooms about the pointer; Shift and the wheel, or a sideways swipe, turns it. Elsewhere the wheel scrolls the page, and so does a new turn of the wheel once the zoom is at its end that way.
+- A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. The middle button and a drag, or Space and a drag, moves it, and the pointer is a hand while Space is held. A plain left drag still turns. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, `+` and `-` zoom, `0` or Home is Front and Fit.
 - English and Japanese labels, light and dark, 48 px touch targets, a compact bar on a phone, and no automatic turn for a reader who prefers reduced motion.
@@ -69,7 +69,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `fit-scale` | The scale your page draws the scene at when it is at Fit (event `zoom` 1). 1 by default. Or call `element.setFitScale(n)` once the scene is measured. |
 | `ignore` | A CSS selector for what inside the view a press leaves alone, so its click goes through: `button, a, input, select, textarea, label, [data-kazoku-ignore]` by default. |
 | `anchor` | `x,y`: the point the + and - buttons, the 2x button and the keys zoom about, in CSS pixels from the middle of the view at Fit. |
-| `key-tilt` | `drag` (the default: Arrow Up tips like a drag up) or `wheel` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel zooms now). |
+| `key-tilt` | `drag` (the default: Arrow Up tips like a drag up) or `wheel` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel moves now). |
 | `stop-turn` | A press, the wheel or a key stops the automatic turn. Off by default; buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees. 0 by default: not rounded. |
 | `object-size` | `w,h`: the object's size at Fit in CSS pixels when it is smaller than the view; a pan then keeps at least a quarter of it in view. |

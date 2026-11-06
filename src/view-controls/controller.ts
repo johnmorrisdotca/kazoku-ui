@@ -4,7 +4,7 @@
 import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import type { TurnAxis } from "./levels.ts";
-import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
   /** The pose the page should draw. A tumble keeps this continuous when the slider numbers fold at a pole. */
@@ -25,7 +25,7 @@ export interface ChangeInfo {
 /** What `bind` leaves alone by default: the page's own controls inside the view. */
 export const DEFAULT_IGNORE = "button, a, input, select, textarea, label, [data-kazoku-ignore]";
 
-/** Which way Arrow Up tips the view: like a drag up (`"drag"`, the default) or the other way (`"wheel"`, the way the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
+/** Which way Arrow Up tips the view: like a drag up (`"drag"`, the default) or the other way (`"wheel"`, the way the wheel turned up tipped it before 0.13.0; the wheel moves now). */
 export type KeyTilt = "drag" | "wheel";
 
 export interface Clock {
@@ -50,7 +50,7 @@ export interface ViewControllerOptions {
   ignore?: string;
   /** The point the zoom buttons and keys zoom about, in content coordinates: CSS pixels from the view's middle when it is at Fit (zoom 1, no pan). It moves with the picture, so the point stays where it is on screen while the view zooms. Left out, they zoom about the view's middle. */
   anchor?: Point;
-  /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel zooms now). */
+  /** Which way Arrow Up tips the view: `"drag"` (the default, as a drag up) or `"wheel"` (the other way, as the wheel turned up tipped it before 0.13.0; the wheel moves now). */
   keyTilt?: KeyTilt;
   /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
   stopTurn?: boolean;
@@ -476,6 +476,36 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       return false;
     };
 
+    let space = false;
+    let over = false;
+    const showHand = (): void => {
+      view.style.cursor = space && over ? "grab" : "";
+    };
+    const onEnter = (): void => {
+      over = true;
+      showHand();
+    };
+    const onLeave = (): void => {
+      over = false;
+      if (gesture?.kind !== "pan") showHand();
+    };
+    const typing = (target: EventTarget | null): boolean => {
+      const node = target as Element | null;
+      return node !== null && typeof node.closest === "function" && node.closest("input, textarea, select, [contenteditable='true']") !== null;
+    };
+    const onSpace = (e?: KeyboardEvent): void => {
+      if (!e || (e.key !== " " && e.key !== "Spacebar")) return;
+      if (e.type === "keyup") {
+        space = false;
+        showHand();
+        return;
+      }
+      if (typing(e.target) || (!over && gesture?.kind !== "pan")) return;
+      space = true;
+      showHand();
+      e.preventDefault();
+    };
+
     const onDown = (e: PointerEvent): void => {
       if (e.pointerType === "mouse" && e.button > 2) return;
       if (ignored(e)) return;
@@ -491,9 +521,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         gesture = { kind: "pinch", start: { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, camera: camera() } };
         release();
       } else if (pointers.size === 1) {
-        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift, the middle or the right button always move a zoomed view. A flat view cannot turn, so a drag moves it.
-        const pan = e.button === 1 || e.button === 2 || e.shiftKey || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn"));
+        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift, the middle or the right button, and Space, move a zoomed view. A flat view cannot turn, so a drag moves it.
+        const pan = space || e.button === 1 || e.button === 2 || e.shiftKey || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn"));
         gesture = { kind: pan ? "pan" : "turn", x: e.clientX, y: e.clientY, camera: camera(), moved: false };
+        if (pan && (space || e.button === 1)) view.style.cursor = "grabbing";
         if (!pan) hold();
       }
       view.dataset.grab = "1";
@@ -539,6 +570,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         gesture = undefined;
         release();
         delete view.dataset.grab;
+        showHand();
         emit(true, "drag");
         // A double press (two quick taps or clicks, hardly moved): in to 2x where it was pressed, and again back to 1x.
         if (!wasPinch && !moved && e.type === "pointerup") {
@@ -553,33 +585,35 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       }
     };
 
-    // The wheel over the view zooms it about the pointer, as a map does; the page scrolls when the pointer is anywhere else. Ctrl or Command
-    // and the wheel (a trackpad's pinch) zooms too. Shift and the wheel, or a sideways swipe, turns it. Tipping is left to a drag, the keys
-    // and the buttons. A wheel that starts while the zoom is already at its end that way (zooming out at Fit) goes on to scroll the page,
-    // so the page is never trapped; one that reaches the end part-way through stops there rather than flinging the page.
+    // The plain wheel moves the view, and Shift and the wheel moves it sideways. Ctrl, Command or Alt and the wheel, and a pinch, zoom about the pointer.
+    // At Fit there is nothing to move, so the plain wheel scrolls the page. Once zoomed in, the wheel moves the view, and a new turn that starts already at the edge of that move scrolls the page again.
+    // A turn that reaches the edge part-way through stays with the view, so the page does not jump. Ctrl or Command and the wheel is always the view's, or the browser would zoom the page.
     let wheelTaken = Number.NEGATIVE_INFINITY;
     const onWheel = (e: WheelEvent): void => {
-      const pinch = e.ctrlKey || e.metaKey;
       const now = Number.isFinite(e.timeStamp) ? e.timeStamp : 0;
       const continuing = now - wheelTaken < WHEEL_GESTURE_MS && now >= wheelTaken;
-      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
-      if (!pinch && (horizontal || e.shiftKey)) {
-        if (!canTurn()) return;
+      const asked = wheelMove(e, view.getBoundingClientRect().height || 800);
+      if (asked.zoom) {
+        const pinch = e.ctrlKey || e.metaKey;
+        const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
+        const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
+        if (!pinch && atEnd && !continuing) return;
         e.preventDefault();
         wheelTaken = now;
+        if (atEnd) return;
         grab();
-        controller.set({ yaw: state.yaw + (e.deltaX || e.deltaY) * 0.3 }, true, "wheel");
+        controller.zoomAt(state.zoom * factor, { x: e.clientX, y: e.clientY });
         return;
       }
-      const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
-      const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
-      // Ctrl and the wheel is always the view's, or the browser would zoom the whole page.
-      if (!pinch && atEnd && !continuing) return;
+      const next = clampPan({ ...camera(), panX: state.panX + asked.panX, panY: state.panY + asked.panY }, size(), controller.objectSize);
+      const moved = next.panX !== state.panX || next.panY !== state.panY;
+      if (!moved && !continuing) return;
       e.preventDefault();
       wheelTaken = now;
-      if (atEnd) return;
+      if (!moved) return;
       grab();
-      controller.zoomAt(state.zoom * factor, { x: e.clientX, y: e.clientY });
+      take(next);
+      emit(true, "wheel");
     };
 
     const onKey = (e: KeyboardEvent): void => {
@@ -605,12 +639,17 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     };
 
     const onMenu = (e: Event): void => e.preventDefault();
+    const doc = view.ownerDocument;
     view.addEventListener("pointerdown", onDown);
     view.addEventListener("pointermove", onMove);
     view.addEventListener("pointerup", onUp);
     view.addEventListener("pointercancel", onUp);
+    view.addEventListener("pointerenter", onEnter);
+    view.addEventListener("pointerleave", onLeave);
     view.addEventListener("wheel", onWheel, { passive: false });
     view.addEventListener("keydown", onKey);
+    doc.addEventListener?.("keydown", onSpace);
+    doc.addEventListener?.("keyup", onSpace);
     // A right press is a pan, not the browser's menu.
     view.addEventListener("contextmenu", onMenu);
     view.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
@@ -621,8 +660,12 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       view.removeEventListener("pointermove", onMove);
       view.removeEventListener("pointerup", onUp);
       view.removeEventListener("pointercancel", onUp);
+      view.removeEventListener("pointerenter", onEnter);
+      view.removeEventListener("pointerleave", onLeave);
       view.removeEventListener("wheel", onWheel);
       view.removeEventListener("keydown", onKey);
+      doc.removeEventListener?.("keydown", onSpace);
+      doc.removeEventListener?.("keyup", onSpace);
       view.removeEventListener("contextmenu", onMenu);
       view.style.touchAction = "";
       release();
