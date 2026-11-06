@@ -28,11 +28,13 @@ test("a drag snaps to a corner, Escape folds it, and the chip opens it again", a
   await expect(title(page)).toHaveText("Planet options");
   await expect(win(page)).toHaveAttribute("open", "");
   await expect(win(page)).toContainText("Turn speed");
-  const buttons = await win(page).locator("button").evaluateAll((all) => all.map((node) => { const box = node.getBoundingClientRect(); return [box.width, box.height]; }));
-  expect(buttons.length).toBeGreaterThanOrEqual(3);
-  for (const [width, height] of buttons) {
-    expect(width).toBeGreaterThanOrEqual(47.5);
-    expect(height).toBeGreaterThanOrEqual(47.5);
+  const icons = await win(page).locator('[data-act="help"], [data-act="fold"]').evaluateAll((all) => all.map((node) => { const box = node.getBoundingClientRect(); return [box.width, box.height]; }));
+  expect(icons.length).toBe(2);
+  for (const [width, height] of icons) {
+    expect(width).toBeLessThanOrEqual(32);
+    expect(height).toBeLessThanOrEqual(32);
+    expect(width).toBeGreaterThanOrEqual(24);
+    expect(height).toBeGreaterThanOrEqual(24);
   }
 
   const start = await win(page).evaluate((el) => ({ left: el.offsetLeft, top: el.offsetTop }));
@@ -57,11 +59,11 @@ test("a drag snaps to a corner, Escape folds it, and the chip opens it again", a
   await expect(win(page).locator(".help-panel")).toBeVisible();
   await buttonsClear(page);
   await expect(win(page).locator(".gestures")).toContainText("Shift and a drag");
-  await expect(page.locator('#win p[slot="help"]')).toBeVisible();
+  await expect(page.locator('#win [slot="help"]')).toBeVisible();
   await title(page).focus();
   await page.keyboard.press("Escape");
   await expect(win(page).locator(".help-panel")).toBeHidden();
-  await expect(page.locator('#win p[slot="help"]')).toBeHidden();
+  await expect(page.locator('#win [slot="help"]')).toBeHidden();
   await title(page).focus();
   await page.keyboard.press("Escape");
   await expect(win(page)).not.toHaveAttribute("open", "");
@@ -100,8 +102,8 @@ test("on a phone the card is a sheet at the bottom", async ({ page }, testInfo) 
 test("Japanese labels follow the page", async ({ page }) => {
   await page.goto("/options.html");
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
-  await expect(win(page).locator('[data-act="fold"]')).toHaveText("しまう");
-  await expect(win(page).locator('[data-act="help"]')).toHaveText("ヘルプ");
+  await expect(win(page).locator('[data-act="fold"]')).toHaveAttribute("aria-label", "しまう");
+  await expect(win(page).locator('[data-act="help"]')).toHaveAttribute("aria-label", "ヘルプ");
   await page.locator("#win").locator('[data-act="help"]').click();
   await expect(win(page)).toContainText("ひねり");
   await buttonsClear(page);

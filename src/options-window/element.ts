@@ -72,7 +72,7 @@ export class OptionsWindowElement extends HTMLElement {
     this.#point = remembered.at;
     this.#reflectOpen();
     this.#render();
-    this.classList.toggle("sheet", this.#sheet());
+    this.classList.toggle("as-sheet", this.#sheet());
     this.#ready = true;
     this.#placeNow();
     requestAnimationFrame(() => {
@@ -107,7 +107,7 @@ export class OptionsWindowElement extends HTMLElement {
   }
 
   #onSheet = (): void => {
-    this.classList.toggle("sheet", this.#sheet());
+    this.classList.toggle("as-sheet", this.#sheet());
     this.#placeNow();
   };
 
@@ -220,9 +220,23 @@ export class OptionsWindowElement extends HTMLElement {
     const frame = doc.createElement("div");
     frame.className = "frame";
     frame.setAttribute("role", "region");
+    const grab = doc.createElement("div");
+    grab.className = "grab";
+    grab.dataset.act = "handle";
     const bar = doc.createElement("div");
     bar.className = "bar";
-    for (const act of ["title", "help", "fold"] as const) {
+    const handle = doc.createElement("span");
+    handle.className = "handle";
+    handle.dataset.act = "handle";
+    handle.setAttribute("part", "handle");
+    for (let dot = 0; dot < 6; dot += 1) handle.append(doc.createElement("i"));
+    const name = doc.createElement("span");
+    name.className = "name";
+    name.dataset.act = "title";
+    name.tabIndex = 0;
+    name.setAttribute("part", "title");
+    bar.append(handle, name);
+    for (const act of ["help", "fold"] as const) {
       const button = doc.createElement("button");
       button.type = "button";
       button.dataset.act = act;
@@ -236,12 +250,12 @@ export class OptionsWindowElement extends HTMLElement {
     const help = doc.createElement("div");
     help.className = "help-panel";
     help.setAttribute("part", "help-panel");
-    const gestures = doc.createElement("p");
+    const gestures = doc.createElement("table");
     gestures.className = "gestures";
     const extra = doc.createElement("slot");
     extra.name = "help";
     help.append(gestures, extra);
-    frame.append(bar, body, help);
+    frame.append(grab, bar, body, help);
     bar.addEventListener("pointerdown", this.#down);
     bar.addEventListener("pointermove", this.#move);
     bar.addEventListener("pointerup", this.#up);
@@ -256,7 +270,7 @@ export class OptionsWindowElement extends HTMLElement {
   #paint(): void {
     const words = wordsFor(this.#language(), this.#words);
     const frame = this.#root.querySelector(".frame");
-    const title = this.#root.querySelector<HTMLButtonElement>('[data-act="title"]');
+    const title = this.#root.querySelector<HTMLElement>('[data-act="title"]');
     const help = this.#root.querySelector<HTMLButtonElement>('[data-act="help"]');
     const fold = this.#root.querySelector<HTMLButtonElement>('[data-act="fold"]');
     const body = this.#root.querySelector<HTMLElement>(".body");
@@ -270,33 +284,55 @@ export class OptionsWindowElement extends HTMLElement {
       title.setAttribute("aria-label", this.#open ? name : `${words.expand}: ${name}`);
     }
     if (help) {
-      help.textContent = this.#helpOpen ? words.closeHelp : words.help;
+      help.textContent = "?";
+      help.setAttribute("aria-label", this.#helpOpen ? words.closeHelp : words.help);
       help.setAttribute("aria-pressed", String(this.#helpOpen));
       help.hidden = !this.#open;
     }
     if (fold) {
-      fold.textContent = words.collapse;
+      fold.textContent = "−";
+      fold.setAttribute("aria-label", words.collapse);
       fold.hidden = !this.#open;
     }
     if (body) body.hidden = !this.#open;
     if (panel) panel.hidden = !this.#open || !this.#helpOpen;
-    if (gestures) gestures.textContent = gestureHelp(this.#language());
+    if (gestures) this.#gestureTable(gestures, gestureHelp(this.#language()));
+  }
+
+  /** The shared gesture line as two columns, one row per gesture. */
+  #gestureTable(table: Element, text: string): void {
+    table.replaceChildren();
+    const mark = text.includes("。") ? "。" : ". ";
+    const split = text.includes("：") ? "：" : ": ";
+    for (const part of text.split(mark)) {
+      const line = part.trim().replace(/\.$/, "");
+      if (!line) continue;
+      const at = line.indexOf(split);
+      const row = table.ownerDocument.createElement("tr");
+      const label = table.ownerDocument.createElement("th");
+      const detail = table.ownerDocument.createElement("td");
+      label.textContent = at === -1 ? line : line.slice(0, at);
+      detail.textContent = at === -1 ? "" : line.slice(at + split.length);
+      row.append(label, detail);
+      table.append(row);
+    }
   }
 
   #down = (event: PointerEvent): void => {
     if (event.button !== 0) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    if (target.dataset.act === "help") {
+    const act = target.closest<HTMLElement>("[data-act]")?.dataset.act;
+    if (act === "help") {
       this.#helpOpen = !this.#helpOpen;
       this.#paint();
       return;
     }
-    if (target.dataset.act === "fold") {
+    if (act === "fold") {
       this.#setOpen(false);
       return;
     }
-    if (target.dataset.act !== "title" || this.#sheet() || parseVariant(this.getAttribute("variant")) === "shelf") return;
+    if ((act !== "title" && act !== "handle") || this.#sheet() || parseVariant(this.getAttribute("variant")) === "shelf") return;
     this.#drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: this.offsetLeft, top: this.offsetTop, moved: false };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   };
