@@ -57,7 +57,8 @@
     "./dist/save-image/define.js",
     "./dist/speed-buttons/define.js",
     "./dist/embed-panel/define.js",
-    "./dist/replay-bar/define.js"
+    "./dist/replay-bar/define.js",
+    "./dist/options-window/define.js"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -162,6 +163,21 @@
       "types": "./dist/replay-bar/define.d.ts",
       "import": "./dist/replay-bar/define.js",
       "default": "./dist/replay-bar/define.js"
+    },
+    "./options-window": {
+      "types": "./dist/options-window/index.d.ts",
+      "import": "./dist/options-window/index.js",
+      "default": "./dist/options-window/index.js"
+    },
+    "./options-window/element": {
+      "types": "./dist/options-window/element.d.ts",
+      "import": "./dist/options-window/element.js",
+      "default": "./dist/options-window/element.js"
+    },
+    "./options-window/define": {
+      "types": "./dist/options-window/define.d.ts",
+      "import": "./dist/options-window/define.js",
+      "default": "./dist/options-window/define.js"
     },
     "./embed-panel": {
       "types": "./dist/embed-panel/index.d.ts",

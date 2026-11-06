@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: options window</title>
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    .stage { position: relative; height: 560px; border: 1px solid #c9ccd3; border-radius: 12px; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">options window</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
+  <p class="intro" data-say="intro">A small window over the view. Drag the title, fold it to a chip, and snap it to a corner. The page fills it.</p>
+  <div class="stage" id="stage" data-testid="stage">
+    <kazoku-options-window id="win" title="Planet options" address data-testid="window">
+      <p data-testid="body">Turn speed</p>
+      <p slot="help">How fast it spins.</p>
+    </kazoku-options-window>
+  </div>
+  <div class="stage" id="shelf-stage" data-testid="shelf-stage">
+    <kazoku-options-window id="shelf" title="Planet options" variant="shelf" data-testid="shelf">
+      <p>Turn speed</p>
+    </kazoku-options-window>
+  </div>
+</main>
+<script type="module" src="options.js"></script>
+</body>
+</html>

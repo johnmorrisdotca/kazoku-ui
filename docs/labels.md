@@ -83,6 +83,18 @@ The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no 
 | `start` | Start | 最初へ | saisho e, to the start |
 | `repeat` | Repeat | 繰り返し | kurikaeshi, repeat |
 
+## Options window
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Options | オプション | opushon, options (the window's name when the page gives it none) |
+| `collapse` | Collapse | しまう | shimau, to fold it away |
+| `expand` | Open | 開く | hiraku, to open |
+| `help` | Help | ヘルプ | herupu, help |
+| `closeHelp` | Close help | ヘルプを閉じる | herupu o tojiru, close the help |
+
+The gesture line in the help is the view controls' `gestures` sentence, not a second copy.
+
 ## Embed panel
 
 | Key | English | 日本語 | Reading and meaning |

@@ -80,6 +80,14 @@ const PARTS = [
   assert.equal(pure.flagOn("off"), false);
   assert.deepEqual(pure.addressKeys("play:p"), { play: "p", repeat: "repeat" });`,
   },
+  {
+    name: "options-window", tag: "kazoku-options-window", cls: "OptionsWindowElement", define: "defineOptionsWindow",
+    pure: ["VARIANTS", "parseVariant", "SNAPS", "settle", "namedPlace", "parsePlace", "frameOf", "addressKeys", "OPEN_KEY", "PLACE_KEY", "WORDS", "wordsFor", "languageOf", "gestureHelp", "TAG"],
+    run: `assert.equal(pure.parseVariant("nope"), "card");
+  assert.equal(pure.settle({ width: 800, height: 600 }, { width: 280, height: 160 }, { x: 4, y: 4 }).snap, "tl");
+  assert.equal(pure.frameOf("shelf", { title: "Planet options", help: "h", open: true }).presentation, "edge");
+  assert.equal(pure.addressKeys("open:ow").open, "ow");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
@@ -150,5 +158,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js"];
+const files = ["save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);

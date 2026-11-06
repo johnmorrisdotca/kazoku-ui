@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window"];
 ```
 
 ### Part
@@ -2474,6 +2474,281 @@ import { defineReplayBar } from '@johnmorrisdotca/kazoku-ui/replay-bar/define';
 
 ```ts
 function defineReplayBar(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/options-window`
+
+15 values and 8 types.
+
+```js
+import { addressKeys, frameOf, gestureHelp, languageOf, namedPlace, OPEN_KEY, parsePlace, parseVariant, PLACE_KEY, settle, SNAPS, TAG, VARIANTS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/options-window';
+```
+
+### addressKeys
+
+*function*. `open:ow,place:op` renames either key. A missing half keeps its own name.
+
+```ts
+function addressKeys(raw: string | null | undefined): {
+    open: string;
+    place: string;
+};
+```
+
+### frameOf
+
+*function*. The same title, help and open state in whichever frame the page picked. Only the presentation changes.
+
+```ts
+function frameOf(variant: Variant, content: WindowContent): WindowContent & {
+    variant: Variant;
+    presentation: "float" | "edge" | "wide";
+};
+```
+
+### gestureHelp
+
+*constant*. The view's mouse and keyboard, in the reader's language. The same sentence the view controls show.
+
+```ts
+const gestureHelp: (language: Language) => string;
+```
+
+### languageOf
+
+*constant*. Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### namedPlace
+
+*function*. The top-left of a window sitting on a named corner or edge, held inside the view.
+
+```ts
+function namedPlace(view: ViewSize, size: ViewSize, snap: Snap): Point;
+```
+
+### OPEN_KEY
+
+*constant*
+
+```ts
+const OPEN_KEY = "open";
+```
+
+### parsePlace
+
+*function*. A remembered place: a corner or edge name, or `x,y` pixels. Anything else is nothing.
+
+```ts
+function parsePlace(value: string | null | undefined): {
+    snap: Exclude<Snap, "free">;
+} | Point | null;
+```
+
+### parseVariant
+
+*function*. The frame a page asked for. Anything else is the card.
+
+```ts
+function parseVariant(value: string | null | undefined): Variant;
+```
+
+### PLACE_KEY
+
+*constant*
+
+```ts
+const PLACE_KEY = "place";
+```
+
+### settle
+
+*function*. A window dragged to `at`, held inside the view. Within `snapPx` of an edge it sits on that edge, and on a corner when it is near two.
+
+```ts
+function settle(view: ViewSize, size: ViewSize, at: Point, snapPx?: number): Place;
+```
+
+### SNAPS
+
+*constant*
+
+```ts
+const SNAPS: readonly ["tl", "tr", "bl", "br", "left", "right", "top", "bottom", "free"];
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-options-window";
+```
+
+### VARIANTS
+
+*constant*
+
+```ts
+const VARIANTS: readonly ["card", "shelf", "inspector"];
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, OptionsWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<OptionsWords>) => OptionsWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### OptionsWords
+
+*interface*
+
+```ts
+interface OptionsWords {
+    /** The name of the window when the page gives it none. */
+    group: string;
+    /** The button that folds the window to its title. */
+    collapse: string;
+    /** The title chip that opens a folded window. */
+    expand: string;
+    /** The ? button. */
+    help: string;
+    /** The same button while help is open. */
+    closeHelp: string;
+}
+```
+
+### Place
+
+*interface*
+
+```ts
+interface Place extends Point {
+    snap: Snap;
+}
+```
+
+### Point
+
+*interface*
+
+```ts
+interface Point {
+    x: number;
+    y: number;
+}
+```
+
+### Snap
+
+*type*
+
+```ts
+type Snap = (typeof SNAPS)[number];
+```
+
+### Variant
+
+*type*
+
+```ts
+type Variant = (typeof VARIANTS)[number];
+```
+
+### ViewSize
+
+*interface*
+
+```ts
+interface ViewSize {
+    width: number;
+    height: number;
+}
+```
+
+### WindowContent
+
+*interface*
+
+```ts
+interface WindowContent {
+    title: string;
+    help: string;
+    open: boolean;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/options-window/element`
+
+2 values and 0 types.
+
+```js
+import { OptionsWindowElement, TAG } from '@johnmorrisdotca/kazoku-ui/options-window/element';
+```
+
+### OptionsWindowElement
+
+*class*. Attributes: `title` (the name in the title bar), `variant` (`card`, `shelf` or `inspector`), `address` (keep open and place in the address),
+
+```ts
+class OptionsWindowElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Whether the window is open. A folded window is its title chip. */
+    get open(): boolean;
+    set open(next: boolean);
+    /** Your own labels over the language's. */
+    set words(words: Partial<OptionsWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-options-window";
+```
+
+## `@johnmorrisdotca/kazoku-ui/options-window/define`
+
+1 value and 0 types.
+
+```js
+import { defineOptionsWindow } from '@johnmorrisdotca/kazoku-ui/options-window/define';
+```
+
+### defineOptionsWindow
+
+*function*. Registers the options window. Returns false when the tag is already taken.
+
+```ts
+function defineOptionsWindow(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/embed-panel`
