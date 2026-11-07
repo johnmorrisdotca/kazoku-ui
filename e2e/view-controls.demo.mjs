@@ -515,6 +515,21 @@ test("Shift and a drag rolls, a twist rolls, and a plain drag leaves roll alone"
   expect(twisted.zoom).toBe(1);
 });
 
+test("Shift and the left and right arrows roll, and the arrows alone turn", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  await page.locator("#scene").focus();
+  await page.keyboard.down("Shift");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.up("Shift");
+  expect(await stateOf(page)).toMatchObject({ roll: 15, yaw: 0, tilt: 0 });
+  await page.keyboard.down("Shift");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.up("Shift");
+  expect((await stateOf(page)).roll).toBe(0);
+  await page.keyboard.press("ArrowRight");
+  expect(await stateOf(page)).toMatchObject({ roll: 0, yaw: 15 });
+});
+
 test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer, and at Fit the page scrolls", async ({ page }) => {
   await ready(page);
   // Make the page taller than the window, so it has somewhere to scroll.

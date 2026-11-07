@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The view-controls browser test presses Shift with the left and right arrows, and the view rolls.
+
 ## [0.19.0] - 2026-11-06
 
 The options window: a small floating card a package fills with its own controls, with help beside it.
