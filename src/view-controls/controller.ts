@@ -168,7 +168,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   };
 
   const emit = (final: boolean, reason: string): void => {
-    if (bound !== undefined) bound.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
+    // Always none. pan-y lets a phone double-tap or pinch zoom the whole page. The view does its own pinch.
+    if (bound !== undefined) bound.style.touchAction = "none";
     options.onChange?.({ ...state }, { final, reason });
   };
 
@@ -663,7 +664,12 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     doc.addEventListener?.("keyup", onSpace);
     // A right press is a pan, not the browser's menu.
     view.addEventListener("contextmenu", onMenu);
-    view.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
+    // Safari's gesture events zoom the page even when the view is handling the pinch. They are on the stage only.
+    const onGesture = (event: Event): void => {
+      event.preventDefault();
+    };
+    for (const name of ["gesturestart", "gesturechange", "gestureend"]) view.addEventListener(name, onGesture);
+    view.style.touchAction = "none";
     const unwatch = turnOnlyInSight(controller, view);
     const off = (): void => {
       unwatch();
@@ -678,6 +684,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       doc.removeEventListener?.("keydown", onSpace);
       doc.removeEventListener?.("keyup", onSpace);
       view.removeEventListener("contextmenu", onMenu);
+      for (const name of ["gesturestart", "gesturechange", "gestureend"]) view.removeEventListener(name, onGesture);
       view.style.touchAction = "";
       release();
       if (bound === view) bound = undefined;

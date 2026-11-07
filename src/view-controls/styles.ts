@@ -15,6 +15,7 @@ export const STYLES = `
   --_accent: var(--kazoku-accent, #2457d6);
   display: block;
   box-sizing: border-box;
+  touch-action: manipulation;
   color: var(--_ink);
   font: 600 0.9rem/1.2 system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
   color-scheme: light dark;
@@ -39,6 +40,7 @@ export const STYLES = `
 :host([overlay]) .bar { background: color-mix(in srgb, var(--_surface) 88%, transparent); }
 [hidden] { display: none !important; }
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 8px; box-sizing: border-box; }
+button, input, select, a { touch-action: manipulation; }
 .field { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; }
 /* One slider stands for the axis the chips name. The other two stay in the tree for the address and the tests that read them, and take no room. The chips take their own row, so the speed button can come in beside Auto-turn without moving it. */
 .field.tilt, .field.roll { display: none; }
