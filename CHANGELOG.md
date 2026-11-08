@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-08
+
+One headless browser at a time: a lock for a package's tests.
+
 - **The browser lock** (KAZOKU-UI-63). Only one headless browser should run at a time on a machine: with software GL, two at once make heavy tests time out like real failures. `@johnmorrisdotca/kazoku-ui/testing` now has a lock in the user's cache folder (`~/Library/Caches/kazoku-ui` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`), taken atomically, that holds the pid, package, folder, command and start time. A second run prints `waiting for the browser lock: held by <repo> pid <n> since <time>` every 30 seconds and goes on when the first lets go. A lock whose pid is gone or that is over three hours old is taken over. It is let go on exit, on an error and on SIGINT, SIGTERM and SIGHUP, and a child process that inherits `KAZOKU_BROWSER_LOCK` (a Playwright worker) runs under it without waiting. With `CI` set it does nothing. For Playwright, one line in `playwright.config`: `globalSetup: "@johnmorrisdotca/kazoku-ui/testing/global-setup"`. For a script that launches Chromium: `withBrowserLock(fn)`, or `acquireBrowserLock()` and `lock.release()`. `browserLockStatus()` and `clearBrowserLock()` are the same two as a command, `npx kazoku-browser-lock status` and `clear [--force]`. This repository's own Playwright config, `pnpm test:readme` and `pnpm screenshots` use it.
 
 ## [0.19.0] - 2026-11-06
