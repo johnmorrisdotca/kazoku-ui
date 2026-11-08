@@ -165,7 +165,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 | `@johnmorrisdotca/kazoku-ui/embed-panel/element` | The `EmbedPanelElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/embed-panel/define` | Registers `<kazoku-embed-panel>` (once, and only if the tag is free). |
 | `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
-| `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget. No test framework named. |
+| `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget; and the browser lock (`withBrowserLock`, `acquireBrowserLock`, a Playwright `globalSetup`, `kazoku-browser-lock status`) so one headless browser runs at a time on a machine. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
 
 ## View controls
@@ -584,6 +584,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
 | [Speed buttons](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/speed-buttons.md) | 0.5×, 1×, 2× or your own steps, kept in an attribute and the address |
 | [The shared renderer](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/renderer.md) | One WebGL context, and the freeze checks |
+| [The browser lock](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/browser-lock.md) | One headless browser at a time: a line in `playwright.config`, or `withBrowserLock` in a script |
 | [Frameworks and CSP](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/frameworks-and-csp.md) | React, Vue, Svelte, Angular, servers, strict policies |
 | [Accessibility and labels](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/accessibility-and-labels.md) | The rules and the words |
 | [Architecture](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/architecture.md) | The parts and the rules |

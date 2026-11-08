@@ -3641,10 +3641,26 @@ interface ViewOptions {
 
 ## `@johnmorrisdotca/kazoku-ui/testing`
 
-7 values and 4 types.
+11 values and 8 types.
 
 ```js
-import { canvasSize, COUNT_SCRIPT, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+import { acquireBrowserLock, browserLockStatus, canvasSize, clearBrowserLock, COUNT_SCRIPT, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+```
+
+### acquireBrowserLock
+
+*function*. Take the browser lock, waiting while another run holds it. Only one headless browser should run at a time on a machine: with software GL, two at once make heavy
+
+```ts
+function acquireBrowserLock(options?: BrowserLockOptions): Promise<BrowserLock>;
+```
+
+### browserLockStatus
+
+*function*. Who holds the browser lock now, if anyone, and whether it is stale.
+
+```ts
+function browserLockStatus(options?: Pick<BrowserLockOptions, "maxAgeMs">): BrowserLockStatus;
 ```
 
 ### canvasSize
@@ -3653,6 +3669,16 @@ import { canvasSize, COUNT_SCRIPT, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_G
 
 ```ts
 function canvasSize(page: PageLike): Promise<CanvasSize>;
+```
+
+### clearBrowserLock
+
+*function*. Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed.
+
+```ts
+function clearBrowserLock(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
+    force?: boolean;
+}): boolean;
 ```
 
 ### COUNT_SCRIPT
@@ -3695,12 +3721,81 @@ function readCounts(page: PageLike): Promise<GlCounts>;
 const SOFTWARE_GL_ARGS: readonly string[];
 ```
 
+### withBrowserLock
+
+*function*. Run `fn` under the browser lock and let go of it afterwards, whether `fn` returns or throws. For a script that launches Chromium itself.
+
+```ts
+function withBrowserLock<T>(fn: () => Promise<T> | T, options?: BrowserLockOptions): Promise<T>;
+```
+
 ### withinPixelBudget
 
 *function*. True when a canvas is within the budget (the renderer's own: 6 million pixels, 4096 a side).
 
 ```ts
 function withinPixelBudget(size: CanvasSize, maxPixels?: number, maxSide?: number): boolean;
+```
+
+### BrowserLock
+
+*interface*. A taken lock.
+
+```ts
+interface BrowserLock {
+    /** Let go of the lock. Safe to call twice. */
+    release(): void;
+}
+```
+
+### BrowserLockHolder
+
+*interface*. Who holds the browser lock.
+
+```ts
+interface BrowserLockHolder {
+    /** Handed to child processes in `KAZOKU_BROWSER_LOCK`, so they may run under the lock without waiting for it. */
+    token: string;
+    pid: number;
+    /** The package name from the holder's `package.json`, else the folder name. */
+    repo: string;
+    cwd: string;
+    command: string;
+    /** ISO time the lock was taken. */
+    startedAt: string;
+}
+```
+
+### BrowserLockOptions
+
+*interface*
+
+```ts
+interface BrowserLockOptions {
+    /** How often to look again while waiting. 500 ms. */
+    pollMs?: number;
+    /** How often to say who is holding it while waiting. 30 000 ms. */
+    reportMs?: number;
+    /** A lock older than this is taken over even if its pid is alive. Three hours. */
+    maxAgeMs?: number;
+    /** Where the waiting line goes. Standard error. */
+    log?: (line: string) => void;
+}
+```
+
+### BrowserLockStatus
+
+*interface*
+
+```ts
+interface BrowserLockStatus {
+    /** The lock file's path. */
+    file: string;
+    /** Who holds it, or null when it is free. */
+    holder: BrowserLockHolder | null;
+    /** True when the holder's pid is gone or the lock is older than `maxAgeMs`: the next run takes it over. */
+    stale: boolean;
+}
 ```
 
 ### CanvasSize
@@ -3750,4 +3845,20 @@ type GpuKind = (typeof GPU_KINDS)[number];
 interface PageLike {
     evaluate<R>(fn: () => R): Promise<R>;
 }
+```
+
+## `@johnmorrisdotca/kazoku-ui/testing/global-setup`
+
+1 value and 0 types.
+
+```js
+import { default } from '@johnmorrisdotca/kazoku-ui/testing/global-setup';
+```
+
+### default
+
+*function*. A Playwright `globalSetup` that takes the browser lock before any test starts and returns the teardown that lets it go. Name it in `playwright.config`; the
+
+```ts
+default function globalSetup(): Promise<() => void>;
 ```
