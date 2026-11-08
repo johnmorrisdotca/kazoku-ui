@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import { acquireBrowserLock } from "../dist/testing/index.js";
 import { captureDrawing, composeThumbnails } from "./family-thumbnail.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -29,6 +30,7 @@ try {
     };
     poll();
   });
+  const lock = await acquireBrowserLock();
   const browser = await chromium.launch({ args: ["--headless=new", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--disable-gpu-compositing"] });
   const webp = async (png) => {
     const page = await browser.newPage();
@@ -132,6 +134,7 @@ try {
     await context.close();
   }
   await browser.close();
+  lock.release();
   console.log(`pictures written to ${out}`);
 } finally {
   server.kill();

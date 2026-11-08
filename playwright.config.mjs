@@ -15,6 +15,7 @@ export default defineConfig({
   testMatch: "*.demo.mjs",
   fullyParallel: true,
   forbidOnly: true,
+  globalSetup: "./dist/testing/global-setup.js",
   reporter: "list",
   use: { baseURL: `http://127.0.0.1:${port}`, headless: true, reducedMotion: "no-preference", locale: "en-US" },
   webServer: { command: "node scripts/dev.mjs", env: { PORT: String(port) }, url: `http://127.0.0.1:${port}/`, reuseExistingServer: false },

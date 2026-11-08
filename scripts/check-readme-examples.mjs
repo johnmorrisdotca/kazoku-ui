@@ -16,7 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
-import { SOFTWARE_GL_ARGS } from '../dist/testing/index.js';
+import { acquireBrowserLock, SOFTWARE_GL_ARGS } from '../dist/testing/index.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp' };
@@ -92,6 +92,7 @@ if (html.length) {
   }
   const importMap = { imports: { ...imports, three: '/node_modules/three/build/three.module.js' } };
   const server = serve(PORT);
+  const lock = await acquireBrowserLock();
   const browser = await launch();
   try {
     for (const block of html) {
@@ -118,7 +119,7 @@ if (html.length) {
       } catch (error) { fail(block.where, `${error.message.split('\n')[0]}${problems.length ? `; ${problems.join('; ')}` : ''}`); }
       finally { await page.close(); }
     }
-  } finally { await browser.close(); server.close(); }
+  } finally { await browser.close(); lock.release(); server.close(); }
 }
 rmSync(work, { recursive: true, force: true });
 if (failed) { console.error(`${failed} of ${count} examples failed`); process.exit(1); }
