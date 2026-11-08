@@ -69,7 +69,7 @@ const PARTS = [
   assert.equal(typeof pure.createSharedRenderer({ load: async () => ({}) }).view, "function");`,
   },
   {
-    name: "testing", pure: ["COUNT_SCRIPT", "GPU_KINDS", "gpuObjects", "readCounts", "canvasSize", "withinPixelBudget", "SOFTWARE_GL_ARGS"],
+    name: "testing", pure: ["COUNT_SCRIPT", "GPU_KINDS", "gpuObjects", "readCounts", "canvasSize", "withinPixelBudget", "SOFTWARE_GL_ARGS", "acquireBrowserLock", "withBrowserLock", "browserLockStatus", "clearBrowserLock"],
     run: `assert.equal(pure.withinPixelBudget({ pixels: 7e6, side: 3000, count: 1 }), false);
   assert.ok(pure.COUNT_SCRIPT.includes("__kazokuCount"));`,
   },

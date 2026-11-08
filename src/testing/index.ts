@@ -99,3 +99,5 @@ export function canvasSize(page: PageLike): Promise<CanvasSize> {
 export function withinPixelBudget(size: CanvasSize, maxPixels = 6_000_000, maxSide = 4096): boolean {
   return size.pixels <= maxPixels && size.side <= maxSide;
 }
+
+export * from "./lock.ts";

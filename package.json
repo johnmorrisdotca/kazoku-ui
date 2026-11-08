@@ -60,6 +60,9 @@
     "./dist/replay-bar/define.js",
     "./dist/options-window/define.js"
   ],
+  "bin": {
+    "kazoku-browser-lock": "./dist/testing/cli.js"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -203,6 +206,11 @@
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.js",
       "default": "./dist/testing/index.js"
+    },
+    "./testing/global-setup": {
+      "types": "./dist/testing/global-setup.d.ts",
+      "import": "./dist/testing/global-setup.js",
+      "default": "./dist/testing/global-setup.js"
     }
   },
   "files": [
