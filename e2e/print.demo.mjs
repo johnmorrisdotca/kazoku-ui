@@ -41,8 +41,18 @@ test("the sample sheet has the header, the info box and the footer with a QR cod
   await expect(sheet.locator(".kazoku-pageno")).toHaveText("Page 1 of 1");
   const name = await sheet.locator(".kazoku-name").first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize) * 0.75);
   expect(name).toBeGreaterThanOrEqual(24);
-  const line = await sheet.locator(".kazoku-namefield").evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth) * 25.4 / 96);
-  expect(line).toBeGreaterThanOrEqual(2.5);
+  // The Name is an underline: a bottom line of the preset's width (the demo's default is kid, 1.2 mm), and no box.
+  const edges = await sheet.locator(".kazoku-namefield").evaluate((el) => {
+    const css = getComputedStyle(el);
+    const mm = (v) => parseFloat(v) * 25.4 / 96;
+    return { bottom: mm(css.borderBottomWidth), top: mm(css.borderTopWidth), left: mm(css.borderLeftWidth), right: mm(css.borderRightWidth) };
+  });
+  expect(edges.bottom).toBeGreaterThanOrEqual(1);
+  expect(edges.bottom).toBeLessThanOrEqual(1.5);
+  expect([edges.top, edges.left, edges.right]).toEqual([0, 0, 0]);
+  const rule = await sheet.locator(".kazoku-header").first().evaluate((el) => parseFloat(getComputedStyle(el).borderBottomWidth) * 25.4 / 96);
+  expect(rule).toBeGreaterThanOrEqual(1);
+  expect(rule).toBeLessThanOrEqual(1.5);
   expect(errors).toEqual([]);
 });
 

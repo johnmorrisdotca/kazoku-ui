@@ -24,14 +24,14 @@ const svg = (width, height, inner) => {
   return el;
 };
 
-// A planet and its name: a thick ring and a large name, for the first page.
+// A planet and its name: a ring as thin as the kid preset's lines (1.2 mm) and a large name, for the first page.
 function body() {
   const wrap = document.createElement("div");
   wrap.style.cssText = "display:flex;gap:6mm;align-items:center;flex-wrap:wrap";
   for (const [name, fill] of say("names").map((one, i) => [one, ["#b7bcc8", "#e8c27a", "#4a86d8"][i]])) {
     const card = document.createElement("div");
     card.style.cssText = "text-align:center";
-    const art = svg(100, 100, `<circle cx="50" cy="50" r="40" fill="${fill}" stroke="#000" stroke-width="8"/>`);
+    const art = svg(100, 100, `<circle cx="50" cy="50" r="40" fill="${fill}" stroke="#000" stroke-width="3"/>`);
     art.style.width = "42mm";
     art.style.height = "42mm";
     const label = document.createElement("div");
@@ -45,7 +45,7 @@ function body() {
 
 // The poster: 400 × 300 mm, drawn in millimetres so it can be tiled.
 function poster() {
-  return svg(400, 300, `<rect x="4" y="4" width="392" height="292" rx="20" fill="#fff" stroke="#000" stroke-width="3"/><circle cx="200" cy="150" r="110" fill="#e8c27a" stroke="#000" stroke-width="6"/><circle cx="200" cy="150" r="70" fill="none" stroke="#000" stroke-width="3"/><text x="200" y="165" text-anchor="middle" font-size="40" font-weight="800" font-family="system-ui, sans-serif">${say("poster1")}</text>`);
+  return svg(400, 300, `<rect x="4" y="4" width="392" height="292" rx="20" fill="#fff" stroke="#000" stroke-width="1.2"/><circle cx="200" cy="150" r="110" fill="#e8c27a" stroke="#000" stroke-width="1.2"/><circle cx="200" cy="150" r="70" fill="none" stroke="#000" stroke-width="1.2"/><text x="200" y="165" text-anchor="middle" font-size="40" font-weight="800" font-family="system-ui, sans-serif">${say("poster1")}</text>`);
 }
 
 function options() {

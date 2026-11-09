@@ -3878,7 +3878,7 @@ interface PrintView {
 
 ```ts
 interface PrintWords {
-    /** The label before the box a child writes a name in. */
+    /** The label before the underline a child writes a name on. */
     name: string;
     region: string;
     flag: string;
@@ -3968,7 +3968,7 @@ interface SheetOptions extends Partial<Layout> {
     brand?: string;
     packageName?: string;
     title: string;
-    /** The "Name: ____" box in the header (on by default). */
+    /** The "Name: ____" label and underline in the header (on by default; the name is `nameBox` for history, it is a line, not a box). */
     nameBox?: boolean;
     /** The info box under the header of the first page. */
     info?: SheetInfo;
@@ -4039,7 +4039,7 @@ interface TypePreset {
     bodyPt: number;
     /** Credits, version, address: the fine print. */
     smallPt: number;
-    /** How thick the sheet's own lines are (boxes, rules, the Name box). Never under 2.5 mm for `kid`. */
+    /** How thick the sheet's own lines are (the header's rule, the info box, the Name underline). `kid` is 1.2 mm: clearly drawn for a child's eye, and light enough that the page is not dominated by black; `normal` is 0.4 mm. */
     lineMm: number;
     fontFamily: string;
 }

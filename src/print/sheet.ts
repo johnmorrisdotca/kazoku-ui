@@ -1,4 +1,4 @@
-// Builds a printable sheet as DOM: pages of exactly the paper's size, each with a header (brand, package, title, a Name box), an info box (first page), a body and a footer
+// Builds a printable sheet as DOM: pages of exactly the paper's size, each with a header (brand, package, title, a Name underline), an info box (first page), a body and a footer
 // (credits, version, date, the address as a QR code and as text, the page number); or a poster cut into pages with cut marks. Nothing here touches the DOM until a function is called.
 import { layoutOf, pageSize, type Layout } from "./pages.ts";
 import { qrSvg } from "./qr.ts";
@@ -38,7 +38,7 @@ export interface SheetOptions extends Partial<Layout> {
   brand?: string;
   packageName?: string;
   title: string;
-  /** The "Name: ____" box in the header (on by default). */
+  /** The "Name: ____" label and underline in the header (on by default; the name is `nameBox` for history, it is a line, not a box). */
   nameBox?: boolean;
   /** The info box under the header of the first page. */
   info?: SheetInfo;

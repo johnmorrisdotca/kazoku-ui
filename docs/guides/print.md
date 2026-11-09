@@ -5,7 +5,7 @@ order: 21
 description: A printable sheet for any package: A4, US Letter, A3 and Tabloid pages with safe margins, a header, an info box and a footer with a QR code, a poster tiled over pages with cut marks, large type for children, and a Print / save PDF button that needs no PDF library.
 ---
 
-The print part builds a printable sheet: pages of exactly the paper's size with home-printer-safe margins, a header (the brand, the package, the title and a "Name:" box), an info box, a footer (credits, version, date, the address as a QR code and as text, the page number), and a poster cut over several pages with cut marks. It has two type presets, `kid` (large and round) and `normal`. It never draws a package's picture: the page puts its own picture (an SVG is best) into the sheet.
+The print part builds a printable sheet: pages of exactly the paper's size with home-printer-safe margins, a header (the brand, the package, the title and a "Name:" label with an underline), an info box, a footer (credits, version, date, the address as a QR code and as text, the page number), and a poster cut over several pages with cut marks. It has two type presets, `kid` (large and round) and `normal`. It never draws a package's picture: the page puts its own picture (an SVG is best) into the sheet.
 
 The brand text is passed in. The part has no name of its own on the paper, so each package prints its own.
 
@@ -62,7 +62,7 @@ Home printers cannot print right to the edge: most stop 3 to 6 mm short. The mar
 | `brand` | Header | The first line, such as the family's name. Passed in, never built in. |
 | `packageName` | Header | The package's name, under the brand. |
 | `title` | Header | The sheet's title, as an `h1`. |
-| `nameBox` | Header | The "Name:" box a child writes in (on by default; `false` leaves it out). The box has a thick line. |
+| `nameBox` | Header | The "Name:" label and an underline the child writes on (on by default; `false` leaves it out). It is a line, not a box. The option keeps its name, `nameBox`, so that nothing breaks. |
 | `info` | Under the header of page 1 | `region`, `flagSrc` and `flagAlt` (a picture), `latitudeBand`, `season`, `level`, `language`, and `more` for boxes of your own. A box with no value is left out. |
 | `credits`, `version`, `date` | Footer | The credits line, the version and the date. A `Date` is written as `YYYY-MM-DD` by `isoDate`; a string is written as it is. |
 | `address` | Footer | The address, as a QR code and as text under the credits. |
@@ -84,8 +84,10 @@ The footer of every page has its page number: "Page 2 of 3" in English, "2 / 3 ã
 | Names (`.kazoku-name`) | 28 pt (never under 24) | 14 pt |
 | Body | 18 pt | 11 pt |
 | Fine print (credits, address) | 10 pt | 8 pt |
-| The sheet's lines | 3 mm (never under 2.5) | 0.4 mm |
+| The sheet's lines (header rule, info box, Name underline) | 1.2 mm | 0.4 mm |
 | Font | Rounded system fonts, with Hiragino Maru Gothic for Japanese | The system font |
+
+The `kid` lines are 1.2 mm: a child sees them clearly, and a page is not dominated by heavy black lines (they were 3 mm in 0.24.0 and before). Keep your own lines near that width; a child's page reads best when the type is large and the lines are light.
 
 Put a name in an element with the class `kazoku-name` and it is as large as the preset says. Draw your own lines at `var(--kz-line)` thick in the same way.
 

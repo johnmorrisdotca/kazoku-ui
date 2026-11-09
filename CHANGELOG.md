@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Print: lighter sheets for children** (KAZOKU-UI-86). John, looking at a connect-the-dots PDF: "too thick of lines... the name doesn't need a box at all, perhaps an underline only... the top border thickness is also too thick". The header's Name is now the label and an underline (a line the child writes on, in every preset and both languages), not a box; `TYPE_PRESETS.kid.lineMm` goes from 3 to 1.2 mm (the old "never under 2.5 mm for `kid`" rule is gone), so the header's rule under the title, the info box's border and the Name underline are 1.2 mm on a child's sheet; `normal` stays 0.4 mm and the type sizes do not change. The option is still called `nameBox`. The demo's sample pictures are drawn with thinner lines to match. Cut marks, glue strips and the QR code have their own widths and are unchanged. See [the guide](docs/guides/print.md).
+
 ## [0.24.0] - 2026-11-09
 
 - **Ctrl or Command and a drag moves the view, and one gesture check for every page** (KAZOKU-UI-81, KAZOKU-UI-60, KAZOKU-UI-45). In `<kazoku-view-controls>` and the controller, Ctrl or Command and a left drag now moves (pans) a zoomed view even when the drag choice is Turn, as Space and a drag, the middle button and the right button already did; Shift and a drag still rolls. The browser's context menu is held back only while a Ctrl or right-button drag is moving the view (and just after a drag that moved, where Windows and Linux open it on release); a click that moves nothing leaves the menu alone, where every right press lost it before. A drag that moves the view no longer counts toward a double-tap. The help text (`gestures`) names every gesture in English and Japanese, and so do the README and the view controls guide (both languages).

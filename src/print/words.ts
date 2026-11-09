@@ -1,6 +1,6 @@
 // The words a printed sheet carries, in English and Japanese. Every key is in both; a test holds that. The Japanese is plain, everyday words, mostly hiragana, for children.
 export interface PrintWords {
-  /** The label before the box a child writes a name in. */
+  /** The label before the underline a child writes a name on. */
   name: string;
   region: string;
   flag: string;

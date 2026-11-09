@@ -34,8 +34,8 @@ export function printCss(given: Partial<Layout> = {}): string {
 .kazoku-heading { min-width: 0; }
 .kazoku-brand, .kazoku-package { margin: 0; font-size: var(--kz-small); font-weight: 700; letter-spacing: 0.04em; }
 .kazoku-title { margin: 1mm 0 0; font-size: var(--kz-title); font-weight: 800; line-height: 1.1; }
-.kazoku-namebox { display: flex; flex: none; align-items: center; gap: 2mm; font-size: var(--kz-name); font-weight: 700; white-space: nowrap; }
-.kazoku-namefield { display: inline-block; width: ${layout.type === "kid" ? "60mm" : "45mm"}; height: ${layout.type === "kid" ? "14mm" : "8mm"}; border: var(--kz-line) solid #000; border-radius: ${layout.type === "kid" ? "4mm" : "1mm"}; }
+.kazoku-namebox { display: flex; flex: none; align-items: flex-end; gap: 2mm; font-size: var(--kz-name); font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.kazoku-namefield { display: inline-block; width: ${layout.type === "kid" ? "60mm" : "45mm"}; height: 1em; border: 0; border-bottom: var(--kz-line) solid #000; border-radius: 0; }
 .kazoku-info { display: grid; flex: none; grid-template-columns: repeat(auto-fit, minmax(38mm, 1fr)); gap: 2mm 4mm; margin: 0; padding: 3mm; border: var(--kz-line) solid #000; border-radius: ${layout.type === "kid" ? "5mm" : "1mm"}; }
 .kazoku-info div { min-width: 0; }
 .kazoku-info dt { margin: 0; font-size: var(--kz-small); font-weight: 600; }

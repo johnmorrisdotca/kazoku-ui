@@ -84,9 +84,10 @@ test("cut marks: two lines at each corner of the printable window, pointing out 
   for (const s of marks) for (const [x, y] of [[s.x1, s.y1], [s.x2, s.y2]]) assert.ok(x >= 0 && x <= 210 && y >= 0 && y <= 297);
 });
 
-test("the kid preset has names of at least 24 pt and lines of at least 2.5 mm; normal is smaller", () => {
+test("the kid preset has names of at least 24 pt and lines of 1 to 1.5 mm, thicker than normal's; normal is smaller", () => {
   assert.ok(TYPE_PRESETS.kid.namePt >= 24);
-  assert.ok(TYPE_PRESETS.kid.lineMm >= 2.5);
+  assert.ok(TYPE_PRESETS.kid.lineMm >= 1 && TYPE_PRESETS.kid.lineMm <= 1.5);
+  assert.ok(TYPE_PRESETS.kid.lineMm > TYPE_PRESETS.normal.lineMm);
   assert.ok(TYPE_PRESETS.kid.bodyPt > TYPE_PRESETS.normal.bodyPt);
   assert.ok(TYPE_PRESETS.normal.namePt < TYPE_PRESETS.kid.namePt);
 });
@@ -97,7 +98,9 @@ test("the print CSS names the paper, has no page margin of its own, and hides th
   assert.match(css, /padding: 15mm/);
   assert.match(css, /body > :not\(\.kazoku-print-root\) \{ display: none !important; \}/);
   assert.match(css, /--kz-name: 28pt/);
-  assert.match(css, /--kz-line: 3mm/);
+  assert.match(css, /--kz-line: 1\.2mm/);
+  // The Name is an underline (a bottom border only), not a box, in both presets.
+  for (const type of ["kid", "normal"] as const) assert.match(printCss({ type }), /\.kazoku-namefield \{[^}]*border: 0; border-bottom: var\(--kz-line\) solid #000; border-radius: 0;/);
   assert.match(printCss({ type: "normal" }), /--kz-line: 0\.4mm/);
 });
 
