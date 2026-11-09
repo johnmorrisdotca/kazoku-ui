@@ -59,14 +59,6 @@ const PARTS = [
   assert.deepEqual(pure.filterItems([{ id: "a", label: "Mars" }, { id: "b", label: "Sun" }], "ma").map((i) => i.id), ["a"]);`,
   },
   {
-    name: "wide-layout", tag: "kazoku-wide-toggle", cls: "WideToggleElement", define: "defineWideToggle",
-    pure: ["parseWide", "wideOf", "applyWide", "readWide", "isTyping", "wideCss", "WIDE_ATTRIBUTE", "WIDE_ADDRESS_KEY", "WIDE_STORAGE_KEY", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
-    run: `assert.equal(pure.parseWide("on"), true);
-  assert.equal(pure.parseWide("normal"), false);
-  assert.equal(pure.readWide({ search: "?wide=on" }), true);
-  assert.ok(pure.wideCss().includes('[data-wide="on"] .kazoku-stage'));`,
-  },
-  {
     name: "renderer", pure: ["createSharedRenderer", "createScheduler", "createAssetCache", "createStillCache", "pixelRatioFor", "disposeDeep", "MAX_PIXELS", "MAX_SIDE", "MAX_RATIO"],
     run: `assert.ok(pure.pixelRatioFor(5120, 2880, 2) < 2);
   const cache = pure.createAssetCache({ lingerMs: 0 });
@@ -102,6 +94,14 @@ const PARTS = [
   assert.equal(pure.tilePoster({ widthMm: 400, heightMm: 300, page: "a4" }).pages, 6);
   assert.equal(pure.qrMatrix("https://example.com/").length, 25);
   assert.ok(pure.printCss({ page: "letter" }).includes("215.9mm 279.4mm"));`,
+  },
+  {
+    name: "wide-layout", tag: "kazoku-wide-toggle", cls: "WideToggleElement", define: "defineWideToggle",
+    pure: ["parseWide", "wideOf", "applyWide", "readWide", "isTyping", "wideCss", "WIDE_ATTRIBUTE", "WIDE_ADDRESS_KEY", "WIDE_STORAGE_KEY", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.parseWide("on"), true);
+  assert.equal(pure.parseWide("normal"), false);
+  assert.equal(pure.readWide({ search: "?wide=on" }), true);
+  assert.ok(pure.wideCss().includes('[data-wide="on"] .kazoku-stage'));`,
   },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
