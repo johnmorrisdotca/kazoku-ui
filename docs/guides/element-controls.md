@@ -32,13 +32,13 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 </script>
 ```
 
-`carryControls(element, options)` returns `{ controller, unbind }`. `onChange(state, info)` is the only required option: the element applies the state, as it would from the bar's `kazoku-viewchange` event. The rest are the [controller's options](view-controller.md) (`turnable`, `grabRadius`, `objectSize`, `fitScale`, `zoom`, `limits` and the others), and `on`. `controller` is for the element's own `set`, `fit` and `state`. `unbind` lets every hand go and destroys the controller; a view that is moved and connected again calls `carryControls` again and starts from Fit, or from the `initial` it is given.
+`carryControls(element, options)` returns `{ controller, setLimits, unbind }`. `onChange(state, info)` is the only required option: the element applies the state, as it would from the bar's `kazoku-viewchange` event. The rest are the [controller's options](view-controller.md) (`turnable`, `grabRadius`, `objectSize`, `fitScale`, `zoom`, `limits` and the others), and `on`. `controller` is for the element's own `set`, `fit` and `state`. `unbind` lets every hand go and destroys the controller; a view that is moved and connected again calls `carryControls` again and starts from Fit, or from the `initial` it is given.
 
 ## What it does, once
 
 - **Drag and pinch.** A drag turns the picture at Fit and moves it once zoomed; two fingers pinch, move and twist. A double tap goes to 2× and back.
 - **The wheel.** At Fit the plain wheel scrolls the page, so the picture is never a trap. Ctrl, Command or Alt with the wheel zooms about the pointer, and once zoomed the plain wheel moves the view.
-- **Keys.** The arrows turn, + and − zoom, 0 and Home put it back. The element gets `tabindex="0"` unless the page gave it one.
+- **Keys.** The arrows turn, + and − zoom, 0 and Home put it back. The element gets `tabindex="0"` unless the page gave it one, and also when a bar was bound to it before it started, so the bar's keys always have somewhere to go.
 - **`touch-action`.** It is `pan-y` at Fit, so a finger can still scroll the page, and `none` once zoomed. A custom element is inline unless you say otherwise, and `touch-action` does nothing on an inline element, so an inline element is made a block while it carries the hands.
 - **Reduced motion.** Nothing starts by itself, so there is nothing to hold back; Centre goes at once.
 - **Off screen.** The automatic turn, if the page starts one, is held while the element cannot be seen.
@@ -50,6 +50,17 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 | `controls` | Left out, the hands are on (`on: false` in the options makes a still picture start with them off). `controls="none"` takes them off. It is watched, so turning it on and off at run time works. |
 | `zoom-min`, `zoom-max` | The zoom range. They win over the `limits` in the options, which win over the defaults. `zoom-min` is held to 1 or less and `zoom-max` to `zoom-min` or more, so Fit is always inside. Watched too. |
 | `tilt-max`, `roll-max` | The tilt (30) and roll (180) limits, in degrees. |
+
+## Limits that change
+
+A view whose detail changes (a map that finds more tiles, a body that is ridden) changes its own range: call `setLimits` with any of `zoomMin`, `zoomMax`, `tiltMax` and `rollMax`.
+
+```js no-check
+const { setLimits } = carryControls(this, { onChange, limits: { zoomMax: 5 } });
+setLimits({ zoomMax: 20 });
+```
+
+The new numbers replace the `limits` the package passed, so the order is still the attribute, then the package, then the defaults: a `zoom-max` attribute on the element wins over `setLimits`. A limit you leave out stays as it was. A zoom outside the new range is moved inside it, and a bound bar hears the new limits through `kazoku-viewcarry` and redraws its marks and sliders. Writing the element's own `zoom-min` and `zoom-max` attributes still works, and is for the page rather than the package.
 
 ## With a bar
 

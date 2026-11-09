@@ -131,6 +131,55 @@ test("a bar for the element takes the hands over while it is there, and gives th
   const barred = fakeElement({ "data-kazoku-bar": "" });
   carry(barred).unbind();
   assert.equal(barred.listeners.has("wheel"), false, "a bar that was there first is respected");
+  assert.equal(barred.attrs.tabindex, undefined, "and it is unbound again with the element");
+});
+
+test("a bar bound before the element starts still gets a tabindex and a block, and a given tabindex is kept", () => {
+  const first = fakeElement({ "data-kazoku-bar": "" }, "inline");
+  const { unbind } = carry(first);
+  assert.equal(first.listeners.has("wheel"), false, "the bar's hands, not the element's");
+  assert.equal(first.attrs.tabindex, "0");
+  assert.equal(first.style.display, "block");
+  unbind();
+  assert.equal(first.attrs.tabindex, undefined);
+  assert.equal(first.style.display, undefined);
+  const tabbed = fakeElement({ "data-kazoku-bar": "", tabindex: "-1" });
+  carry(tabbed).unbind();
+  assert.equal(tabbed.attrs.tabindex, "-1");
+  const none = fakeElement({ "data-kazoku-bar": "", controls: "none" });
+  carry(none).unbind();
+  assert.equal(none.attrs.tabindex, undefined, "controls=none gives nothing");
+});
+
+test("setLimits changes the package's limits after setup, the attributes still win, and a zoom outside is moved in", () => {
+  const rig = fakeElement();
+  const { controller, setLimits, unbind } = carry(rig, { limits: { zoomMin: 0.5, zoomMax: 6 } });
+  controller.zoomAt(100);
+  assert.equal(controller.state.zoom, 6);
+  setLimits({ zoomMax: 20 });
+  assert.deepEqual([controller.limits.zoomMin, controller.limits.zoomMax], [0.5, 20]);
+  controller.zoomAt(100);
+  assert.equal(controller.state.zoom, 20);
+  setLimits({ zoomMax: 4 });
+  assert.equal(controller.state.zoom, 4, "a zoom outside the new limits is moved inside them");
+  setLimits({ zoomMin: 0.25 });
+  controller.zoomAt(0.001);
+  assert.equal(controller.state.zoom, 0.25);
+  rig.attrs["zoom-max"] = "3";
+  setLimits({ zoomMax: 50 });
+  assert.equal(controller.limits.zoomMax, 3, "the element's own attribute wins");
+  assert.equal(controller.limits.zoomMin, 0.25, "a limit not named stays");
+  unbind();
+});
+
+test("setLimits tells a bound bar the new limits", () => {
+  const rig = fakeElement();
+  const { setLimits, unbind } = carry(rig, { limits: { zoomMax: 5 } });
+  rig.bar(true);
+  setLimits({ zoomMin: 1, zoomMax: 20 });
+  const said = rig.events.filter((e) => e.type === "kazoku-viewcarry").map((e) => e.detail.limits);
+  assert.deepEqual(said.at(-1), { ...DEFAULT_LIMITS, zoomMin: 1, zoomMax: 20 });
+  unbind();
 });
 
 test("while a bar is bound the element says its limits: its attributes over the package's, and the defaults under both", () => {

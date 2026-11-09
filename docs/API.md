@@ -648,6 +648,8 @@ type DragMode = "move" | "turn";
 interface ElementControls {
     /** The controller behind the hands, for the element's own `set`, `fit` and `state`. */
     readonly controller: ViewController;
+    /** Change the package's own limits after setup, for a view whose detail changes (map tiles found, a body ridden). The attributes `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` still win. A zoom outside the new limits is moved inside them, and a bar bound to the element hears the new limits (`CARRY_EVENT`). */
+    setLimits(limits: Partial<Limits>): void;
     /** Let the hands go and destroy the controller. Call it in `disconnectedCallback`. */
     unbind(): void;
 }
