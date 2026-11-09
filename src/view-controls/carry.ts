@@ -18,13 +18,15 @@ export interface CarryOptions extends Omit<ViewControllerOptions, "onChange"> {
 export interface ElementControls {
   /** The controller behind the hands, for the element's own `set`, `fit` and `state`. */
   readonly controller: ViewController;
+  /** Change the package's own limits after setup, for a view whose detail changes (map tiles found, a body ridden). The attributes `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` still win. A zoom outside the new limits is moved inside them, and a bar bound to the element hears the new limits (`CARRY_EVENT`). */
+  setLimits(limits: Partial<Limits>): void;
   /** Let the hands go and destroy the controller. Call it in `disconnectedCallback`. */
   unbind(): void;
 }
 
 /**
  * Give `element` the shared hands, from `connectedCallback`. A drag turns it (and moves it once zoomed), two fingers pinch, Ctrl or Command and the wheel zoom about the pointer, the plain wheel moves it
- * and, at Fit, scrolls the page; the arrow keys, + and -, 0 and Home work once it is focused, so it gets `tabindex="0"` unless it has one. `touch-action` follows the zoom, and a view that is inline
+ * and, at Fit, scrolls the page; the arrow keys, + and -, 0 and Home work once it is focused, so it gets `tabindex="0"` unless it has one (also when a bar was bound to it first). `touch-action` follows the zoom, and a view that is inline
  * becomes a block, or no touch would reach it. Nothing starts by itself, so reduced motion has nothing to hold back.
  *
  * The element's attributes are read now and watched: `controls="none"` takes the hands off, and `zoom-min` and `zoom-max` (also `tilt-max` and `roll-max`) set the limits over the `limits` given here,
@@ -59,17 +61,18 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     const asked = get("controls");
     const wanted = asked === null ? on : asked !== "none";
     if (!wanted) hold(true);
-    else if (element.hasAttribute(BAR_MARK)) hold(false);
-    else if (off === undefined) {
+    else {
+      // A bar standing in, bound before the element started, still needs the focus for its keys and a block for its touch.
       if (!element.hasAttribute("tabindex")) {
         element.tabIndex = 0;
         gaveTab = true;
       }
-      if (element.ownerDocument.defaultView?.getComputedStyle(element).display === "inline") {
+      if (!gaveBlock && element.ownerDocument.defaultView?.getComputedStyle(element).display === "inline") {
         element.style.display = "block";
         gaveBlock = true;
       }
-      off = controller.bind(element);
+      if (element.hasAttribute(BAR_MARK)) hold(false);
+      else if (off === undefined) off = controller.bind(element);
     }
   };
 
@@ -80,6 +83,10 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
 
   return {
     controller,
+    setLimits(next) {
+      Object.assign(base, next);
+      apply();
+    },
     unbind() {
       watch?.disconnect();
       element.removeEventListener(BAR_EVENT, apply);
