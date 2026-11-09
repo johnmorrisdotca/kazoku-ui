@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-11-08
+
 - **A bar takes the limits of the element it is bound to** (KAZOKU-UI-70). A `<kazoku-view-controls for="...">` on an element that carries its own controls now uses the element's limits (its `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` attributes over the `limits` the package passed to `carryControls`), unless the bar sets its own attribute, which wins. Before, a package's code-level limits (such as 1e-6× to 2.5×) were lost to the defaults once a bar was added. The element says so with a new `kazoku-viewcarry` event (`CARRY_EVENT`). The layouts pictures show the 0.1×, 1×, 10×, 50× slider marks.
 
 ## [0.21.0] - 2026-11-08
