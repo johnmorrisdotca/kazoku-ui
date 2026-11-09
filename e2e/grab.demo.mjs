@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { checkExactGrab, checkFollowsTheHand, dragBy, movedBy } from "../templates/e2e-ground.mjs";
+import { checkExactGrab, checkFollowsTheHand, dragBy, movedBy, settledPicture } from "../templates/e2e-ground.mjs";
 
 // Exact grab, on demo/grab.html: a drawn globe 120 pixels in radius. The shared check of the drag rule (templates/e2e-ground.mjs) moves a real pointer and real keys and compares pictures.
 const ready = async (page, query = "") => {
@@ -33,4 +33,34 @@ test("without it a drag turns by the fixed angle across the view: a half turn ov
   const moved = await movedBy(page, page.locator("#globe"), () => dragBy(page, scene, 18, 0), { reach: 80 });
   const expected = 120 * Math.sin((18 / width) * Math.PI);
   expect(Math.abs(moved.x - expected), `18 px of drag over a view ${Math.round(width)} px wide moved the ground ${moved.x} px, and a half turn across the width is ${expected.toFixed(1)} px`).toBeLessThanOrEqual(3);
+});
+
+test("the ground is photographed when the view has stopped changing, not after a fixed time: a redraw that comes late is waited for", async ({ page }) => {
+  await ready(page);
+  const scene = page.locator("#scene");
+  const globe = page.locator("#globe");
+  // The view turns 1.2 s after the act, twice as long as the old fixed wait; the helper waits for the picture to change, then to stop.
+  const late = await movedBy(page, globe, () => scene.evaluate(() => { setTimeout(() => document.querySelector("#controls").set({ yaw: 20 }), 1200); }));
+  expect(late.x, `the turn drew late and the ground moved right (moved ${late.x},${late.y})`).toBeGreaterThan(25);
+  expect(Math.abs(late.y)).toBeLessThan(4);
+  // A view that never changes is given up on at the timeout, with the picture it has, so a check can say it did not move.
+  const started = Date.now();
+  const none = await movedBy(page, globe, async () => undefined, { timeout: 600 });
+  expect(Date.now() - started).toBeLessThan(4000);
+  expect(Math.abs(none.x) + Math.abs(none.y)).toBe(0);
+});
+
+test("the package's own ready signal is awaited before each picture, and a settled picture is a still one", async ({ page }) => {
+  await ready(page);
+  let signals = 0;
+  const globe = page.locator("#globe");
+  const first = await settledPicture(page, globe, { ready: async () => { signals += 1; } });
+  expect(signals).toBeGreaterThanOrEqual(2);
+  expect((await globe.screenshot({ scale: "css" })).equals(first)).toBe(true);
+});
+
+test("exact grab can aim at a point of the picture: the drag starts there and only a small patch around it is followed", async ({ page }) => {
+  await ready(page);
+  await checkExactGrab(page, { view: "#scene", picture: "#globe", radius: 120, aim: [0.58, 0.5], span: 0.1 });
+  await checkExactGrab(page, { view: "#scene", picture: "#globe", radius: 120, window: [0.45, 0.55, 0.45, 0.55] });
 });

@@ -47,10 +47,27 @@ test("the globe follows the hand", async ({ page }) => {
 | Function | What it does |
 |---|---|
 | `checkFollowsTheHand(page, { view, picture, window, controls, min, settle, keys, autoTurn, distance })` | A drag right moves the ground right and not up or down, a drag up moves it up and not sideways, Arrow Right and Arrow Up agree, and with `autoTurn: "right"` (or `"left"`) Auto-turn moves the ground that way. The view is put back after each step. |
-| `checkExactGrab(page, { view, picture, radius, tolerance })` | A drag of a few pixels moves the ground at the middle of the view by as many pixels, sideways and up, within `tolerance` (0.2) of the drag. |
-| `movedBy(page, view, act)`, `groundShift(page, before, after)`, `dragBy(page, target, dx, dy)` | The parts, for a check of your own: how far the ground moved while `act` ran; the best shift between two PNGs; a real drag from the middle of an element. |
+| `checkExactGrab(page, { view, picture, radius, tolerance, aim, span, window })` | A drag of a few pixels, started on the aim point (the middle of the picture), moves the ground there by as many pixels, sideways and up, within `tolerance` (0.2) of the drag. |
+| `movedBy(page, view, act)`, `groundShift(page, before, after)`, `dragBy(page, target, dx, dy, at)` | The parts, for a check of your own: how far the ground moved while `act` ran; the best shift between two PNGs; a real drag from the middle of an element (or from `at`, shares of its width and height). |
+| `settledPicture(page, view, { before, ready, settle, timeout })`, `windowAround(aim, span)`, `frames(page, count)` | A picture of the view once it has stopped changing; the patch of a picture around a point; a wait for the page's frames. |
 | `bestShift(before, after, w, h, reach)` | The finder itself, on grey values; it runs in Node and has its own unit test. |
 
-`view` is the element the hands are bound to and `picture` what is photographed (the view unless you name another): when the view is much wider than the globe, name the globe's own canvas so that the middle of the picture is ground. `window` is the part of the picture that is followed, `[left, right, top, bottom]` as shares (the middle 40% by default): for a thin object such as a rocket, give the part that holds it. Use a picture with texture in the middle: a plain colour has no ground to follow, and the check says it could not find one. The pictures are taken at CSS pixel scale, so a screen with a pixel ratio of 2 gives the same numbers. Hold the scene still before the first picture (stop Auto-turn, fix the clock), and draw in software (`SOFTWARE_GL_ARGS`) when the view is WebGL.
+`view` is the element the hands are bound to and `picture` what is photographed (the view unless you name another): when the view is much wider than the globe, name the globe's own canvas so that the middle of the picture is ground. `window` is the part of the picture that is followed, `[left, right, top, bottom]` as shares (the middle 40% by default): for a thin object such as a rocket, give the part that holds it. Use a picture with texture in the middle: a plain colour has no ground to follow, and the check says it could not find one. The pictures are taken at CSS pixel scale, so a screen with a pixel ratio of 2 gives the same numbers. ### When the picture is taken
+
+The second picture is taken when the view has **stopped changing**, not after a fixed time. After each act the helper waits two frames of the page, takes a picture, and takes another after two more frames; when two in a row are the same, and the first of them differs from the one before the act (a view that has not drawn the change yet looks like the one before), that is the picture. It gives up at `timeout` (5000 ms) and uses the last one, so a view that never moves fails with "moved 0,0" instead of hanging. A view that cannot rest (Auto-turn left running, a clock that ticks) never settles: stop it first. The view is put back after each step the same way, so the next picture starts from rest. Before 0.23 the helper waited a fixed 600 ms, and a view whose frame took longer (software drawing on a busy machine) was photographed half drawn.
+
+Two options for a package that needs them, on both checks: `ready`, a function returning a promise that the package gives (for example, wait for its own frame counter or a `kazoku-viewchange` it has drawn), awaited before each picture; and `settle`, now a least wait in milliseconds before looking (none by default, where it was 600 ms).
+
+### Aim
+
+`checkExactGrab` follows a small patch of the picture and starts its drag on it. `aim` is the point, as shares of the picture's width and height (`[0.5, 0.5]`, the middle, by default; the middle of the globe when the globe sits elsewhere in its picture) and `span` the width and height of the patch as a share of the picture (0.2; it was a fixed 0.4 before 0.23, which averages the ground's move over a wide patch). `window: [left, right, top, bottom]` names the patch outright. The point under the pointer is what exact grab promises, so a narrow patch measures that point and not its neighbours; away from the middle of a sphere the ground moves a little less than the pointer, so aim near the middle.
+
+```js
+await checkExactGrab(page, { view: "#scene", picture: "#globe", radius: 120, aim: [0.5, 0.5], span: 0.1 });
+```
+
+The finder (`bestShift`) tries the nearest shifts first and drops a shift as soon as it cannot beat the best so far, which gives the same answer as trying every shift, several times faster.
+
+Hold the scene still before the first picture (stop Auto-turn, fix the clock), and draw in software (`SOFTWARE_GL_ARGS`) when the view is WebGL.
 
 Run it in every package with a turnable view. A package that fails files a ticket on its board saying which of the checks fails, and fixes the sign in its drawing, never in the controls.
