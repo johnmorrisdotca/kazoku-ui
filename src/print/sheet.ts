@@ -27,6 +27,12 @@ export interface Poster {
   overlapMm?: number;
 }
 
+/** `"all"`: every tile page carries the address and its QR code in the bottom margin; `"ends"`: the first and the last only; `"none"` (the default): neither. */
+export type TileFooter = "none" | "ends" | "all";
+
+/** `"always"` (the default); `"many"`: only a sheet of more than one page; `"never"`. */
+export type PageNumber = "always" | "many" | "never";
+
 export interface SheetOptions extends Partial<Layout> {
   /** The header's first line, such as the family's name; passed in, never built in. */
   brand?: string;
@@ -46,6 +52,10 @@ export interface SheetOptions extends Partial<Layout> {
   pages?: Node[];
   /** A poster to tile over pages instead. */
   poster?: Poster;
+  /** On a poster, the address as text and a small QR code in the bottom margin of the tile pages: all of them, or the first and the last. Needs `address`. Off by default. */
+  tileFooter?: TileFooter;
+  /** Whether the page number is printed (on sheet pages and tile pages alike). `"many"` leaves it off a one-page sheet, such as a certificate. */
+  pageNumber?: PageNumber;
   /** Words to use instead of the built-in ones, for one or more keys. */
   words?: Partial<PrintWords>;
 }
@@ -103,6 +113,8 @@ function infoBox(doc: Document, info: SheetInfo, words: PrintWords): HTMLElement
   return box.childElementCount ? box : undefined;
 }
 
+const showsPageNumber = (options: SheetOptions, total: number): boolean => options.pageNumber === "never" ? false : options.pageNumber === "many" ? total > 1 : true;
+
 function footer(doc: Document, options: SheetOptions, words: PrintWords, n: number, total: number): HTMLElement {
   const foot = make(doc, "footer", "kazoku-footer");
   const fine = make(doc, "div", "kazoku-fine");
@@ -122,7 +134,7 @@ function footer(doc: Document, options: SheetOptions, words: PrintWords, n: numb
       foot.append(qr);
     }
   }
-  foot.append(make(doc, "p", "kazoku-pageno", pageOf(words, n, total)));
+  if (showsPageNumber(options, total)) foot.append(make(doc, "p", "kazoku-pageno", pageOf(words, n, total)));
   return foot;
 }
 
@@ -145,6 +157,23 @@ function svgLine(doc: Document, segment: { x1: number; y1: number; x2: number; y
   line.setAttribute("stroke", "#000");
   line.setAttribute("stroke-width", "0.4");
   return line;
+}
+
+/** The address and a small QR code for the bottom margin of a tile page. The code is as tall as the margin allows. */
+function tileAddress(doc: Document, address: string, words: PrintWords, marginMm: number): HTMLElement {
+  const group = make(doc, "span", "kazoku-tilefoot");
+  group.append(make(doc, "span", "kazoku-address", address));
+  let svg: string | undefined;
+  try { svg = qrSvg(address, { quiet: 1 }); } catch { svg = undefined; }
+  if (svg) {
+    const qr = make(doc, "span", "kazoku-qr");
+    qr.setAttribute("role", "img");
+    qr.setAttribute("aria-label", words.qr);
+    qr.style.width = qr.style.height = `${marginMm - 2}mm`;
+    qr.innerHTML = svg;
+    group.append(qr);
+  }
+  return group;
 }
 
 function tilePage(doc: Document, options: SheetOptions, layout: Layout, words: PrintWords, poster: Poster, plan: PosterPlan, index: number): HTMLElement {
@@ -177,7 +206,10 @@ function tilePage(doc: Document, options: SheetOptions, layout: Layout, words: P
   const top = make(doc, "div", "kazoku-margin top");
   top.append(make(doc, "span", undefined, [options.brand, options.title].filter(Boolean).join(" · ")), make(doc, "span", undefined, words.tileOf.replace("{row}", String(tile.row + 1)).replace("{column}", String(tile.column + 1))));
   const bottom = make(doc, "div", "kazoku-margin bottom");
-  bottom.append(make(doc, "span", undefined, plan.pages > 1 ? words.cut : ""), make(doc, "span", "kazoku-pageno", pageOf(words, tile.index, plan.pages)));
+  const carries = options.address && (options.tileFooter === "all" || (options.tileFooter === "ends" && (tile.index === 1 || tile.index === plan.pages)));
+  bottom.append(make(doc, "span", carries ? "kazoku-cut small" : "kazoku-cut", plan.pages > 1 ? words.cut : ""));
+  if (carries) bottom.append(tileAddress(doc, options.address as string, words, layout.marginMm));
+  if (showsPageNumber(options, plan.pages)) bottom.append(make(doc, "span", "kazoku-pageno", pageOf(words, tile.index, plan.pages)));
   page.append(top, bottom);
   const marks = doc.createElementNS(SVG, "svg");
   marks.setAttribute("class", "kazoku-marks");

@@ -70,9 +70,11 @@ document.querySelector("#print").addEventListener("click", () => printSheet(shee
 | `address` | フッター | アドレスを、QRコードと文字の両方で出します。 |
 | `pages` | 本文 | ページごとに1つのノードです。 |
 | `poster` | 本文 | `pages`のかわりに、分けて印刷するポスターです。 |
+| `tileFooter` | 分けたページ | `"none"`（初期値）、`"ends"`、`"all"`。ポスターを分けた各ページの下の余白に、文字のアドレスと小さなQRコードを入れます。下を見てください。 |
+| `pageNumber` | フッター、分けたページ | `"always"`（初期値）、`"many"`、`"never"`。ページ番号を印刷するかどうかです。 |
 | `words` | | どのラベルも、自分の言葉に変えられます。 |
 
-どのページのフッターにもページ番号があります。英語は「Page 2 of 3」、日本語は「2 / 3 ページ」で、`pageOf`が作ります。
+どのページのフッターにもページ番号があります。英語は「Page 2 of 3」、日本語は「2 / 3 ページ」で、`pageOf`が作ります。しょうじょうのような1ページのシートには「1 / 1 ページ」はいりません。`pageNumber: "many"`にすると、ページが2つ以上のときだけ番号を印刷します。`pageNumber: "never"`にすると、いつも印刷しません。ポスターを分けたページにも使えます。
 
 ## 子ども向けの文字
 
@@ -106,6 +108,20 @@ const sheet = buildSheet({ page: "a4", title: "Big planet poster", poster: { con
 `tilePoster`は、ポスターに何ページ必要か、各ページがどの部分を印刷するかを答えます。各ページの窓は、印刷できる範囲です。ページは、窓から`overlapMm`（初期値10ミリ）を引いた分ずつ進みます。ですから、どのページも前のページの絵を、ちょうどその分だけくり返します。このくり返しの帯がのりしろです。うすく色をつけ、点線で囲み、「のりしろ」と書いてあります。最後の列と行は、ポスターのふちで終わります。窓1つに入るポスターは1ページです。大きさのないポスターや、窓と同じ大きさのくり返しは、`RangeError`になります。
 
 どのページにも切りとり線があります。窓の四すみに、ふちに沿った線が1本ずつ、余白の外向きに出ます。`cutMarks(page, orientation, marginMm)`が作ります。切りかたと貼りかたの説明の1行もあります。ポスターの`content`はページごとにコピーされるので、SVGかHTMLを使ってください。canvasはコピーすると絵が消えます。先にSVGの`<image>`に描いてください。
+
+分けたページには、フッターがなく、余白だけがあります。そこで、アドレスとQRコードはオプションにしました。`tileFooter: "all"`にすると、すべてのページの下の余白に入ります（`address`が必要です）。`tileFooter: "ends"`にすると、最初と最後のページだけに入ります。QRコードの高さは、余白から2ミリを引いた大きさです（初期の余白なら10.7ミリ）。まわりの白い部分は1マスです。小さいので、手の長さくらいの近さなら読めますが、遠くからは読めません。場所をあけるため、このページの切りかたの説明は小さい文字になります。窓の大きさは変わらないので、分けかたも変わりません。
+
+## 絵を1ページに合わせる
+
+```js
+import { fitToPage } from "@johnmorrisdotca/kazoku-ui/print";
+
+const fit = fitToPage({ page: "a3", widthMm: 1200, heightMm: 800 });
+console.log(fit.orientation, fit.widthMm, fit.heightMm);
+// landscape 394.6 263.067
+```
+
+`fitToPage({ page, widthMm, heightMm, orientation, marginMm })`は、絵の形を変えずに、用紙の印刷できる範囲に合わせて拡大や縮小をします。答えは、`orientation`（向き）、拡大・縮小したあとの`widthMm`と`heightMm`、`scale`（ページより小さい絵なら1より大きくなります）、そして`offsetXMm`と`offsetYMm`（印刷できる範囲の真ん中に置くためのずれ）です。`orientation`の初期値は`"auto"`で、絵が大きくなるほうの向きを選びます（正方形や同じ大きさのときは縦です）。`"portrait"`か`"landscape"`を渡すと、その向きのままです。この答えを`buildSheet`に渡すと、ポスターが1ページになります。`buildSheet({ page: "a3", orientation: fit.orientation, poster: { content, widthMm: fit.widthMm, heightMm: fit.heightMm } })`。大きさのない絵や、範囲がなくなる余白は、`RangeError`になります。
 
 ## QRコード
 

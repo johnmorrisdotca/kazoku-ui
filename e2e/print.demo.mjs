@@ -126,3 +126,90 @@ for (const [paper, orientation, wide, tall, tiles] of [["a4", "portrait", 210, 2
     expect(posterPdf.boxes.every(([w, h]) => near(w, wide * PT) && near(h, tall * PT))).toBe(true);
   });
 }
+
+// Builds a poster sheet in the page and reports what each tile's footer and page number hold.
+const posterTiles = (page, extra) => page.evaluate(async (options) => {
+  const { buildSheet } = await import("./dist/print/index.js");
+  const content = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  content.setAttribute("viewBox", "0 0 400 300");
+  const sheet = buildSheet({ page: "a4", title: "Poster", address: "https://example.com/planets/", poster: { content, widthMm: 400, heightMm: 300 }, ...options });
+  document.querySelector("#paper-inner").replaceChildren(sheet);
+  return [...sheet.querySelectorAll(".kazoku-tile")].map((tile) => ({ address: tile.querySelectorAll(".kazoku-margin.bottom .kazoku-address").length, qr: tile.querySelectorAll(".kazoku-margin.bottom .kazoku-qr svg").length, pageno: tile.querySelectorAll(".kazoku-pageno").length }));
+}, extra);
+
+test("a tiled poster carries no address by default, the address and QR on every tile by option, or on the first and last only", async ({ page }) => {
+  await ready(page);
+  const plain = await posterTiles(page, {});
+  expect(plain).toHaveLength(6);
+  expect(plain.every((tile) => tile.address === 0 && tile.qr === 0 && tile.pageno === 1)).toBe(true);
+  const all = await posterTiles(page, { tileFooter: "all" });
+  expect(all.every((tile) => tile.address === 1 && tile.qr === 1)).toBe(true);
+  const ends = await posterTiles(page, { tileFooter: "ends" });
+  expect(ends.map((tile) => tile.qr)).toEqual([1, 0, 0, 0, 0, 1]);
+  expect(ends.map((tile) => tile.address)).toEqual([1, 0, 0, 0, 0, 1]);
+});
+
+test("the tile footer stays inside the bottom margin, clear of the page number, and its code is the address's", async ({ page }) => {
+  await ready(page);
+  for (const language of ["en", "ja"]) {
+    await posterTiles(page, { tileFooter: "all", language });
+    const first = page.locator(".kazoku-tile").first();
+    const fit = await first.evaluate((tile) => {
+      const mm = tile.getBoundingClientRect().width / 210;
+      const margin = tile.querySelector(".kazoku-margin.bottom").getBoundingClientRect();
+      const at = (name) => tile.querySelector(`.kazoku-margin.bottom .${name}`).getBoundingClientRect();
+      const [foot, qr, cut, no] = ["kazoku-tilefoot", "kazoku-qr", "kazoku-cut", "kazoku-pageno"].map(at);
+      const parts = [foot, qr, cut, no];
+      return {
+        inside: parts.every((r) => r.top >= margin.top - 1 && r.bottom <= margin.bottom + 1 && r.left >= margin.left && r.right <= margin.right),
+        apart: cut.right <= foot.left + 1 && foot.right <= no.left + 1,
+        qrMm: qr.width / mm,
+        cutFits: cut.height <= margin.height,
+      };
+    });
+    expect(fit.inside, language).toBe(true);
+    expect(fit.apart, language).toBe(true);
+    expect(fit.qrMm, language).toBeGreaterThanOrEqual(10);
+    expect(fit.cutFits, language).toBe(true);
+  }
+  const code = await page.evaluate(async () => {
+    const { qrMatrix } = await import("./dist/print/index.js");
+    const viewBox = document.querySelector(".kazoku-tilefoot .kazoku-qr svg").getAttribute("viewBox").split(" ").map(Number);
+    return { box: viewBox[2], modules: qrMatrix("https://example.com/planets/").length };
+  });
+  expect(code.box).toBe(code.modules + 2);
+});
+
+test("the page number can be left off a one-page sheet, or always, on sheet pages and tiles", async ({ page }) => {
+  await ready(page);
+  const count = (given, pages = 1) => page.evaluate(async ([options, n]) => {
+    const { buildSheet } = await import("./dist/print/index.js");
+    const sheet = buildSheet({ title: "Certificate", pages: Array.from({ length: n }, () => document.createElement("div")), ...options });
+    return sheet.querySelectorAll(".kazoku-pageno").length;
+  }, [given, pages]);
+  expect(await count({})).toBe(1);
+  expect(await count({ pageNumber: "always" })).toBe(1);
+  expect(await count({ pageNumber: "many" })).toBe(0);
+  expect(await count({ pageNumber: "never" })).toBe(0);
+  expect(await count({ pageNumber: "many" }, 2)).toBe(2);
+  expect((await posterTiles(page, { pageNumber: "many" })).every((tile) => tile.pageno === 1)).toBe(true);
+  expect((await posterTiles(page, { pageNumber: "never" })).every((tile) => tile.pageno === 0)).toBe(true);
+  const one = await page.evaluate(async () => {
+    const { buildSheet } = await import("./dist/print/index.js");
+    const content = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    return buildSheet({ title: "One", pageNumber: "many", poster: { content, widthMm: 100, heightMm: 100 } }).querySelectorAll(".kazoku-pageno").length;
+  });
+  expect(one).toBe(0);
+});
+
+test("fitToPage in the browser: a poster fitted to one A3 page prints as one tile", async ({ page }) => {
+  await ready(page);
+  const info = await page.evaluate(async () => {
+    const { buildSheet, fitToPage } = await import("./dist/print/index.js");
+    const fit = fitToPage({ page: "a3", widthMm: 1200, heightMm: 800 });
+    const content = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const sheet = buildSheet({ page: "a3", orientation: fit.orientation, title: "Class", poster: { content, widthMm: fit.widthMm, heightMm: fit.heightMm } });
+    return { orientation: fit.orientation, tiles: sheet.querySelectorAll(".kazoku-tile").length };
+  });
+  expect(info).toEqual({ orientation: "landscape", tiles: 1 });
+});

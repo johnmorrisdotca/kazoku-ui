@@ -54,6 +54,11 @@ export function printCss(given: Partial<Layout> = {}): string {
 .kazoku-window { position: relative; flex: none; overflow: hidden; }
 .kazoku-poster { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .kazoku-margin { position: absolute; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 4mm; padding: 0 ${mm(layout.marginMm + 8)}; height: ${mm(layout.marginMm)}; font-size: var(--kz-small); line-height: 1.2; }
+.kazoku-margin .kazoku-cut { flex: 1; min-width: 0; }
+.kazoku-margin .kazoku-cut.small { font-size: 6.5pt; line-height: 1.15; }
+.kazoku-tilefoot { display: flex; flex: none; align-items: center; gap: 2mm; max-width: 60mm; max-height: 100%; overflow: hidden; }
+.kazoku-tilefoot .kazoku-address { min-width: 0; font-size: 6.5pt; line-height: 1.15; }
+.kazoku-tilefoot .kazoku-qr { display: block; }
 .kazoku-margin.top { top: 0; }
 .kazoku-margin.bottom { bottom: 0; }
 .kazoku-marks { position: absolute; left: 0; top: 0; pointer-events: none; }

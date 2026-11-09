@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Print: the address and QR on poster tiles, a hideable page number, and a fit-to-page helper** (KAZOKU-UI-78). `buildSheet({ tileFooter })` (`"none"` by default, `"ends"`, `"all"`) puts the address and a small QR code in the bottom margin of a poster's tile pages, all of them or the first and the last; `pageNumber` (`"always"` by default, `"many"`, `"never"`) leaves the page number off a one-page sheet or always, on sheet pages and tiles; `fitToPage({ page, widthMm, heightMm, orientation, marginMm })` scales a picture to the printable area keeping its shape, picks the larger turn, and says where to centre it. All three are additive: with no new option a sheet is built as before. Types `TileFooter`, `PageNumber`, `Fit` and `FitOptions`.
 - The replay bar guide has its front matter and a Japanese twin, and the view controls guide names the pose maths (`quatFromEuler`, `spinLocal`, `tumbleRates` and the rest), so `pnpm docs:check` and the docs workflow pass again (KAZOKU-UI-69).
 
 ## [0.22.0] - 2026-11-08
