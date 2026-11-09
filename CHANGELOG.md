@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-08
+
 A package's own element carries the view controls, and the default zoom range is wide.
 
 - **`carryControls(element, { onChange })`** (KAZOKU-UI-68). One call in `connectedCallback` gives a package's custom element the drag, the pinch, the wheel and the keys, so a page that drops the tag gets a picture that zooms and pans, with no `<kazoku-view-controls>` and no wiring. It returns `{ controller, unbind }`; `unbind` goes in `disconnectedCallback`. The wheel rule (the plain wheel scrolls the page at Fit; Ctrl, Command or Alt with the wheel zooms), `touch-action`, the keyboard focus (`tabindex="0"` unless the page gave one; an inline element becomes a block, or no touch would reach it) and reduced motion are done once, there. The element's attributes are read and watched: `controls="none"` turns the hands off (on by default; `on: false` flips that), and `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` set the limits over the ones the package passes, which sit over `DEFAULT_LIMITS`. A `<kazoku-view-controls for="...">` on the same element takes the hands over while it is bound (it marks the element `data-kazoku-bar` and sends `kazoku-viewbar`), so a drag is never handled twice. `readLimits(get, base)` is the attributes-to-limits arithmetic the bar and the helper share. See [the guide](docs/guides/element-controls.md) and the new demo page, `carry.html`.
