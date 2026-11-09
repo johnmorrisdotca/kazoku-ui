@@ -75,15 +75,163 @@ test("a job that returns true is drawn again next frame, with the time since its
   let left = 3;
   const job: Job = { draw: (_now, dt) => { seen.push(dt); left -= 1; return left > 0; } };
   s.invalidate(job);
-  f.frame(16);
-  f.frame(16);
-  f.frame(16);
-  assert.deepEqual(seen.map((dt) => Math.round(dt * 1000)), [0, 16, 16]);
+  f.frame(34);
+  f.frame(34);
+  f.frame(34);
+  assert.deepEqual(seen.map((dt) => Math.round(dt * 1000)), [0, 34, 34]);
   assert.equal(s.pending, false);
   assert.equal(f.requests(), 3);
   s.invalidate(job);
   f.frame(5000);
   assert.equal(seen[3], 0, "a job that rested starts again from 0, not from a long gap");
+});
+
+/** Turn a view for `seconds` on a screen of `hz`: one frame every 1000/hz ms, as the browser gives them. Returns the draws, the frames that ran and the dt each draw saw. */
+function turn(hz: number, seconds: number, options: { maxDraws?: number } = {}) {
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock, ...options });
+  const times: number[] = [];
+  const dts: number[] = [];
+  const job: Job = { draw: (now, dt) => { times.push(now); dts.push(dt); return true; } };
+  s.invalidate(job);
+  const step = 1000 / hz;
+  let frames = 0;
+  for (let n = 0; n < Math.round(hz * seconds); n += 1) {
+    assert.ok(f.pending(), "a frame is always asked for while the view is moving");
+    f.frame(step);
+    frames += 1;
+  }
+  return { s, f, times, dts, frames };
+}
+
+test("a moving view is drawn at most 30 times a second on a 60, 90, 120, 144 or 240 Hz screen, and not much under", () => {
+  for (const hz of [60, 90, 120, 144, 240]) {
+    const { times, frames, s } = turn(hz, 10);
+    const perSecond = times.length / 10;
+    assert.ok(perSecond <= 30, `${hz} Hz drew ${perSecond} a second`);
+    assert.ok(perSecond >= 28, `${hz} Hz drew only ${perSecond} a second`);
+    // Every one-second window holds at most 30 draws, not only the average.
+    for (let i = 0; i + 30 < times.length; i += 1) assert.ok(times[i + 30]! - times[i]! >= 1000 - 1e-6, `${hz} Hz: 31 draws inside ${times[i + 30]! - times[i]!} ms`);
+    // The frames the cap skipped drew nothing, and each still asked for the next one, one request at a time.
+    assert.equal(s.stats.frames, frames);
+    assert.equal(s.stats.draws, times.length);
+    assert.equal(s.stats.requests, frames + 1);
+  }
+});
+
+test("60 Hz draws every second frame, 120 Hz every fourth (30, not 20)", () => {
+  assert.equal(turn(60, 1).times.length, 30);
+  assert.equal(turn(120, 1).times.length, 30);
+});
+
+test("dt is the time since the job's last real draw, so a skipped frame loses no time", () => {
+  for (const hz of [60, 120, 144]) {
+    const { dts } = turn(hz, 2);
+    assert.equal(dts[0], 0);
+    for (const dt of dts.slice(1)) assert.ok(dt >= 0.028 && dt <= 0.036, `${hz} Hz: dt ${dt}`);
+    // Together the dts add up to the time that passed, so the motion keeps its speed.
+    const total = dts.reduce((sum, dt) => sum + dt, 0);
+    assert.ok(Math.abs(total - 2) < 0.1, `${hz} Hz: ${total} s of motion in 2 s`);
+  }
+});
+
+test("the first frame after rest is drawn at once, at any refresh rate, however soon the last draw was", () => {
+  for (const hz of [60, 120, 144]) {
+    const f = fakeClock();
+    const s = createScheduler({ clock: f.clock });
+    let draws = 0;
+    let left = 3;
+    const job: Job = { draw: () => { draws += 1; left -= 1; return left > 0; } };
+    f.advance(1234);
+    s.invalidate(job);
+    f.frame(1000 / hz);
+    assert.equal(draws, 1, `${hz} Hz: the first frame of a first interaction is not delayed`);
+    while (f.pending()) f.frame(1000 / hz);
+    assert.equal(draws, 3);
+    assert.equal(s.pending, false);
+    // At rest for a while (more than a gap), the next invalidation draws on the very next frame.
+    f.advance(500);
+    left = 3;
+    s.invalidate(job);
+    f.frame(1000 / hz);
+    assert.equal(draws, 4, `${hz} Hz: a draw after rest waits for nothing`);
+  }
+});
+
+test("a view invalidated again at once (a hand moving it, no animation) is held to 30 a second too", () => {
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock });
+  let draws = 0;
+  const job: Job = { draw: () => { draws += 1; } };
+  const step = 1000 / 144;
+  for (let n = 0; n < 288; n += 1) {
+    s.invalidate(job);
+    f.frame(step);
+  }
+  assert.ok(draws <= 60 && draws >= 56, `drew ${draws} in 2 s`);
+});
+
+test("a capped frame draws nothing, stays dirty, asks for exactly one next frame, and the budget does not count it as deferred", () => {
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock });
+  let draws = 0;
+  const job: Job = { draw: () => { draws += 1; return true; } };
+  s.invalidate(job);
+  f.frame(16);
+  assert.equal(draws, 1);
+  assert.equal(f.requests(), 2);
+  f.frame(8);
+  assert.equal(draws, 1, "8 ms after a draw: skipped");
+  assert.equal(f.requests(), 3, "and the next frame is asked for");
+  assert.equal(s.pending, true);
+  assert.equal(s.stats.deferred, 0);
+  assert.equal(s.stats.draws, 1);
+  f.frame(8);
+  f.frame(8);
+  f.frame(8);
+  assert.equal(draws, 2);
+});
+
+test("a capped job does not hold back another that is ready, and nothing is drawn at rest", () => {
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock });
+  const seen: string[] = [];
+  const a: Job = { draw: () => { seen.push("a"); return true; } };
+  const b: Job = { draw: () => { seen.push("b"); } };
+  s.invalidate(a);
+  f.frame(16);
+  s.invalidate(b);
+  f.frame(8);
+  assert.deepEqual(seen, ["a", "b"], "b is new, so it draws although a is waiting out its gap");
+  f.frame(8);
+  f.frame(8);
+  f.frame(8);
+  assert.equal(seen.filter((x) => x === "a").length, 2);
+  // a stops: after its last frame nothing more is asked for.
+  a.draw = () => { seen.push("a"); };
+  while (f.pending()) f.frame(16);
+  const requests = f.requests();
+  f.frame(16);
+  f.frame(16);
+  assert.equal(f.requests(), requests);
+  assert.equal(s.pending, false);
+});
+
+test("after a pause (hidden tab) the first frame is drawn at once, and a removed job is forgotten", () => {
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock });
+  let draws = 0;
+  const job: Job = { draw: () => { draws += 1; return true; } };
+  s.invalidate(job);
+  f.frame(16);
+  s.pause();
+  s.resume();
+  f.frame(1);
+  assert.equal(draws, 2, "resume draws on the next frame, not a gap later");
+  s.remove(job);
+  s.invalidate(job);
+  f.frame(1);
+  assert.equal(draws, 3);
 });
 
 test("the focused job is drawn before an ambient one, and the budget defers the rest to the next frame", () => {

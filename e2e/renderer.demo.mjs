@@ -106,6 +106,24 @@ test("turning draws once a frame, asks for one frame at a time, and stops when t
   expect(later.rafRequests - paused.rafRequests).toBe(0);
 });
 
+test("a turning view is drawn at most 30 times a second, whatever the screen's rate", async ({ page }) => {
+  await ready(page);
+  await quiet(page);
+  await page.evaluate(() => window.kazokuDemo.controls.play());
+  // A slow software frame holds the turn back: wait until it is drawing, then time a window by the page's own clock.
+  const first = await demo(page);
+  await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 15_000 }).toBeGreaterThan(3);
+  const from = await page.evaluate((n) => ({ at: window.performance.now(), draws: n }), (await demo(page)).draws);
+  await page.waitForTimeout(3000);
+  const to = await page.evaluate(() => window.performance.now());
+  const draws = (await demo(page)).draws - from.draws;
+  const seconds = (to - from.at) / 1000;
+  // Software drawing may be slower than 30, never faster; the page's frames may come at 60 or more.
+  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * seconds) + 1);
+  expect(draws).toBeGreaterThan(0);
+  await page.evaluate(() => window.kazokuDemo.controls.pause());
+});
+
 test("memory is steady over fifty changes of focus: the GPU objects, the cache and the heap are flat", async ({ page, browserName }) => {
   await ready(page, "?linger=150");
   // Warm up: every view live once, so every still and shared asset exists.

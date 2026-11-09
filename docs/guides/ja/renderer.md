@@ -60,6 +60,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 | 共有アセット | シーンに必要なものはすべて`assets.acquire(key, make, dispose)`を通します。最初に求めた側のために1回だけ作られ、キーで共有され、数えられ、最後のビューが手放して`lingerMs`（1秒）後に破棄されます。`disposeDeep(model)`は、読み込んだモデルのジオメトリ、マテリアル、テクスチャを解放します。 |
 | 静止画 | `view.showStill()`は、アイテムを同じレンダラーから1回だけ描き、PNGのBlobにして、ホスト内の`<img>`に表示します。同じ`key`のアイテムは画像を共有し、バイト予算（`stillBytes`、展開後32 MB）つきの、最近使われていないものから捨てる一覧に入ります。 |
 | 必要なときだけの描画 | すべてのビューに、スケジューラーは1つです。静止しているページは、ブラウザーに何も求めません。アニメーションフレームも描画もありません。フレームの要求は常に1つで、1フレームには予算があります。1フレームの描画は最大2回で、10 msを超えたら新しい描画は始めません。フォーカスのビューが先です。 |
+| 毎秒30フレームまで | ビューは、画面のリフレッシュレートによらず、1秒に`MAX_FPS`（30）回までしか描かれません。直前の描画から1フレーム分の間隔（1000/30 ms。ブラウザーのタイミングの誤差を見込んで2 ms短くしています）に満たないビューは、そのフレームでは描かれずに待ち、次のフレームが要求されます。60 Hzの画面は2フレームに1回で毎秒30回、120 Hzは4フレームに1回で毎秒30回、144 Hzは5フレームに1回で毎秒28.8回です。静止していたビューや、非表示のタブから戻ったビューは、次のフレームですぐに描かれます。`dt`は、そのビューが前回実際に描かれてからの経過時間のままなので、動きの速さは変わりません。 |
 | 見えていないとき | ライブのビューのホストとタブの表示状態が見張られ、画面外や非表示のタブではフレームを要求しません。画面外のまま`releaseMs`（30秒）たつと、コンテキストそのものを手放し、ビューは静止画を保ち、ビューが見えるとコンテキストを作り直します。 |
 | ピクセルの予算 | 最大600万ピクセル、1辺4096、ピクセル比2。ピクセル比2の5K画面は約1.5で描かれ、CSSで拡大されます。2400万ピクセルでは描きません。3つとも、オプションです。 |
 | コンテキストの喪失 | `webglcontextlost`は止められ、描画が止まり、静止画が表示され、`onContext("lost")`が呼ばれます。復元されると、ビューは再び描き、`onContext("restored")`が呼ばれます。 |
@@ -69,7 +70,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 - `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, antialias, onContext, clock, document, assets, scheduler })`
 - `renderer.view(host, item, { still })`はビューを返します：`focus()`、`blur()`、`invalidate()`、`showStill()`、`dispose()`、`live`、`scene`、`host`、`item`。
 - `renderer.focused`、`renderer.stats`（`contexts`、`draws`、`snapshots`、`live`、`lost`、`canvas`、`frames`、`assets`、`stills`）、`renderer.assets`、`renderer.stills`、`renderer.scheduler`、`renderer.dispose()`。
-- アイテムは`{ key, build({ three, assets, width, height }) }`で、`{ scene, camera, update?, resize?, dispose? }`を返します。`update(dt, now)`は動いているものがあれば真を返し、ビューは次のフレームで再び描かれます。
+- アイテムは`{ key, build({ three, assets, width, height }) }`で、`{ scene, camera, update?, resize?, dispose? }`を返します。`update(dt, now)`は動いているものがあれば真を返し、ビューは上限（毎秒30回まで）が許す次のフレームで再び描かれます。
 
 ホストには（CSSの）大きさが必要です。`position: static`の場合は`position: relative`にされます。キャンバスはそのパディングボックスを埋めます。見えているライブのビューを同時に複数持つことは、サポートしません。それがこの部品の趣旨です。必要なパッケージは、唯一のキャンバスに描き、各ホスト自身の2Dキャンバスにコピーします。
 
@@ -117,7 +118,8 @@ console.log(scheduler.pending, JSON.stringify(scheduler.stats), drawn.length);
 ```
 
 - `pixelRatioFor(width, height, deviceRatio, limits?)`は、キャンバスを描くピクセル比です。端末のピクセル比を`MAX_RATIO`までに抑え、さらに、キャンバスが`MAX_PIXELS`と`MAX_SIDE`に収まるまで下げた値になります。
-- `createScheduler({ clock, maxDraws, budgetMs })`は、`invalidate(job, priority?)`、`remove(job)`、`pause()`、`resume()`と、`stats`の数値を返します。`Job`は`{ draw(now, dt) }`で、真を返した`draw`は、次のフレームでも描かれます。`browserClock()`は本物の時計、`FrameClock`は代わりの形です。
+- `MAX_FPS`（30）は、1つのジョブが1秒に描かれる最大回数です。ファミリー共通のルール（ライブ3Dは毎秒30フレームまで）なので、オプションではありません。
+- `createScheduler({ clock, maxDraws, budgetMs })`は、`invalidate(job, priority?)`、`remove(job)`、`pause()`、`resume()`と、`stats`の数値を返します。`Job`は`{ draw(now, dt) }`で、真を返した`draw`は、毎秒30回までの上限が許す次のフレームで、また描かれます。`browserClock()`は本物の時計、`FrameClock`は代わりの形です。
 - `createAssetCache({ lingerMs, timers })`は、`acquire(key, make, dispose?)`、`release(key)`、`scope()`（1つのビューが取るもの。`release()`1回で手放します）、`clear()`、`stats()`を返します。
 - `createStillCache({ maxBytes, free, onEvict })`は、バイト予算のある画像の一覧です：`get`、`set`、`delete`、`clear`、`bytes`、`size`、`keys()`。
 - `disposeDeep(root)`は、読み込んだモデルが持つものを解放します。ダックタイピングなので、threeのインポートは要りません。

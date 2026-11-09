@@ -1,6 +1,12 @@
 // One frame loop for every view on the page. A view is drawn only when it asked to be (`invalidate`), so a page at rest asks the browser for nothing;
 // exactly one animation frame is requested at a time, whoever invalidates and whenever (a change event during a draw adds nothing, which is the fault that once
-// doubled a package's frame requests every frame); and a frame has a budget (draws and milliseconds), with the focused view first and ambient work shed first.
+// doubled a package's frame requests every frame); a frame has a budget (draws and milliseconds), with the focused view first and ambient work shed first;
+// and a view is drawn at most MAX_FPS times a second, whatever the screen's refresh rate, so a turning view costs the same battery on a 60, 120 or 144 Hz screen.
+
+/** Most draws of one job in a second (30): the family's rule for live 3D. A 60 Hz screen draws every second frame, a 120 Hz screen every fourth. */
+export const MAX_FPS = 30;
+// A frame's timestamp is not exact: a gap a little short of a whole number of frames still counts, so 60 Hz gives 30 draws and not 20.
+const GAP_MS = 1000 / MAX_FPS - 2;
 
 export interface FrameClock {
   request(callback: (now: number) => void): number;
@@ -15,7 +21,7 @@ export const browserClock = (): FrameClock => ({
 });
 
 export interface Job {
-  /** Draw once. `dt` is seconds since this job's last draw while it kept animating, else 0. Return true to be drawn again next frame (an animation); anything else leaves it at rest. */
+  /** Draw once. `dt` is seconds since this job's last draw while it kept animating, else 0. A job is drawn at most `MAX_FPS` times a second: one asked for sooner waits for the frame that is a gap after its last draw. Return true to be drawn again next frame (an animation); anything else leaves it at rest. */
   draw(now: number, dt: number): boolean | void;
 }
 
@@ -60,6 +66,8 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
   const budgetMs = options.budgetMs ?? 10;
   const dirty = new Map<Job, Priority>();
   const lastDraw = new Map<Job, number>();
+  // When each job last drew, whether or not it asked to go on: the cap holds for a view invalidated by a hand's every move as much as for an animation.
+  let drewAt = new WeakMap<Job, number>();
   const stats: SchedulerStats = { requests: 0, frames: 0, draws: 0, deferred: 0 };
   let frame = 0;
   let running = false;
@@ -77,7 +85,10 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
     running = true;
     stats.frames += 1;
     const started = clock.now();
-    const order = [...dirty].sort((a, b) => Number(a[1] === "ambient") - Number(b[1] === "ambient"));
+    // A job that drew less than a gap ago stays dirty and is left alone this frame (another frame is asked for below); one at rest draws at once.
+    const order = [...dirty]
+      .filter(([job]) => now - (drewAt.get(job) ?? -Infinity) >= GAP_MS)
+      .sort((a, b) => Number(a[1] === "ambient") - Number(b[1] === "ambient"));
     let drawn = 0;
     try {
       for (const [job, priority] of order) {
@@ -86,6 +97,7 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
           break;
         }
         dirty.delete(job);
+        drewAt.set(job, now);
         const before = lastDraw.get(job);
         const dt = before === undefined ? 0 : Math.min(0.1, (now - before) / 1000);
         drawn += 1;
@@ -109,6 +121,7 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
     remove(job) {
       dirty.delete(job);
       lastDraw.delete(job);
+      drewAt.delete(job);
     },
     pause() {
       pauses += 1;
@@ -121,7 +134,10 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
       if (pauses === 0) return;
       pauses -= 1;
       // Time spent paused is not a frame's worth of animation.
-      if (pauses === 0) lastDraw.clear();
+      if (pauses === 0) {
+        lastDraw.clear();
+        drewAt = new WeakMap();
+      }
       ensure();
     },
     get paused() {

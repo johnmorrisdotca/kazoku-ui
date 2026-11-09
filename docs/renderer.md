@@ -54,6 +54,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 | Shared assets | Everything a scene needs goes through `assets.acquire(key, make, dispose)`: made once for the first asker, shared by key, counted, disposed `lingerMs` (1 s) after the last view lets go (a view that lets go just before the next takes the same shape does not rebuild it). `disposeDeep(model)` frees a loaded model's geometries, materials and textures. |
 | Stills | `view.showStill()` renders the item once from the same renderer (one at a time, at `stillSize` pixels) into a PNG blob and shows it in an `<img>` the part makes in the host (or the one you pass as `still`). Items with the same `key` share a picture. They sit in a least-recently-used list with a byte budget (`stillBytes`, 32 MB decoded); a picture that falls out is made again when its view next needs it. |
 | Drawing on demand | One scheduler for every view. A page at rest asks the browser for nothing: no animation frame, no draw. Exactly one frame is requested at a time, whoever asks and whenever, including from inside a draw. A frame has a budget: at most 2 draws and 10 ms before a new draw starts, the focused view first. |
+| At most 30 frames a second | A view is drawn at most `MAX_FPS` (30) times a second at any refresh rate (60 Hz draws every second frame, 120 Hz every fourth, 144 Hz about 28.8 a second). A view that drew less than 1000/30 ms ago (less 2 ms of timing slack) stays dirty and is skipped this frame, which still asks for the next one (one request at a time). The first frame after rest, or after a pause, is never delayed; `dt` stays the time since the view's last real draw. |
 | Out of sight | The live view's host is watched (`IntersectionObserver`) and the tab's visibility too: out of sight or in a hidden tab no frame is requested. After `releaseMs` (30 s) out of sight the context itself is let go (`forceContextLoss`), so the GPU memory is free; the views keep their stills, and the context is made again when the view is seen. |
 | Pixel budget | `pixelRatioFor(width, height, deviceRatio)`: at most 6 million pixels, 4096 on a side, ratio 2. A 5K screen at ratio 2 is drawn at about 1.5 and scaled up by CSS, not at 24 MP. All three limits are options. |
 | Context loss | `webglcontextlost` is prevented (so the browser may restore it), drawing stops, the still is shown, and `onContext("lost")` is called; on `webglcontextrestored` the view draws again and `onContext("restored")` is called. Calling `view.focus()` on a view whose context never came back builds a new one. |
@@ -63,7 +64,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 - `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, antialias, onContext, clock, document, assets, scheduler })`.
 - `renderer.view(host, item, { still })` returns a view: `focus()`, `blur()`, `invalidate()`, `showStill()`, `dispose()`, `live`, `scene`, `host`, `item`.
 - `renderer.focused`, `renderer.stats` (`contexts`, `draws`, `snapshots`, `live`, `lost`, `canvas`, `frames`, `assets`, `stills`), `renderer.assets`, `renderer.stills`, `renderer.scheduler`, `renderer.dispose()`.
-- An item is `{ key, build({ three, assets, width, height }) }` returning `{ scene, camera, update?, resize?, dispose? }`; `update(dt, now)` returns true while something moves, and the view is then drawn again next frame.
+- An item is `{ key, build({ three, assets, width, height }) }` returning `{ scene, camera, update?, resize?, dispose? }`; `update(dt, now)` returns true while something moves, and the view is then drawn again at the next frame the 30 a second cap allows.
 - The parts alone, with no DOM: `createScheduler`, `createAssetCache`, `createStillCache`, `pixelRatioFor`, `disposeDeep`.
 
 The host needs a size (CSS) and is made `position: relative` if it is static; the canvas fills its padding box. Several visible live views at once are not supported
@@ -90,7 +91,7 @@ expect(withinPixelBudget(await canvasSize(page))).toBe(true);    // at 5120x2880
 This repository's own check is `e2e/renderer.demo.mjs`, on `demo/renderer.html` (thirty views on one renderer): contexts = 1 over fifty focus changes with at most one canvas in
 the page, 0 draws and 0 frame requests at rest, the GPU objects, the cache and the stills flat (and the JS heap within 3 MB in Chromium) over fifty more, the canvas within
 budget when the focused view fills a 5K screen at ratio 2, no frame while out of sight and the context let go after `releaseMs`, a lost and restored context, the stills
-within their byte budget, and one frame request at a time while turning.
+within their byte budget, one frame request at a time while turning, and no more than 30 draws a second while turning.
 
 ## The rule: no 3D release without a freeze test
 

@@ -58,6 +58,7 @@ A package that imports `/renderer` from its own element lists this package as a 
 | Shared assets | Everything a scene needs goes through `assets.acquire(key, make, dispose)`: made once for the first asker, shared by key, counted, disposed `lingerMs` (1 s) after the last view lets go. `disposeDeep(model)` frees a loaded model's geometries, materials and textures. |
 | Stills | `view.showStill()` renders the item once from the same renderer into a PNG blob and shows it in an `<img>` in the host. Items with the same `key` share a picture, in a least-recently-used list with a byte budget (`stillBytes`, 32 MB decoded). |
 | Drawing on demand | One scheduler for every view. A page at rest asks the browser for nothing: no animation frame, no draw. Exactly one frame is requested at a time, and a frame has a budget: at most 2 draws and 10 ms before a new draw starts, the focused view first. |
+| At most 30 frames a second | A view is drawn at most `MAX_FPS` (30) times a second, whatever the screen's refresh rate: a view that drew less than a frame gap ago (1000/30 ms, less 2 ms for the browser's timing) stays dirty and is skipped this frame, which still asks for the next one. A 60 Hz screen draws every second frame (30 a second), 120 Hz every fourth (30), 144 Hz every fifth (28.8). A view at rest, or one that comes back from a hidden tab, is drawn on the very next frame. `dt` is still the time since the view's last real draw, so the motion keeps its speed. |
 | Out of sight | The live view's host and the tab's visibility are watched: out of sight or in a hidden tab no frame is requested. After `releaseMs` (30 s) out of sight the context itself is let go, the views keep their stills, and the context is made again when the view is seen. |
 | Pixel budget | At most 6 million pixels, 4096 on a side and ratio 2. A 5K screen at ratio 2 is drawn at about 1.5 and scaled up by CSS, not at 24 MP. All three are options. |
 | Context loss | `webglcontextlost` is prevented, drawing stops, the still is shown, and `onContext("lost")` is called; on restore the view draws again and `onContext("restored")` is called. |
@@ -67,7 +68,7 @@ A package that imports `/renderer` from its own element lists this package as a 
 - `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, antialias, onContext, clock, document, assets, scheduler })`.
 - `renderer.view(host, item, { still })` returns a view: `focus()`, `blur()`, `invalidate()`, `showStill()`, `dispose()`, `live`, `scene`, `host`, `item`.
 - `renderer.focused`, `renderer.stats` (`contexts`, `draws`, `snapshots`, `live`, `lost`, `canvas`, `frames`, `assets`, `stills`), `renderer.assets`, `renderer.stills`, `renderer.scheduler`, `renderer.dispose()`.
-- An item is `{ key, build({ three, assets, width, height }) }` returning `{ scene, camera, update?, resize?, dispose? }`; `update(dt, now)` returns true while something moves, and the view is then drawn again next frame.
+- An item is `{ key, build({ three, assets, width, height }) }` returning `{ scene, camera, update?, resize?, dispose? }`; `update(dt, now)` returns true while something moves, and the view is then drawn again at the next frame the cap lets it have (at 30 a second).
 
 The host needs a size (CSS) and is made `position: relative` if it is static; the canvas fills its padding box. Several visible live views at once are not supported, which is the point: a package that needs them renders to the one canvas and copies into each host's own 2D canvas.
 
@@ -115,7 +116,8 @@ console.log(scheduler.pending, JSON.stringify(scheduler.stats), drawn.length);
 ```
 
 - `pixelRatioFor(width, height, deviceRatio, limits?)` is the ratio to draw a canvas at: the device's, held to `MAX_RATIO`, then lowered until the canvas fits `MAX_PIXELS` and `MAX_SIDE`.
-- `createScheduler({ clock, maxDraws, budgetMs })` gives `invalidate(job, priority?)`, `remove(job)`, `pause()`, `resume()` and the counts in `stats`. A `Job` is `{ draw(now, dt) }`, and a `draw` that returns true is drawn again next frame. `browserClock()` is the real clock and `FrameClock` the shape of a stand-in.
+- `MAX_FPS` (30) is the most draws of one job in a second; it is not an option, because the family's rule for live 3D is 30.
+- `createScheduler({ clock, maxDraws, budgetMs })` gives `invalidate(job, priority?)`, `remove(job)`, `pause()`, `resume()` and the counts in `stats`. A `Job` is `{ draw(now, dt) }`, and a `draw` that returns true is drawn again at the next frame the 30 a second cap allows. `browserClock()` is the real clock and `FrameClock` the shape of a stand-in.
 - `createAssetCache({ lingerMs, timers })` gives `acquire(key, make, dispose?)`, `release(key)`, `scope()` (what one view takes, let go with one `release()`), `clear()` and `stats()`.
 - `createStillCache({ maxBytes, free, onEvict })` is the byte-budgeted list of pictures: `get`, `set`, `delete`, `clear`, `bytes`, `size`, `keys()`.
 - `disposeDeep(root)` frees what a loaded model holds, duck-typed so it needs no three import.

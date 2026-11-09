@@ -4033,10 +4033,10 @@ interface TypePreset {
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`
 
-11 values and 25 types.
+12 values and 25 types.
 
 ```js
-import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, STILL_BYTES } from '@johnmorrisdotca/kazoku-ui/renderer';
+import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_FPS, MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, STILL_BYTES } from '@johnmorrisdotca/kazoku-ui/renderer';
 ```
 
 ### browserClock
@@ -4085,6 +4085,14 @@ function createStillCache(options?: StillCacheOptions): StillCache;
 
 ```ts
 function disposeDeep(root: unknown): void;
+```
+
+### MAX_FPS
+
+*constant*. Most draws of one job in a second (30): the family's rule for live 3D. A 60 Hz screen draws every second frame, a 120 Hz screen every fourth.
+
+```ts
+const MAX_FPS = 30;
 ```
 
 ### MAX_PIXELS
@@ -4244,7 +4252,7 @@ interface Item3D<T extends ThreeLike = ThreeLike> {
 
 ```ts
 interface Job {
-    /** Draw once. `dt` is seconds since this job's last draw while it kept animating, else 0. Return true to be drawn again next frame (an animation); anything else leaves it at rest. */
+    /** Draw once. `dt` is seconds since this job's last draw while it kept animating, else 0. A job is drawn at most `MAX_FPS` times a second: one asked for sooner waits for the frame that is a gap after its last draw. Return true to be drawn again next frame (an animation); anything else leaves it at rest. */
     draw(now: number, dt: number): boolean | void;
 }
 ```
