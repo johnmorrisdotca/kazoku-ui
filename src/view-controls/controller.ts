@@ -443,6 +443,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     let holding = false;
     let lastTap = 0;
     let lastTapAt: Point = { x: 0, y: 0 };
+    let menuOff = false;
+    let menuUntil = 0;
 
     const hold = (): void => {
       if (!holding) controller.holdTurn();
@@ -522,11 +524,13 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         gesture = { kind: "pinch", start: { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, angle: Math.atan2(b.y - a.y, b.x - a.x), camera: shot() } };
         release();
       } else if (pointers.size === 1) {
-        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift and a left drag rolls, and that still works when the view is zoomed. The middle or the right button, and Space, move it. A flat view cannot turn, so a drag moves it. Reduced motion leaves these hands as they are.
-        const rolling = e.shiftKey && e.button === 0 && !space;
-        const pan = !rolling && (space || e.button === 1 || e.button === 2 || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn")));
+        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift and a left drag rolls, and that still works when the view is zoomed. Ctrl or Command and a left drag, the middle or the right button, and Space, move it. A flat view cannot turn, so a drag moves it. Reduced motion leaves these hands as they are.
+        const grabbed = (e.ctrlKey || e.metaKey) && e.button === 0 && e.pointerType !== "touch";
+        const rolling = e.shiftKey && e.button === 0 && !space && !grabbed;
+        const pan = !rolling && (space || grabbed || e.button === 1 || e.button === 2 || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn")));
         gesture = { kind: rolling ? "roll" : pan ? "pan" : "turn", x: e.clientX, y: e.clientY, camera: shot(), moved: false };
-        if (pan && (space || e.button === 1)) view.style.cursor = "grabbing";
+        menuOff = pan && (grabbed || e.button === 2);
+        if (pan && (space || grabbed || e.button === 1)) view.style.cursor = "grabbing";
         if (!pan) hold();
       }
       view.dataset.grab = "1";
@@ -542,6 +546,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         take(pinchTo(gesture.start, a, b, centre(), limits));
         emit(false, "pinch");
       } else if (gesture.kind === "pan") {
+        if (Math.abs(e.clientX - gesture.x) + Math.abs(e.clientY - gesture.y) > 3) gesture.moved = true;
         if (state.zoom > 1) {
           take({ ...camera(), panX: gesture.camera.panX + (e.clientX - gesture.x), panY: gesture.camera.panY + (e.clientY - gesture.y) });
           emit(false, "drag");
@@ -572,6 +577,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       if (!pointers.delete(e.pointerId)) return;
       const wasPinch = gesture?.kind === "pinch";
       const moved = gesture?.kind !== "pinch" && gesture?.moved === true;
+      if (menuOff && moved) menuUntil = e.timeStamp + 400;
+      menuOff = false;
       if (pointers.size === 1) {
         // One finger left of a pinch carries on as a drag from where it is.
         const [rest] = [...pointers.values()] as [Point];
@@ -649,7 +656,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       e.preventDefault();
     };
 
-    const onMenu = (e: Event): void => e.preventDefault();
+    // The browser's menu stays out of a pan made with Ctrl (a Ctrl-click opens it on macOS) or the right button: while the press is down, and for a moment after a moved one (Windows and Linux open it on release). A click that moves nothing leaves the menu alone.
+    const onMenu = (e: Event): void => {
+      if (menuOff || e.timeStamp < menuUntil) e.preventDefault();
+    };
     const doc = view.ownerDocument;
     view.addEventListener("pointerdown", onDown);
     view.addEventListener("pointermove", onMove);
@@ -661,7 +671,6 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     view.addEventListener("keydown", onKey);
     doc.addEventListener?.("keydown", onSpace);
     doc.addEventListener?.("keyup", onSpace);
-    // A right press is a pan, not the browser's menu.
     view.addEventListener("contextmenu", onMenu);
     view.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
     const unwatch = turnOnlyInSight(controller, view);

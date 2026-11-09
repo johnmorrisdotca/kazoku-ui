@@ -12,7 +12,7 @@ description: The view-controls element in full: what the reader gets, every attr
 ## What the reader gets
 
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
-- A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. The middle button and a drag, or Space and a drag, moves it, and the pointer is a hand while Space is held. A plain left drag still turns and leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
+- A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag still turns and leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - English and Japanese labels, light and dark, 48 px touch targets, a compact bar on a phone, and no automatic turn for a reader who prefers reduced motion.
@@ -142,6 +142,33 @@ The element's turning is plain functions in `view-controls`, with no DOM, for a 
 ## Why the tag is only defined when it is free
 
 `customElements.define` throws when a name is taken, and a page can meet that without any fault: two copies of this package, the script loaded twice, or a page that registered the tag to supply its own element. So `defineViewControls` (what the `define` import runs) calls `customElements.get` first, and the first one wins. The class, `ViewControlsElement`, is in `view-controls/element` if you want to register it yourself.
+
+## Gestures, and the check every package runs
+
+Every interactive view in the family answers the same gestures, so a reader never has to learn a page.
+
+| Gesture | Action |
+|---|---|
+| Drag | Turn (yaw), and tilt for a mouse; zoomed in, a drag still turns when `drag` is Turn, and moves when it is Move |
+| Shift and a drag, or a two-finger twist | Roll |
+| Ctrl or Command and a left drag, Space and a drag, the middle or right button and a drag, two fingers dragging together | Move (pan) a zoomed view |
+| The wheel, Shift and the wheel, a two-finger swipe | Move a zoomed view (at Fit the page scrolls) |
+| Ctrl, Command or Alt with the wheel, a trackpad pinch, two fingers apart or together | Zoom about the pointer |
+| Arrows, `+` and `-` | Turn and tip, zoom |
+| A double-click on a zoomed view, Home or `0` | Fit (Home and `0` also go to the front) |
+
+The controller does all of it, so a page that binds `<kazoku-view-controls>` (or calls `carryControls`) has every row and only has to draw `panX`, `panY`, `zoom`, `yaw`, `tilt` and `roll` from the change event. `panX` and `panY` are CSS pixels from the middle of the view: the picture must move by that many. On a Mac, Ctrl and a click opens the browser's context menu; the controller holds the menu back while a Ctrl or right-button drag is moving the view, and leaves it alone otherwise.
+
+`checkGestures` in `@johnmorrisdotca/kazoku-ui/testing` proves a page does. It takes Playwright's `page` and the selector of the view the hands are bound to, does each gesture with a real mouse and keyboard (two fingers with pointer events), reads the view from the controls' own change events, and checks each gesture changed the view as the table says. For the moves it also photographs the view and checks the picture moved by as many pixels as the controls say, so a page that ignores the move fails. The view needs a `tabindex` for the key rows. Every failing gesture is named in one error.
+
+A view that intentionally has no turn or roll, such as a flat map, says so, with the reason; nothing is skipped silently. `GESTURES` lists the names, `GESTURE_NAMES` their order, and `bestShift` is the picture check's search.
+
+```js no-run
+import { checkGestures } from "@johnmorrisdotca/kazoku-ui/testing";
+
+await checkGestures(page, "#view");
+await checkGestures(page, "#map", { lacks: { turn: "a flat map", roll: "a flat map", "key-turn": "a flat map" } });
+```
 
 ## Related
 

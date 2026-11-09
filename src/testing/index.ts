@@ -100,4 +100,5 @@ export function withinPixelBudget(size: CanvasSize, maxPixels = 6_000_000, maxSi
   return size.pixels <= maxPixels && size.side <= maxSide;
 }
 
+export * from "./gestures.ts";
 export * from "./lock.ts";

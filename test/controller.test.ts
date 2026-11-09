@@ -245,7 +245,8 @@ const fakeBound = () => {
     docListeners.get("keydown")?.({ key: " ", type: "keydown", target: {}, preventDefault: () => { stopped = true; } });
     return stopped;
   };
-  return { fakeView: fakeView as unknown as HTMLElement, key, wheel, press, move, release, enter, holdSpace, pointer };
+  const menu = (timeStamp = 0) => { let stopped = false; listeners.get("contextmenu")?.({ timeStamp, preventDefault: () => { stopped = true; } }); return stopped; };
+  return { fakeView: fakeView as unknown as HTMLElement, key, wheel, press, move, release, enter, holdSpace, pointer, menu };
 };
 
 test("the buttons and keys zoom about the anchor, which stays where it is on screen", () => {
@@ -376,6 +377,41 @@ test("Space and a drag, or the middle button, moves a zoomed view, and a left dr
   plain.move(40, 0);
   assert.ok(turned.view.state.yaw !== 0, "a left drag still turns");
   assert.equal(turned.view.state.panX, 0);
+});
+
+test("Ctrl or Command and a left drag moves a zoomed view, Shift and a drag still rolls, and the context menu is held back only during a move", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  view.zoomAt(2);
+  for (const mod of [{ ctrlKey: true }, { metaKey: true }]) {
+    view.set({ panX: 0, panY: 0 });
+    hands.press(10, 10, 0, mod);
+    assert.equal(hands.menu(), true, "a Ctrl-click's menu is held back while the press is down");
+    hands.move(60, 40);
+    assert.deepEqual([view.state.panX, view.state.panY], [50, 30], "the drag moves");
+    assert.deepEqual([view.state.yaw, view.state.tilt, view.state.roll], [0, 0, 0], "and does not turn or roll");
+    hands.release();
+    assert.equal(hands.menu(1e9 + 100), true, "and just after a move, where release opens it");
+    assert.equal(hands.menu(1e9 + 1000), false, "then the menu is the browser's again");
+  }
+  hands.press(10, 10, 2);
+  hands.release();
+  assert.equal(hands.menu(1e9 + 5000), false, "a right click that moved nothing keeps the menu");
+  view.set({ panX: 0, panY: 0 });
+  hands.press(10, 10, 0, { shiftKey: true });
+  hands.move(70, 10);
+  assert.ok(view.state.roll !== 0, "Shift and a drag still rolls");
+  assert.equal(view.state.panX, 0);
+  hands.release();
+  assert.equal(hands.menu(1e9 + 6000), false, "a roll holds nothing back");
+  const flat = make();
+  const plain = fakeBound();
+  flat.view.bind(plain.fakeView);
+  plain.press(0, 0, 0, { ctrlKey: true });
+  plain.move(40, 0);
+  assert.equal(flat.view.state.panX, 0, "at Fit there is nothing to move");
+  assert.equal(flat.view.state.yaw, 0, "and Ctrl does not turn it");
 });
 
 test("the page scrolls at Fit and at the edge of a move, and a wheel that reaches the edge part-way through does not fling it", () => {

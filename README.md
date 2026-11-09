@@ -167,7 +167,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 | `@johnmorrisdotca/kazoku-ui/embed-panel/define` | Registers `<kazoku-embed-panel>` (once, and only if the tag is free). |
 | `@johnmorrisdotca/kazoku-ui/print` | Page sizes and margins, the header, info box and footer of a printable sheet, a poster tiled over pages with cut marks, kid and normal type, a QR code encoder (byte mode, level M, versions 1 to 20, no dependency) and the Print / save PDF helper. No element; imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
-| `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget; and the browser lock (`withBrowserLock`, `acquireBrowserLock`, a Playwright `globalSetup`, `kazoku-browser-lock status`) so one headless browser runs at a time on a machine. No test framework named. |
+| `@johnmorrisdotca/kazoku-ui/testing` | The gesture check (`checkGestures`: every gesture of the view controls, on any view) and the freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget; and the browser lock (`withBrowserLock`, `acquireBrowserLock`, a Playwright `globalSetup`, `kazoku-browser-lock status`) so one headless browser runs at a time on a machine. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
 
 ## View controls
@@ -182,11 +182,14 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
   | Turn | Drag |
   | Tilt | Drag up or down |
   | Roll | Shift and a drag, or a two-finger twist |
-  | Move | The wheel, Shift and the wheel, Space and a drag, or the middle button |
+  | Move | The wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button and a drag, or two fingers dragging together |
   | Zoom | Ctrl, Command or Alt with the wheel, or a pinch |
-  | Front and Fit | Home or 0 |
+  | Keys | The arrows turn and tip, `+` and `-` zoom |
+  | Fit | A double-click when zoomed in, or Home or 0 |
 
-- Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch, and a twist rolls.
+  On a Mac, Ctrl and a click opens the browser's menu; the view holds the menu back while a Ctrl or right-button drag moves it, and leaves it alone otherwise. Every page that binds the controls answers every row the same way, and a package proves it with the shared check in [the guide](docs/guides/view-controls.md#gestures-and-the-check-every-package-runs): `await checkGestures(page, "#view")` from `@johnmorrisdotca/kazoku-ui/testing`.
+
+- Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch, drag together to move it, and a twist rolls.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
 - **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 0.1×, 1×, 10× and 50×: see [Layouts](#layouts).

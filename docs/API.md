@@ -4532,10 +4532,10 @@ interface ViewOptions {
 
 ## `@johnmorrisdotca/kazoku-ui/testing`
 
-11 values and 8 types.
+15 values and 13 types.
 
 ```js
-import { acquireBrowserLock, browserLockStatus, canvasSize, clearBrowserLock, COUNT_SCRIPT, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+import { acquireBrowserLock, bestShift, browserLockStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
 ```
 
 ### acquireBrowserLock
@@ -4544,6 +4544,19 @@ import { acquireBrowserLock, browserLockStatus, canvasSize, clearBrowserLock, CO
 
 ```ts
 function acquireBrowserLock(options?: BrowserLockOptions): Promise<BrowserLock>;
+```
+
+### bestShift
+
+*function*. The best shift of `after` against `before` (grey values, row by row, `w` by `h`): slide a window of `before` over `after` up to `reach` pixels each way. `zero` is how different they are with no shift.
+
+```ts
+function bestShift(before: ArrayLike<number>, after: ArrayLike<number>, w: number, h: number, reach: number, window?: [number, number, number, number]): {
+    x: number;
+    y: number;
+    error: number;
+    zero: number;
+};
 ```
 
 ### browserLockStatus
@@ -4562,6 +4575,14 @@ function browserLockStatus(options?: Pick<BrowserLockOptions, "maxAgeMs">): Brow
 function canvasSize(page: PageLike): Promise<CanvasSize>;
 ```
 
+### checkGestures
+
+*function*. Run the family's gesture check on one view. Each gesture is done with a real mouse and keyboard (two fingers with pointer events) and must change the view as the family's rule says;
+
+```ts
+function checkGestures(page: GesturePage, view: string, options?: GestureOptions): Promise<GestureReport[]>;
+```
+
 ### clearBrowserLock
 
 *function*. Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed.
@@ -4578,6 +4599,36 @@ function clearBrowserLock(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
 
 ```ts
 const COUNT_SCRIPT: string;
+```
+
+### GESTURE_NAMES
+
+*constant*. The names in the order the check runs them.
+
+```ts
+const GESTURE_NAMES: GestureName[];
+```
+
+### GESTURES
+
+*constant*. Every gesture the check does, and what it asks of the view.
+
+```ts
+const GESTURES: {
+    readonly turn: "a plain drag turns the view (yaw) and does not roll or move it";
+    readonly roll: "Shift and a drag rolls it";
+    readonly "key-turn": "the arrow keys turn and tip it";
+    readonly "key-zoom": "+ and - zoom in and out";
+    readonly "wheel-zoom": "Ctrl, Command or Alt with the wheel zooms about the pointer (up is in, down is out)";
+    readonly "pinch-zoom": "two fingers moving apart zoom in and moving together zoom out";
+    readonly "wheel-pan": "the wheel, and Shift and the wheel, move a zoomed view";
+    readonly "ctrl-drag-pan": "Ctrl or Command and a left drag moves a zoomed view, and the browser's menu stays out of it";
+    readonly "space-drag-pan": "Space and a drag moves a zoomed view";
+    readonly "middle-drag-pan": "the middle button and a drag moves a zoomed view";
+    readonly "right-drag-pan": "the right button and a drag moves a zoomed view, and the browser's menu stays out of it";
+    readonly "touch-pan": "two fingers dragging together move a zoomed view";
+    readonly fit: "a double-click on a zoomed view, and Home, fit it";
+};
 ```
 
 ### GPU_KINDS
@@ -4699,6 +4750,100 @@ interface CanvasSize {
     pixels: number;
     side: number;
     count: number;
+}
+```
+
+### GestureLocator
+
+*interface*. What the check needs of a Playwright locator.
+
+```ts
+interface GestureLocator {
+    boundingBox(): Promise<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null>;
+    screenshot(options?: {
+        scale?: "css" | "device";
+    }): Promise<Uint8Array>;
+    focus(): Promise<void>;
+}
+```
+
+### GestureName
+
+*type*
+
+```ts
+type GestureName = keyof typeof GESTURES;
+```
+
+### GestureOptions
+
+*interface*
+
+```ts
+interface GestureOptions {
+    /** The selector of the `<kazoku-view-controls>` whose events and controller are read. `"kazoku-view-controls"`. */
+    controls?: string;
+    /** The selector of what is photographed (the view by default; the canvas or the picture itself when the view is bigger than it). */
+    picture?: string;
+    /**
+     * The gestures this view intentionally does not have, each with the reason, for example `{ roll: "a flat map has no roll" }`. A gesture not named here is checked, and one named
+     * here is reported as skipped with its reason. `"picture"` stands for the picture check of the moves: a view whose picture cannot be photographed says why.
+     */
+    lacks?: Partial<Record<GestureName | "picture", string>>;
+    /** The part of the picture that is followed, as shares `[left, right, top, bottom]` (the middle 40%). Give the part that holds the object when it is small. */
+    window?: [number, number, number, number];
+    /** The package's own signal that its draw is done, awaited before each picture. */
+    ready?: () => Promise<unknown>;
+    /** The longest wait, in ms, for the view or its picture to come to rest (5000). */
+    timeout?: number;
+    /** The zoom the moves are made at (3). */
+    zoom?: number;
+}
+```
+
+### GesturePage
+
+*interface*. What the check needs of a Playwright page: `Page` fits.
+
+```ts
+interface GesturePage {
+    evaluate<R, A>(fn: (arg: A) => R | Promise<R>, arg: A): Promise<R>;
+    locator(selector: string): GestureLocator;
+    waitForTimeout(ms: number): Promise<void>;
+    mouse: {
+        move(x: number, y: number): Promise<void>;
+        down(options?: {
+            button?: "left" | "right" | "middle";
+        }): Promise<void>;
+        up(options?: {
+            button?: "left" | "right" | "middle";
+        }): Promise<void>;
+        wheel(deltaX: number, deltaY: number): Promise<void>;
+        dblclick(x: number, y: number): Promise<void>;
+    };
+    keyboard: {
+        down(key: string): Promise<void>;
+        up(key: string): Promise<void>;
+        press(key: string): Promise<void>;
+    };
+}
+```
+
+### GestureReport
+
+*interface*
+
+```ts
+interface GestureReport {
+    gesture: GestureName | "picture";
+    result: "checked" | "lacks";
+    /** The reason given for a gesture the view lacks. */
+    reason?: string;
 }
 ```
 

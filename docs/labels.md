@@ -36,7 +36,7 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `slow` | Slow | ゆっくり | yukkuri, slowly |
 | `medium` | Medium | ふつう | futsū, normal |
 | `fast` | Fast | はやい | hayai, fast |
-| `gestures` | Turn: drag. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Space and a drag, or the middle button. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Front and Fit: Home or 0. | 回転：ドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、Spaceを押しながらのドラッグ、またはマウスの中ボタン。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。正面と全体表示：Homeまたは0。 | kaiten, drag. The gesture list a screen reader reads. Not shown. |
+| `gestures` | Turn: drag. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button, or two fingers. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Keys: the arrows turn, + and - zoom. Front and Fit: double-click when zoomed in, Home or 0. | 回転：ドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、CtrlまたはCommandを押しながらのドラッグ、Spaceを押しながらのドラッグ、マウスの中ボタンか右ボタン、または2本指のドラッグ。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。キー：矢印で回転、＋と－で拡大と縮小。正面と全体表示：拡大中にダブルクリック、Homeまたは0。 | kaiten, drag. The gesture list a screen reader reads. Not shown. |
 
 ## Theme switch
 
