@@ -11,6 +11,11 @@ const centreOf = async (page, id) => {
 const touch = (page, id, type, pointer, x, y) => view(page, id).evaluate((el, [t, i, cx, cy]) => {
   el.dispatchEvent(new PointerEvent(t, { pointerId: i, pointerType: "touch", isPrimary: i === 1, clientX: cx, clientY: cy, bubbles: true, cancelable: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
 }, [type, pointer, x, y]);
+/** A wheel turn with Ctrl held, sent to the element: the event a trackpad's pinch makes, and the same in every browser (a real Ctrl and wheel is the page's own zoom on WebKit for Linux). */
+const ctrlWheel = (page, id, deltaY) => view(page, id).evaluate((el, dy) => {
+  const r = el.getBoundingClientRect();
+  el.dispatchEvent(new WheelEvent("wheel", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, deltaY: dy, ctrlKey: true, bubbles: true, cancelable: true }));
+}, deltaY);
 const ready = async (page, query = "") => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -49,17 +54,10 @@ test("the plain wheel at Fit scrolls the page, and Ctrl and the wheel zooms the 
   await page.mouse.wheel(0, 120);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top);
   expect((await read(page, "plain")).zoom).toBe(1);
-  const parked = await page.evaluate(() => window.scrollY);
-  const again = await centreOf(page, "plain");
-  await page.mouse.move(again.x, again.y);
-  await page.keyboard.down("Control");
-  await page.mouse.wheel(0, -80);
-  await page.keyboard.up("Control");
-  await expect.poll(async () => (await read(page, "plain")).zoom).toBeGreaterThan(1);
-  expect(await page.evaluate(() => window.scrollY), "the page stays put while the view zooms").toBe(parked);
-  await page.keyboard.down("Control");
-  await page.mouse.wheel(0, 800);
-  await page.keyboard.up("Control");
+  await ctrlWheel(page, "plain", -80);
+  expect((await read(page, "plain")).zoom).toBeGreaterThan(1);
+  expect(await view(page, "plain").evaluate((el) => !el.dispatchEvent(new WheelEvent("wheel", { deltaY: -40, ctrlKey: true, bubbles: true, cancelable: true }))), "Ctrl and the wheel is the view's, not the page's").toBe(true);
+  await ctrlWheel(page, "plain", 800);
   await expect.poll(async () => (await read(page, "plain")).zoom).toBeLessThan(1);
 });
 
@@ -96,9 +94,7 @@ test("the default range runs from a tenth of Fit to fifty times it, and zoom-min
   await press(page, "plain", "-", 14);
   expect((await read(page, "plain")).zoom).toBe(0.1);
   await page.keyboard.press("0");
-  await page.keyboard.down("Control");
-  for (let i = 0; i < 4; i += 1) await page.mouse.wheel(0, -400);
-  await page.keyboard.up("Control");
+  for (let i = 0; i < 4; i += 1) await ctrlWheel(page, "plain", -400);
   await press(page, "plain", "+", 30);
   expect((await read(page, "plain")).zoom).toBe(50);
   await press(page, "limited", "-", 12);
@@ -140,13 +136,9 @@ test("a bar for the element takes the hands while it is there, and gives them ba
   const zoomed = (await read(page, "barred")).zoom;
   expect(zoomed).toBeCloseTo(1.4, 2);
   await view(page, "barred").scrollIntoViewIfNeeded();
-  const at = await centreOf(page, "barred");
-  await page.mouse.move(at.x, at.y);
-  await page.keyboard.down("Control");
-  await page.mouse.wheel(0, -50);
-  await page.keyboard.up("Control");
+  await ctrlWheel(page, "barred", -50);
   // One hand zooms it once: the wheel's factor, from where the bar had it.
-  await expect.poll(async () => (await read(page, "barred")).zoom).toBeCloseTo(zoomed * Math.exp(0.5), 1);
+  expect((await read(page, "barred")).zoom).toBeCloseTo(zoomed * Math.exp(0.5), 1);
   await page.locator("kazoku-view-controls").evaluate((el) => el.remove());
   await expect(view(page, "barred")).not.toHaveAttribute("data-kazoku-bar", "");
   await view(page, "barred").scrollIntoViewIfNeeded();
