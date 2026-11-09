@@ -123,6 +123,22 @@ controls.setFitScale(0.4); // the scale the scene is drawn at when it fits
 // the event's zoom is now 2.5; draw at event.detail.zoom * controls.fitScale
 ```
 
+## The pose maths
+
+The element's turning is plain functions in `view-controls`, with no DOM, for a page or a test that needs the same numbers.
+
+| Export | What it gives |
+| --- | --- |
+| `quatIdentity()` | The pose at rest, `{ x: 0, y: 0, z: 0, w: 1 }`. |
+| `quatFromEuler(yaw, tilt, roll)` | A pose from degrees: yaw about Y, then tilt about X, then roll about Z. |
+| `eulerFromQuat(q)` | The yaw, tilt and roll a pose shows on the sliders; the tilt stays within a right angle. |
+| `spinLocal(q, yaw, tilt, roll)` | `q` turned by those degrees about its own axes; small steps pass through the poles without a jump. |
+| `upVector(q)` | The view's up axis after `q`. |
+| `pendulumTilt(phase, amplitude)` | The tilt of Auto-turn's swing inside `amplitude` degrees, so a limited tilt never rolls over. |
+| `tumbleRates(seconds, speed, signs)` | Degrees a second on each axis for a tumble (`turn-axis="all"`), each on its own drifting wave so it does not repeat. |
+| `rateSign(value)` | -1 or 1: which way a rate points (0 counts as 1). |
+| `parseAxis(text)` | `angle`, `tilt`, `roll` or `all` from an attribute, else `undefined`. |
+
 ## Why the tag is only defined when it is free
 
 `customElements.define` throws when a name is taken, and a page can meet that without any fault: two copies of this package, the script loaded twice, or a page that registered the tag to supply its own element. So `defineViewControls` (what the `define` import runs) calls `customElements.get` first, and the first one wins. The class, `ViewControlsElement`, is in `view-controls/element` if you want to register it yourself.
