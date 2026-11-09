@@ -81,7 +81,7 @@ console.log(JSON.stringify(DEFAULT_LIMITS));
 console.log(TAG, EVENT, LEVEL_STORAGE_KEY);
 console.log(Object.keys(DEFAULT_KEYS).join(" "));
 // button, a, input, select, textarea, label, [data-kazoku-ignore]
-// {"tiltMax":30,"rollMax":180,"zoomMin":1,"zoomMax":5}
+// {"tiltMax":30,"rollMax":180,"zoomMin":0.1,"zoomMax":50}
 // kazoku-view-controls kazoku-viewchange kazoku-view-controls
 // yaw tilt zoom drag speed direction roll axis tiltDirection rollDirection
 ```

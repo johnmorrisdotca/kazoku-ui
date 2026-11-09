@@ -90,13 +90,14 @@ console.log(zoomStep(1.9, marks, 1, 1, 5), zoomToMark(2, marks, 1, 1, 5), zoomSn
 
 ## 範囲の選び方
 
-目盛りは範囲に従います。0.5から8までズームするページは、`zoom-min="0.5"`と`zoom-max="8"`を指定すると、両端とその間の一般的なズームが出ます。8通りの範囲を並べたレイアウトのデモもあります。数値表示は、バーにある唯一の、本当のズーム値なので、押すと全体表示に戻ります。
+目盛りは範囲に従います。既定は0.1倍から50倍です（広い理由は[要素が自分で操作を持つ](element-controls.md)にあります）。両端の比が`WIDE`（100倍）以上の範囲では、目盛りの印はまず10の累乗になり、0.1×、1×、10×、50×と並びます。0.5から8までズームするページは、`zoom-min="0.5"`と`zoom-max="8"`を指定すると、両端とその間の一般的なズームが出ます。8通りの範囲を並べたレイアウトのデモもあります。数値表示は、バーにある唯一の、本当のズーム値なので、押すと全体表示に戻ります。
 
 ```js
 import { zoomMarks } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
-for (const [min, max] of [[1, 5], [0.5, 8], [1, 2]]) console.log(min, max, zoomMarks(min, max).map((mark) => mark.zoom).join(" "));
+for (const [min, max] of [[1, 5], [0.5, 8], [1, 2], [0.1, 100]]) console.log(min, max, zoomMarks(min, max).map((mark) => mark.zoom).join(" "));
 // 1 5 1 2 3 5
 // 0.5 8 0.5 1 2 4 8
 // 1 2 1 2
+// 0.1 100 0.1 1 10 100
 ```

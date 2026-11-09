@@ -88,13 +88,14 @@ console.log(zoomStep(1.9, marks, 1, 1, 5), zoomToMark(2, marks, 1, 1, 5), zoomSn
 
 ## Choosing a range
 
-The marks follow the range. A page that zooms from 0.5 to 8 sets `zoom-min="0.5"` and `zoom-max="8"` and gets the ends and the common zooms between them; see the layouts demo for eight ranges side by side. The readout is the one zoom number on the bar, the true one, so a press on it goes back to Fit.
+The marks follow the range. The default is 0.1× to 50× (see [An element that carries the controls](element-controls.md) for why it is wide), and over a range of `WIDE` (100×) or more from end to end the marks are the powers of ten first, so it reads 0.1×, 1×, 10×, 50×. A page that zooms from 0.5 to 8 sets `zoom-min="0.5"` and `zoom-max="8"` and gets the ends and the common zooms between them; see the layouts demo for eight ranges side by side. The readout is the one zoom number on the bar, the true one, so a press on it goes back to Fit.
 
 ```js
 import { zoomMarks } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
-for (const [min, max] of [[1, 5], [0.5, 8], [1, 2]]) console.log(min, max, zoomMarks(min, max).map((mark) => mark.zoom).join(" "));
+for (const [min, max] of [[1, 5], [0.5, 8], [1, 2], [0.1, 100]]) console.log(min, max, zoomMarks(min, max).map((mark) => mark.zoom).join(" "));
 // 1 5 1 2 3 5
 // 0.5 8 0.5 1 2 4 8
 // 1 2 1 2
+// 0.1 100 0.1 1 10 100
 ```

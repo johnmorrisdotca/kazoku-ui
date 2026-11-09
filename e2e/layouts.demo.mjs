@@ -157,8 +157,10 @@ test("the layout can change after the page has loaded, and an unknown one is cla
 
 test("the slider's marks are the ends and the common zooms between them, and follow the limits", async ({ page }) => {
   await ready(page, "?layout=horizontal");
-  expect(await marks(page)).toEqual(["1×", "2×", "3×", "5×"]);
+  expect(await marks(page), "the default range is a tenth of Fit to 50 times it").toEqual(["0.1×", "1×", "10×", "50×"]);
   const bar = page.locator(BAR);
+  await bar.evaluate((el) => { el.setAttribute("zoom-min", "1"); el.setAttribute("zoom-max", "5"); });
+  expect(await marks(page)).toEqual(["1×", "2×", "3×", "5×"]);
   await bar.evaluate((el) => { el.setAttribute("zoom-min", "0.5"); el.setAttribute("zoom-max", "4"); });
   expect(await marks(page)).toEqual(["0.5×", "1×", "2×", "4×"]);
   await bar.evaluate((el) => { el.setAttribute("zoom-min", "1"); el.setAttribute("zoom-max", "10"); });
@@ -179,7 +181,7 @@ test("the slider's marks are the ends and the common zooms between them, and fol
 });
 
 test("the slider by keys: arrows step and stop on a mark, Page Up and Down jump between marks, Home and End go to the ends", async ({ page }) => {
-  await ready(page, "?layout=horizontal");
+  await ready(page, "?layout=horizontal&zoom-min=1&zoom-max=5");
   const zoom = async () => (await stateOf(page)).zoom;
   await slider(page).focus();
   await page.keyboard.press("ArrowRight");
@@ -219,7 +221,7 @@ const trackPoint = (page, zoom, dx = 0) => page.locator(BAR).evaluate((el, [z, d
 
 test("the slider by mouse: a press near a mark goes to it, anywhere else to that zoom, and a drag follows", async ({ page, hasTouch }) => {
   test.skip(hasTouch, "a touch screen runs the touch test");
-  await ready(page, "?layout=horizontal");
+  await ready(page, "?layout=horizontal&zoom-min=1&zoom-max=5");
   let at = await trackPoint(page, 2, 4);
   await page.mouse.click(at.x, at.y);
   expect((await stateOf(page)).zoom, "a gentle pull to the mark").toBe(2);
@@ -244,7 +246,7 @@ test("the slider by mouse: a press near a mark goes to it, anywhere else to that
 
 test("the slider by touch: a tap near a mark goes to it", async ({ page, hasTouch }) => {
   test.skip(!hasTouch, "a desk has a mouse");
-  await ready(page, "?layout=horizontal");
+  await ready(page, "?layout=horizontal&zoom-min=1&zoom-max=5");
   const at = await trackPoint(page, 3, -3);
   await page.touchscreen.tap(at.x, at.y);
   await expect.poll(async () => (await stateOf(page)).zoom).toBe(3);
@@ -252,7 +254,7 @@ test("the slider by touch: a tap near a mark goes to it", async ({ page, hasTouc
 });
 
 test("the slider always shows the true zoom, however it changed, and − and + still step", async ({ page }) => {
-  await ready(page, "?layout=horizontal&zoom=2.4");
+  await ready(page, "?layout=horizontal&zoom=2.4&zoom-min=1&zoom-max=5");
   const agrees = async (label) => {
     const seen = await page.locator(BAR).evaluate((el) => {
       const input = el.shadowRoot.querySelector("#zoom");

@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-57 values and 23 types.
+60 values and 25 types.
 
 ```js
-import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, carryControls, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, readLimits, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WIDE, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -40,6 +40,14 @@ import { between, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_I
 
 ```ts
 function between(from: Camera, to: Camera, fraction: number): Camera;
+```
+
+### carryControls
+
+*function*. Give `element` the shared hands, from `connectedCallback`. A drag turns it (and moves it once zoomed), two fingers pinch, Ctrl or Command and the wheel zoom about the pointer, the plain wheel moves it
+
+```ts
+function carryControls(element: HTMLElement, options: CarryOptions): ElementControls;
 ```
 
 ### clamp
@@ -92,7 +100,7 @@ const DEFAULT_KEYS: AddressKeys;
 
 ### DEFAULT_LIMITS
 
-*constant*
+*constant*. Zoom draws no more pixels (the canvas is a fixed size), so the default range is wide: from a tenth of Fit to 50 times it. A package passes its own `zoomMax` where its detail runs out.
 
 ```ts
 const DEFAULT_LIMITS: Limits;
@@ -294,6 +302,14 @@ const quatIdentity: () => Quat;
 const rateSign: (value: number) => number;
 ```
 
+### readLimits
+
+*function*. The limits an element's attributes ask for over `base`: `tilt-max`, `roll-max`, `zoom-min` and `zoom-max`, each a positive number or ignored. `zoom-min` is held to 1 or less and `zoom-max` to `zoom-min` or more,
+
+```ts
+function readLimits(get: (name: string) => string | null | undefined, base?: Limits): Limits;
+```
+
 ### SLIDER_STEP
 
 *constant*. One key press on the slider multiplies or divides the zoom by this: finer than a press of + or -.
@@ -400,6 +416,14 @@ const wheelPanPixels: (delta: number, deltaMode: number, page?: number) => numbe
 
 ```ts
 const wheelZoomFactor: (deltaY: number, deltaMode: number, kind?: "pinch" | "wheel") => number;
+```
+
+### WIDE
+
+*constant*. Over a wide range (`WIDE` times or more from end to end) the marks are the powers of ten first, nearest Fit first, so 0.1 to 100 reads 0.1×, 1×, 10×, 100× and not 1×, 4×, 16×.
+
+```ts
+const WIDE = 100;
 ```
 
 ### WORDS
@@ -571,6 +595,19 @@ interface Camera {
 }
 ```
 
+### CarryOptions
+
+*interface*
+
+```ts
+interface CarryOptions extends Omit<ViewControllerOptions, "onChange"> {
+    /** The page's own drawing: apply the state. The element's drag, pinch, wheel and keys all arrive here. */
+    onChange: (state: ViewState, info: ChangeInfo) => void;
+    /** Whether the element carries its controls when it has no `controls` attribute. True by default; a still picture passes false. `controls="none"` always turns them off. */
+    on?: boolean;
+}
+```
+
 ### ChangeInfo
 
 *interface*
@@ -601,6 +638,19 @@ interface Clock {
 
 ```ts
 type DragMode = "move" | "turn";
+```
+
+### ElementControls
+
+*interface*
+
+```ts
+interface ElementControls {
+    /** The controller behind the hands, for the element's own `set`, `fit` and `state`. */
+    readonly controller: ViewController;
+    /** Let the hands go and destroy the controller. Call it in `disconnectedCallback`. */
+    unbind(): void;
+}
 ```
 
 ### Language

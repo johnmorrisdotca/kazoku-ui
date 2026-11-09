@@ -269,7 +269,7 @@ const zoomOf = async (page) => (await stateOf(page)).zoom;
 
 for (const level of ["basic", "advanced"]) {
   test(`in ${level}, the readout is the only zoom number on the bar`, async ({ page }) => {
-    await ready(page, `?controls=${level}`);
+    await ready(page, `?controls=${level}&zoom-min=1&zoom-max=5`);
     await button(page, "play").click();
     await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 3 }), BAR);
     const zoomNumbers = await page.evaluate((tag) => [...document.querySelector(tag).shadowRoot.querySelectorAll("button, output, span")].filter((el) => el.getClientRects().length > 0 && el.children.length === 0 && !el.closest(".pace-now") && /\d\s*[×x]/.test(el.textContent)).map((el) => el.textContent), BAR);

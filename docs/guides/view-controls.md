@@ -49,7 +49,7 @@ Put the element on the view or right beside it, so it is on screen with the view
 | `tilt` | Degrees, held to plus or minus `tilt-max` (30): the top tips away as it gets larger (dragging up). Within that limit Auto-turn swings it back and forth. At 90 or more it rolls over, and `orientation` stays continuous. |
 | `roll` | Degrees about the forward axis, held to plus or minus `roll-max` (180). |
 | `orientation` | The pose as a quaternion `{ x, y, z, w }`. Draw this when a tumble rolls past a right angle, so the up axis does not flip. |
-| `zoom` | 1 to 5 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale`. |
+| `zoom` | 0.1 to 50 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale`. |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
 | `drag` | `"move"` or `"turn"`: what a plain drag does while zoomed in. |
@@ -86,7 +86,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: see [Layouts and the zoom slider](layouts-and-zoom.md). |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
-| `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 1, 5). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
+| `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 0.1, 50). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
 | `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |

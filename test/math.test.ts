@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { between, clamp, clampPan, type Camera, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, spinLocal, tumbleRates, upVector, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
+import { between, clamp, clampPan, type Camera, degreesPerPixel, dragRoll, DEFAULT_LIMITS, dragTurn, eulerFromQuat, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, readLimits, spinLocal, tumbleRates, upVector, wheelZoomFactor, wrapYaw, zoomAbout } from "../src/view-controls/math.ts";
 
 const start: Camera = { yaw: 0, tilt: 0, zoom: 1, panX: 0, panY: 0 };
 
@@ -31,7 +31,7 @@ test("zoom about a point keeps the point under the pointer", () => {
 });
 
 test("zoom is held to its limits and returns to the middle at 1x", () => {
-  assert.equal(zoomAbout(start, 99, { x: 0, y: 0 }).zoom, 5);
+  assert.equal(zoomAbout(start, 99, { x: 0, y: 0 }, { tiltMax: 30, rollMax: 180, zoomMin: 1, zoomMax: 5 }).zoom, 5);
   const z = zoomAbout({ ...start, zoom: 2, panX: 40, panY: 40 }, 1, { x: 10, y: 10 });
   assert.deepEqual([z.zoom, z.panX, z.panY], [1, 0, 0]);
   assert.equal(zoomAbout(start, 0.1, { x: 0, y: 0 }, { tiltMax: 30, rollMax: 180, zoomMin: 0.5, zoomMax: 5 }).zoom, 0.5);
@@ -59,7 +59,7 @@ test("a pinch zooms by the change of distance about where it began, and the fing
   const slid = pinchTo(zoomedStart, { x: 240, y: 150 }, { x: 340, y: 150 }, centre);
   assert.equal(slid.zoom, 2);
   assert.equal(slid.panX, 30);
-  assert.ok(pinchTo(begin, { x: 300, y: 150 }, { x: 300, y: 150 }, centre).zoom >= 1);
+  assert.ok(pinchTo(begin, { x: 300, y: 150 }, { x: 300, y: 150 }, centre).zoom >= 0.1);
 });
 
 test("a sideways drag rolls clockwise, and a twist rolls without zooming when the fingers keep their distance", () => {
@@ -177,4 +177,24 @@ test("wrap, a pendulum and a tumble stay finite, and rolling over does not flip 
   assert.ok(start.tilt < 0 && start.yaw > 0 && start.roll > 0);
   assert.notDeepEqual(start, later);
   for (const rates of [start, later]) for (const value of Object.values(rates)) assert.ok(Number.isFinite(value));
+});
+
+test("the default zoom range is a tenth of Fit to fifty times it", () => {
+  assert.deepEqual(DEFAULT_LIMITS, { tiltMax: 30, rollMax: 180, zoomMin: 0.1, zoomMax: 50 });
+  assert.equal(zoomAbout(start, 0.01, { x: 0, y: 0 }).zoom, 0.1);
+  assert.equal(zoomAbout(start, 400, { x: 0, y: 0 }).zoom, 50);
+  assert.equal(zoomAbout(start, 30, { x: 0, y: 0 }).zoom, 30);
+  const out = zoomAbout({ ...start, zoom: 3, panX: 80, panY: -40 }, 0.5, { x: 10, y: 10 });
+  assert.deepEqual([out.zoom, out.panX, out.panY], [0.5, 0, 0], "below Fit the view is back in the middle");
+});
+
+test("readLimits reads the four attributes over a base and ignores what is not a positive number", () => {
+  const attrs = (values: Record<string, string>) => (name: string) => values[name] ?? null;
+  assert.deepEqual(readLimits(attrs({})), DEFAULT_LIMITS);
+  assert.deepEqual(readLimits(attrs({ "zoom-min": "0.5", "zoom-max": "6", "tilt-max": "90", "roll-max": "45" })), { tiltMax: 90, rollMax: 45, zoomMin: 0.5, zoomMax: 6 });
+  assert.deepEqual(readLimits(attrs({ "zoom-min": "abc", "zoom-max": "-3", "tilt-max": "0" })), DEFAULT_LIMITS);
+  assert.deepEqual(readLimits(attrs({ "zoom-max": "8" }), { ...DEFAULT_LIMITS, zoomMin: 0.25, zoomMax: 20 }), { ...DEFAULT_LIMITS, zoomMin: 0.25, zoomMax: 8 }, "a package's own base sits under the attributes");
+  assert.equal(readLimits(attrs({ "zoom-min": "3" })).zoomMin, 1, "Fit stays inside the range");
+  assert.equal(readLimits(attrs({ "zoom-min": "0.5", "zoom-max": "0.2" })).zoomMax, 0.5, "the top is never under the bottom");
+  assert.equal(readLimits(attrs({ "zoom-min": "1", "zoom-max": "5" })).zoomMax, 5, "a page that passes the old range keeps it");
 });

@@ -20,7 +20,7 @@ const PARTS = {
     settings: [
       { key: "layout", label: "layout", options: [["classic", "classic"], ["horizontal", "horizontal"], ["vertical", "vertical"], ["compact", "compact"]], value: "classic", attr: (v) => (v === "classic" ? null : ["layout", v]) },
       { key: "level", label: "level", options: [["basic", "basic"], ["advanced", "advanced"]], value: "basic", attr: (v) => (v === "basic" ? null : ["controls", v]) },
-      { key: "range", label: "range", options: [["1-5", "1× – 5×"], ["0.5-4", "0.5× – 4×"], ["1-10", "1× – 10×"]], value: "1-5", attr: (v) => (v === "1-5" ? null : ["zoom-min", v.split("-")[0]]), attr2: (v) => (v === "1-5" ? null : ["zoom-max", v.split("-")[1]]) },
+      { key: "range", label: "range", options: [["0.1-50", "0.1× – 50×"], ["1-5", "1× – 5×"], ["0.5-4", "0.5× – 4×"], ["1-10", "1× – 10×"]], value: "0.1-50", attr: (v) => (v === "0.1-50" ? null : ["zoom-min", v.split("-")[0]]), attr2: (v) => (v === "0.1-50" ? null : ["zoom-max", v.split("-")[1]]) },
       { key: "autoplay", label: "autoplay", options: [["off", "off"], ["on", "on"]], value: "off", attr: (v) => (v === "on" ? ["autoplay", ""] : null) },
       { key: "flat", label: "flat", options: [["off", "off"], ["on", "on"]], value: "off", attr: (v) => (v === "on" ? ["flat", ""] : null) },
       { key: "address", label: "address_", options: [["off", "off"], ["on", "on"]], value: "off", attr: (v) => (v === "on" ? ["address", ""] : null) },

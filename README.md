@@ -313,6 +313,10 @@ controls.anchor = { x: 60, y: -30 }; // pixels from the view's middle when it is
 
 Zoom is about that point of the picture, so it stays put on screen however far in the reader is and wherever the view has been moved to: `+` then `-` leaves it where it was within a pixel. Without the element, set `view.anchor` on the controller, or pass `anchor` to `createViewController`; `view.zoomBy(f)` and `view.zoomAt(z)` with no point use it.
 
+### An element that carries the controls itself
+
+A package's own custom element can take the drag, the pinch, the wheel and the keys with no bar and no wiring: it calls `carryControls` in `connectedCallback` and `unbind` in `disconnectedCallback`. `controls="none"` on its tag turns them off, and `zoom-min` and `zoom-max` set its range. The zoom range defaults to 0.1× to 50×, because zoom draws no more pixels; a package passes its own `zoomMax` where its detail runs out. [The guide](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/element-controls.md) has the call, the attributes and the reasons, and the [demo](https://johnmorrisdotca.github.io/kazoku-ui/carry.html) is a tiny element that does it.
+
 ### Centre
 
 Zoom in and drag the object away and a **Centre** button (中央) comes into the bar. It puts the object back in the middle at Fit and the default angle (yaw and tilt 0) with a quarter of a second's move, at once for a reader who prefers reduced motion, and a hand on the view (a press, the wheel, a key) stops the move where it is. `element.centre()` and `controller.centre(animate = true)` do the same from code, ending with a change whose `reason` is `"centre"`. The keys Home and 0 are the same without the move (they send `front` and `fit`). The pan is held so the object cannot be lost: the picture keeps covering the view, or, with `object-size`, a quarter of the object stays in view.
@@ -346,7 +350,7 @@ controls.setFitScale(measure()); // the scale the scene is drawn at when it fits
 |---|---|
 | `yaw` | Degrees, -180 up to 180: the turn about the vertical. Dragging right makes it larger. |
 | `tilt` | Degrees, held to plus or minus `tilt-max` (30): the top tips away as it gets larger (dragging up). |
-| `zoom` | 1 to 5 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale` (see below). |
+| `zoom` | 0.1 to 50 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale` (see below). |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
 | `drag` | `"move"` or `"turn"`: what a plain drag does while zoomed in. |
@@ -381,7 +385,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: where the controls sit (see [Layouts](#layouts)). Can change at any time. Anything else is `classic`. The host carries `data-layout` with the layout in use. |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
-| `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 1, 5). |
+| `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 0.1, 50). |
 | `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
@@ -563,7 +567,7 @@ One part, one subpath; the pure code, the element and the registration are three
 
 ## Demos
 
-[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [speed buttons](https://johnmorrisdotca.github.io/kazoku-ui/speed.html), [the replay bar](https://johnmorrisdotca.github.io/kazoku-ui/replay.html), [the options window](https://johnmorrisdotca.github.io/kazoku-ui/options.html), [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
+[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [speed buttons](https://johnmorrisdotca.github.io/kazoku-ui/speed.html), [the replay bar](https://johnmorrisdotca.github.io/kazoku-ui/replay.html), [the options window](https://johnmorrisdotca.github.io/kazoku-ui/options.html), [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [an element that carries the controls](https://johnmorrisdotca.github.io/kazoku-ui/carry.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/builder-dark.webp">
@@ -578,6 +582,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [View controls](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/view-controls.md) | Every attribute, the event, the keys, the address |
 | [Layouts and the zoom slider](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/layouts-and-zoom.md) | The four layouts and the slider's scale |
 | [The view controller and its arithmetic](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/view-controller.md) | The controller without the element |
+| [An element that carries the controls](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/element-controls.md) | One call that gives a package's own element the hands, and the zoom range |
 | [Theme switch](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/theme-switch.md) | Light, Dark and Auto |
 | [Language picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/language-picker.md) | Each language in its own name |
 | [Address state](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/address-state.md) | Choices kept in the link |

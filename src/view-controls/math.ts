@@ -29,7 +29,21 @@ export interface Limits {
   zoomMax: number;
 }
 
-export const DEFAULT_LIMITS: Limits = { tiltMax: 30, rollMax: 180, zoomMin: 1, zoomMax: 5 };
+/** Zoom draws no more pixels (the canvas is a fixed size), so the default range is wide: from a tenth of Fit to 50 times it. A package passes its own `zoomMax` where its detail runs out. */
+export const DEFAULT_LIMITS: Limits = { tiltMax: 30, rollMax: 180, zoomMin: 0.1, zoomMax: 50 };
+
+/**
+ * The limits an element's attributes ask for over `base`: `tilt-max`, `roll-max`, `zoom-min` and `zoom-max`, each a positive number or ignored. `zoom-min` is held to 1 or less and `zoom-max` to `zoom-min` or more,
+ * so Fit is always inside the range.
+ */
+export function readLimits(get: (name: string) => string | null | undefined, base: Limits = DEFAULT_LIMITS): Limits {
+  const read = (name: string, fallback: number): number => {
+    const value = Number(get(name));
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  };
+  const zoomMin = Math.min(1, read("zoom-min", base.zoomMin));
+  return { tiltMax: read("tilt-max", base.tiltMax), rollMax: read("roll-max", base.rollMax), zoomMin, zoomMax: Math.max(zoomMin, read("zoom-max", base.zoomMax)) };
+}
 
 /** Degrees of turn across the view's whole width (a half turn), and of tilt across its whole height. */
 export const TURN_ACROSS = 180;

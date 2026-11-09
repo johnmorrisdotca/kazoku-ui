@@ -18,8 +18,8 @@ for (const controls of all) {
 }
 
 // The code for each layout, with the zoom range when it is not the default one.
-let range = { min: "1", max: "5" };
-const limits = () => (range.min === "1" && range.max === "5" ? "" : ` zoom-min="${range.min}" zoom-max="${range.max}"`);
+let range = { min: "0.1", max: "50" };
+const limits = () => (range.min === "0.1" && range.max === "50" ? "" : ` zoom-min="${range.min}" zoom-max="${range.max}"`);
 const CODE = {
   horizontal: () => `<div id="view" tabindex="0">…your scene…</div>\n<kazoku-view-controls for="view" layout="horizontal"${limits()}></kazoku-view-controls>`,
   vertical: () => `<div style="display: flex; gap: 12px">\n  <div id="view" tabindex="0" style="flex: 1">…your scene…</div>\n  <kazoku-view-controls for="view" layout="vertical"${limits()}></kazoku-view-controls>\n</div>`,

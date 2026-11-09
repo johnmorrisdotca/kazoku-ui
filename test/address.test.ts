@@ -37,9 +37,9 @@ test("keys are configurable", () => {
 
 test("a bad or out-of-range value is dropped or held to its limit", () => {
   assert.deepEqual(parseAddress("?yaw=abc&tilt=&zoom=nope&drag=sideways"), {});
-  assert.deepEqual(parseAddress("?tilt=99&zoom=99&yaw=190"), { tilt: 30, zoom: 5, yaw: -170 });
+  assert.deepEqual(parseAddress("?tilt=99&zoom=99&yaw=190"), { tilt: 30, zoom: 50, yaw: -170 });
   assert.deepEqual(parseAddress("yaw=5"), { yaw: 5 });
-  assert.deepEqual(parseAddress("?zoom=0"), { zoom: 1 });
+  assert.deepEqual(parseAddress("?zoom=0"), { zoom: 0.1 });
 });
 
 test("a zoom at the page's own start leaves the address, and Fit is then written", () => {

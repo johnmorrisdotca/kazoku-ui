@@ -97,7 +97,7 @@ test("the pan pad moves a quarter of the view and is held inside the zoom's room
 });
 
 test("front sets the angle and tilt to zero and the limits hold", () => {
-  const { view } = make();
+  const { view } = make({ limits: { zoomMin: 1, zoomMax: 5 } });
   view.set({ yaw: 200, tilt: 99, zoom: 99 });
   assert.deepEqual([view.state.yaw, view.state.tilt, view.state.zoom], [-160, 30, 5]);
   view.front();
@@ -145,7 +145,7 @@ test("it opens at Fit by default, and a number is a scale over the page's fit sc
   assert.equal(view.state.zoom, 2.5);
   assert.equal(view.startZoom, 2.5);
   assert.equal(make({ initial: { zoom: 3 } }).view.state.zoom, 3);
-  assert.equal(make({ zoom: 1, fitScale: 0.01 }).view.state.zoom, 5, "held to the zoom limit");
+  assert.equal(make({ zoom: 1, fitScale: 0.01 }).view.state.zoom, 50, "held to the zoom limit");
 });
 
 test("the page can tell it what zoom 1 means later, until the reader has zoomed", () => {
@@ -407,7 +407,7 @@ test("the page scrolls at Fit and at the edge of a move, and a wheel that reache
   view.fit();
   assert.equal(spin(-100, 5000, { altKey: true }), true, "Alt and the wheel at Fit still zooms");
   assert.ok(view.state.zoom > 1);
-  view.zoomAt(5);
+  view.zoomAt(50);
   assert.equal(spin(-100, 6000, { altKey: true }), false, "Alt and the wheel at the most zoom scrolls the page");
   view.fit();
   assert.equal(spin(50, 7000, { ctrlKey: true }), true, "Ctrl and the wheel is always the view's");

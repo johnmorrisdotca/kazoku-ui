@@ -4,6 +4,11 @@
 /** The zooms a mark goes to, the most wanted first: when two are too close for both labels, the earlier one stays. */
 export const COMMON_ZOOMS: readonly number[] = [1, 2, 4, 0.5, 3, 10, 8, 5, 0.25, 6, 16, 20, 32, 50, 64, 100];
 
+/** Over a wide range (`WIDE` times or more from end to end) the marks are the powers of ten first, nearest Fit first, so 0.1 to 100 reads 0.1×, 1×, 10×, 100× and not 1×, 4×, 16×. */
+export const WIDE = 100;
+
+const DECADES: readonly number[] = Array.from({ length: 13 }, (_, i) => i - 6).sort((a, b) => Math.abs(a) - Math.abs(b) || b - a).map((power) => 10 ** power);
+
 /** The least distance between two marks, as a share of the slider's length, so their labels never touch. */
 export const MARK_GAP = 0.18;
 
@@ -44,7 +49,7 @@ export function zoomMarks(min: number, max: number, gap: number = MARK_GAP): Zoo
     { zoom: min, at: 0, end: true },
     { zoom: max, at: 1, end: true },
   ];
-  for (const zoom of COMMON_ZOOMS) {
+  for (const zoom of max / min >= WIDE ? [...DECADES, ...COMMON_ZOOMS] : COMMON_ZOOMS) {
     if (zoom <= min || zoom >= max) continue;
     const at = zoomPosition(zoom, min, max);
     if (marks.every((mark) => Math.abs(mark.at - at) >= gap - 1e-9)) marks.push({ zoom, at, end: false });

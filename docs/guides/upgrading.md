@@ -2,10 +2,17 @@
 title: Upgrading
 section: upgrading
 order: 14
-description: What each version from 0.7 to 0.14 asks of you, which defaults changed, what was removed, and what still works.
+description: What each version from 0.7 to 0.21 asks of you, which defaults changed, what was removed, and what still works.
 ---
 
 The package is in early development (0.x), so a minor version can add to the interface. This page lists what asks something of you, newest first. The complete, dated record is the [changelog](../../CHANGELOG.md).
+
+## To 0.21
+
+One default changes, and one function is new.
+
+- **The default zoom range is 0.1× to 50×, not 1× to 5×.** Zoom draws no more pixels, so the old ceiling and a floor at Fit were not needed. On a page that sets no `zoom-min` and `zoom-max`, the slider now runs from a tenth of Fit to fifty times it, its marks are 0.1×, 1×, 10× and 50×, a reader can zoom out past Fit (the picture shrinks into the middle, and the pan pad stays hidden), `?zoom=0` in the address now means 0.1, and Ctrl and the wheel turned down no longer stops at Fit. A page that wants the old range sets `zoom-min="1" zoom-max="5"`, and nothing changes for it. Where your picture's detail runs out earlier, say so with `zoom-max`. [The guide](element-controls.md) says why.
+- **A package element can carry the hands itself.** `carryControls(element, { onChange })` gives a custom element the drag, the pinch, the wheel and the keys, so a page that drops the tag gets a picture that zooms and pans without `<kazoku-view-controls>` and without wiring. A page that already has the bar is unchanged: the bar takes the hands over while it is bound. `readLimits` is the attributes-to-limits arithmetic both use, and the slider's marks are the powers of ten over a range of 100× or more.
 
 ## To 0.18
 

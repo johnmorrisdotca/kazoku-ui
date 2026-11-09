@@ -119,9 +119,9 @@ test("zoom about the pointer keeps what is under it there", async ({ page }) => 
   }, [mark]);
   expect(Math.abs(where.x - at.x)).toBeLessThan(1.5);
   expect(Math.abs(where.y - at.y)).toBeLessThan(1.5);
-  // Ctrl and a wheel turn down zooms out, back to 1x at the end and the middle again.
+  // Ctrl and a wheel turn down zooms out, past Fit to the floor of 0.1x, with the middle again.
   await wheel(page, at, 800);
-  expect((await stateOf(page))).toMatchObject({ zoom: 1, panX: 0, panY: 0 });
+  expect((await stateOf(page))).toMatchObject({ zoom: 0.1, panX: 0, panY: 0 });
 });
 
 test("the buttons zoom, the pan pad appears when zoomed and moves the view, and a drag moves it", async ({ page }) => {

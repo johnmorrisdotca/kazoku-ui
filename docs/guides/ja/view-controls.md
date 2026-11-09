@@ -51,7 +51,7 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | `tilt` | 度。`tilt-max`（30）の正負に制限。大きいほど上側が奥へ傾きます（上にドラッグ）。制限の内側では自動回転が振り子のように往復し、90以上では回転し続け、`orientation`は連続したままです。 |
 | `roll` | 前方向の軸の周りの度。`roll-max`（180）の正負に制限。 |
 | `orientation` | 姿勢を表す四元数 `{ x, y, z, w }`。直角を超えて転がるときはこちらを描くと、上方向が反転しません。 |
-| `zoom` | 1から5（`zoom-min`、`zoom-max`）。1が全体表示。シーンは`zoom * fitScale`で描きます。 |
+| `zoom` | 0.1から50（`zoom-min`、`zoom-max`）。1が全体表示。シーンは`zoom * fitScale`で描きます。 |
 | `panX`、`panY` | ズームした絵を、ビューの中心から動かしたCSSピクセル。等倍では0。 |
 | `turning` | 自動回転が動いている間は真。 |
 | `drag` | `"move"`か`"turn"`：ズーム中のふつうのドラッグの働き。 |
@@ -88,7 +88,7 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | `layout` | `classic`（既定）、`horizontal`、`vertical`、`compact`：[レイアウトとズームスライダー](layouts-and-zoom.md)を参照。 |
 | `storage` | レベルを記憶する`localStorage`のキー（`kazoku-view-controls`）。 |
 | `flat` | ビューは回りません。角度、傾き、自動回転、正面はなく、ドラッグは移動になります。 |
-| `tilt-max`、`roll-max`、`zoom-min`、`zoom-max` | 上限と下限（30、180、1、5）。傾きの自動回転は90未満で振り子、90以上で回転し続けます。 |
+| `tilt-max`、`roll-max`、`zoom-min`、`zoom-max` | 上限と下限（30、180、0.1、50）。傾きの自動回転は90未満で振り子、90以上で回転し続けます。 |
 | `address` | 選んだ内容をページのアドレスに残します（`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`）。 |
 | `address-keys` | 別のキー名：`yaw:a,zoom:z`。 |
 | `theme` | `light`か`dark`。なければページの配色。 |

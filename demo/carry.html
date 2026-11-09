@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: an element that carries the controls</title>
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    kazoku-carry-demo { width: 100%; height: 220px; border: 1px dashed var(--line); border-radius: 12px; background: var(--bg); }
+    kazoku-carry-demo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">an element that carries the controls</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="layouts.html" data-say="layouts">Layouts</a></p>
+  <p class="intro" data-say="intro">A package's own element can take the drag, the pinch, the wheel and the keys without a bar. The wheel scrolls the page at Fit; Ctrl or Command and the wheel zooms.</p>
+  <div class="targets">
+    <section class="target"><h2 data-say="plain">Default: 0.1× to 50×</h2>
+      <kazoku-carry-demo id="plain" tabindex="-1" data-testid="plain"></kazoku-carry-demo>
+      <output id="plain-out" data-testid="plain-out"></output></section>
+    <section class="target"><h2 data-say="limited">zoom-min="0.5" zoom-max="4"</h2>
+      <kazoku-carry-demo id="limited" zoom-min="0.5" zoom-max="4" data-testid="limited"></kazoku-carry-demo>
+      <output id="limited-out" data-testid="limited-out"></output></section>
+    <section class="target"><h2 data-say="off">controls="none"</h2>
+      <kazoku-carry-demo id="off" controls="none" data-testid="off"></kazoku-carry-demo>
+      <output id="off-out" data-testid="off-out"></output></section>
+    <section class="target"><h2 data-say="barred">With a bar</h2>
+      <kazoku-carry-demo id="barred" data-testid="barred"></kazoku-carry-demo>
+      <kazoku-view-controls for="barred" controls="basic" layout="horizontal" data-testid="bar"></kazoku-view-controls>
+      <output id="barred-out" data-testid="barred-out"></output></section>
+  </div>
+  <pre class="code" data-testid="code"><code>import { carryControls } from "@johnmorrisdotca/kazoku-ui/view-controls";
+
+connectedCallback() {
+  this.controls = carryControls(this, { onChange: (state) =&gt; this.draw(state) });
+}
+disconnectedCallback() {
+  this.controls?.unbind();
+}</code></pre>
+</main>
+<script type="module" src="carry.js"></script>
+</body>
+</html>
