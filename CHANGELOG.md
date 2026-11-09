@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-09
+
 - **The shared renderer draws at most 30 frames a second** (KAZOKU-UI-91). `createScheduler` drew a job on every animation frame while it kept moving, so a turning view in every 3D package drew 60 to 144 times a second on a real screen (hoshi-stars 0.18.0's freeze test saw 165 frames in 5.4 s); the family rule is at most 30, and the freeze tests had only passed because headless software drawing is slow. Now a job that drew less than a frame gap ago (1000/30 ms, less 2 ms for the browser's timing, so that 60 Hz gives 30 draws a second and not 20) stays dirty and is skipped for this frame, which still asks for the next one, one request at a time. Measured with a fake clock over 20 s: 60 Hz 30.0 draws a second, 90 Hz 30.0, 120 Hz 30.0, 144 Hz 28.8, 240 Hz 30.0 (75 Hz gives 25: two frames are under the gap, three are over). The first frame after rest, after a pause (a hidden tab) or of a job just added is not delayed, and `dt` is still the time since the job's last real draw, so the motion keeps its speed. The cap holds for a view invalidated again at once (a hand moving it with no animation) as well as for an animation. New export `MAX_FPS` (30); there is no option to change it, because no package needs another value. Nothing to change in a package that takes the version, except that a freeze test or an `update(dt)` that assumed one draw per frame now sees a draw every second to fifth frame, and a test that counted draws must allow for 30 a second at most. `e2e/renderer.demo.mjs` has a new check (draws while turning, over a timed window, at most 30 a second), and `test/renderer.test.ts` runs the scheduler at 60, 90, 120, 144 and 240 Hz.
 
 ## [0.26.0] - 2026-11-09
