@@ -118,6 +118,14 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 | `button` | Print / save PDF | いんさつ / PDFで ほぞん | insatsu / PDF de hozon, print / save as PDF |
 | `qr` | QR code of the address | アドレスの QRコード | adoresu no QR kōdo, the QR code of the address |
 
+## Wide layout
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Page layout | ページの広さ | pēji no hirosa, the width of the page |
+| `wide` | Wide | ワイド | waido, wide (the button in Normal) |
+| `normal` | Normal | ふつう | futsū, normal (the button in Wide) |
+
 ## Embed panel
 
 | Key | English | 日本語 | Reading and meaning |

@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **A Wide layout toggle, theatre mode** (KAZOKU-UI-80). A new part, `@johnmorrisdotca/kazoku-ui/wide-layout`: `<kazoku-wide-toggle>` is a Wide / Normal button (ワイド / ふつう, with an icon, 48 px) that writes `data-wide="on"` on `<html>` (or a `target`), keeps the choice in the address (`?wide=on`) and, with `storage`, on the device, answers the **T** key like YouTube's (not while typing, and not with Ctrl, Command or Alt held), is hidden on a phone, and sends `kazoku-widechange` and, a frame later, the window's `resize` so a view draws again at its new size (`resize="off"` stops it). `wideCss()` is the layout rule for a `.kazoku-stage` of a `.kazoku-view` and a `.kazoku-side`: beside each other in Normal; in Wide the view takes the full width, 16:9 up to 80vh, and the panel moves below it as a row of boxes. Also `parseWide`, `wideOf`, `applyWide`, `readWide` and `isTyping`. See [the guide](docs/guides/wide-layout.md) and the demo's `wide.html`.
 - The replay bar guide has its front matter and a Japanese twin, and the view controls guide names the pose maths (`quatFromEuler`, `spinLocal`, `tumbleRates` and the rest), so `pnpm docs:check` and the docs workflow pass again (KAZOKU-UI-69).
 
 ## [0.22.0] - 2026-11-08

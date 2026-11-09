@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: wide layout</title>
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    html[data-wide="on"] main { max-width: none; }
+    .kazoku-view { position: relative; height: 380px; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
+    .kazoku-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .kazoku-side .panel { margin-top: 0; }
+    .kazoku-side h2 { margin: 0 0 6px; font-size: 1rem; }
+    .kazoku-side p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">wide layout</span></h1>
+    <div class="tools">
+      <kazoku-wide-toggle id="wide" address storage="kazoku-demo-wide" data-testid="wide"></kazoku-wide-toggle>
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
+  <p class="intro" data-say="intro">The Wide button, or the T key, gives the view the page's whole width and moves the side panel below it. Normal puts it back. The choice is kept in the address (?wide=on) and on this device.</p>
+  <div class="kazoku-stage" data-testid="stage">
+    <div class="kazoku-view" id="view" data-testid="view"><canvas id="picture" aria-hidden="true"></canvas></div>
+    <aside class="kazoku-side" data-testid="side">
+      <section class="panel"><h2 data-say="size">Size</h2><p id="size" data-testid="size"></p></section>
+      <section class="panel"><h2 data-say="drawn">Drawn</h2><p id="drawn" data-testid="drawn"></p></section>
+      <section class="panel"><h2 data-say="notes">Notes</h2><p data-say="note">The panel is a column beside the view, and a row of boxes below it in Wide. On a phone it is always below.</p></section>
+    </aside>
+  </div>
+</main>
+<script type="module" src="wide.js"></script>
+</body>
+</html>
