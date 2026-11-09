@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout"];
 ```
 
 ### Part
@@ -3204,6 +3204,269 @@ import { defineEmbedPanel } from '@johnmorrisdotca/kazoku-ui/embed-panel/define'
 
 ```ts
 function defineEmbedPanel(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/wide-layout`
+
+15 values and 4 types.
+
+```js
+import { applyWide, EVENT, isTyping, languageOf, parseWide, readWide, TAG, WIDE_ADDRESS_KEY, WIDE_ATTRIBUTE, WIDE_MIN_WIDTH_PX, WIDE_STORAGE_KEY, wideCss, wideOf, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/wide-layout';
+```
+
+### applyWide
+
+*function*. Writes the choice on the target.
+
+```ts
+function applyWide(target: Element, wide: boolean): void;
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-widechange";
+```
+
+### isTyping
+
+*function*. Whether a key press is the reader typing: a text field, a select, an editable element, or any key with Ctrl, Command or Alt held. The T key is left to them.
+
+```ts
+function isTyping(target: Element | null, event: {
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    altKey?: boolean;
+}): boolean;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### parseWide
+
+*function*. `on`, `1`, `true` and `wide` are wide; `off`, `0`, `false` and `normal` are not; anything else is no answer.
+
+```ts
+function parseWide(value: unknown): boolean | undefined;
+```
+
+### readWide
+
+*function*. The remembered choice: the address first, then the store. `undefined` when neither holds one.
+
+```ts
+function readWide(from: RememberedWide): boolean | undefined;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-wide-toggle";
+```
+
+### WIDE_ADDRESS_KEY
+
+*constant*. The address parameter, with `address`: `?wide=on`.
+
+```ts
+const WIDE_ADDRESS_KEY = "wide";
+```
+
+### WIDE_ATTRIBUTE
+
+*constant*. The attribute the choice is written to on the target: `data-wide="on"` when wide, none when normal.
+
+```ts
+const WIDE_ATTRIBUTE = "data-wide";
+```
+
+### WIDE_MIN_WIDTH_PX
+
+*constant*. Below this width the layout is already one column, so the toggle hides and the rule does nothing.
+
+```ts
+const WIDE_MIN_WIDTH_PX = 641;
+```
+
+### WIDE_STORAGE_KEY
+
+*constant*. The localStorage key, with a bare `storage`.
+
+```ts
+const WIDE_STORAGE_KEY = "kazoku-wide";
+```
+
+### wideCss
+
+*function*. The layout rule, as CSS for the page. A `.kazoku-stage` holds a `.kazoku-view` and a `.kazoku-side`. In Normal the panel is a column beside the view. When an ancestor (the page's <html> by
+
+```ts
+function wideCss(options?: WideCssOptions): string;
+```
+
+### wideOf
+
+*constant*. What a target holds now.
+
+```ts
+const wideOf: (target: Element) => boolean;
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, WideWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<WideWords>) => WideWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### RememberedWide
+
+*interface*. Where a remembered choice may be read from. A page that keeps nothing passes neither.
+
+```ts
+interface RememberedWide {
+    /** An address' search string such as `?wide=on`, read with `addressKey`. */
+    search?: string;
+    addressKey?: string;
+    /** A localStorage-like object and the key in it. A store that throws is the same as an empty one. */
+    storage?: Pick<Storage, "getItem">;
+    storageKey?: string;
+}
+```
+
+### WideCssOptions
+
+*interface*
+
+```ts
+interface WideCssOptions {
+    /** The width of the side panel beside the view in Normal. 320px by default. */
+    side?: string;
+    /** The tallest the view gets in Wide, with its 16:9 shape kept. 80vh by default. */
+    maxHeight?: string;
+}
+```
+
+### WideWords
+
+*interface*
+
+```ts
+interface WideWords {
+    /** The group's name for a screen reader. */
+    group: string;
+    /** The button in Normal: press for wide. */
+    wide: string;
+    /** The button in Wide: press for normal. */
+    normal: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/wide-layout/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, TAG, WideToggleElement } from '@johnmorrisdotca/kazoku-ui/wide-layout/element';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-widechange";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-wide-toggle";
+```
+
+### WideToggleElement
+
+*class*. Attributes: `value` (`on` or `off`; the choice), `target` (a CSS selector for the element that gets `data-wide`; the page's <html> by default), `address` (keep the choice in `?wide=`, or the key
+
+```ts
+class WideToggleElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Whether the page is wide now. Setting it applies it (event reason `set`). */
+    get wide(): boolean;
+    set wide(next: boolean);
+    /** The element the choice is written on. */
+    get target(): Element | undefined;
+    set target(element: Element | undefined);
+    /** Your own labels over the language's, for example `{ wide: "Theatre" }`. */
+    set words(words: Partial<WideWords>);
+    /** Switch between Normal and Wide, as the button does. */
+    toggle(): void;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### WideChangeDetail
+
+*interface*. What the `kazoku-widechange` event carries in `detail`.
+
+```ts
+interface WideChangeDetail {
+    /** Whether the page is wide now. */
+    wide: boolean;
+    /** `init`, `user` (the button), `key` (the T key), `set` (the `value` property or attribute) or `external` (something else wrote the target's `data-wide`). */
+    reason: "init" | "user" | "key" | "set" | "external";
+    /** The element the choice is written on. */
+    target: Element;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/wide-layout/define`
+
+1 value and 0 types.
+
+```js
+import { defineWideToggle } from '@johnmorrisdotca/kazoku-ui/wide-layout/define';
+```
+
+### defineWideToggle
+
+*function*
+
+```ts
+function defineWideToggle(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/print`

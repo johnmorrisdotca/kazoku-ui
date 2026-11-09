@@ -38,6 +38,8 @@
     "embed-panel",
     "snippets",
     "iframe",
+    "wide-layout",
+    "theatre-mode",
     "print",
     "printable",
     "poster",
@@ -63,7 +65,8 @@
     "./dist/speed-buttons/define.js",
     "./dist/embed-panel/define.js",
     "./dist/replay-bar/define.js",
-    "./dist/options-window/define.js"
+    "./dist/options-window/define.js",
+    "./dist/wide-layout/define.js"
   ],
   "bin": {
     "kazoku-browser-lock": "./dist/testing/cli.js"
@@ -201,6 +204,21 @@
       "types": "./dist/embed-panel/define.d.ts",
       "import": "./dist/embed-panel/define.js",
       "default": "./dist/embed-panel/define.js"
+    },
+    "./wide-layout": {
+      "types": "./dist/wide-layout/index.d.ts",
+      "import": "./dist/wide-layout/index.js",
+      "default": "./dist/wide-layout/index.js"
+    },
+    "./wide-layout/element": {
+      "types": "./dist/wide-layout/element.d.ts",
+      "import": "./dist/wide-layout/element.js",
+      "default": "./dist/wide-layout/element.js"
+    },
+    "./wide-layout/define": {
+      "types": "./dist/wide-layout/define.d.ts",
+      "import": "./dist/wide-layout/define.js",
+      "default": "./dist/wide-layout/define.js"
     },
     "./print": {
       "types": "./dist/print/index.d.ts",
