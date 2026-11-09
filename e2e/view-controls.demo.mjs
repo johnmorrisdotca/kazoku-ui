@@ -13,6 +13,20 @@ const wheel = (page, at, deltaY, mod = "ctrlKey") => page.locator("#scene").eval
 const touch = (page, type, id, x, y) => page.locator("#scene").evaluate((el, [t, i, cx, cy]) => {
   el.dispatchEvent(new PointerEvent(t, { pointerId: i, pointerType: "touch", isPrimary: i === 1, clientX: cx, clientY: cy, bubbles: true, cancelable: true, button: 0, buttons: t === "pointerup" ? 0 : 1 }));
 }, [type, id, x, y]);
+/** Resolves once the page's scroll position has stayed put for three frames in a row: a wheel turn scrolls the page over several frames, and what is measured or aimed at meanwhile moves. */
+const scrollSettled = (page) => page.evaluate(() => new Promise((resolve) => {
+  let last = window.scrollY;
+  let still = 0;
+  const frame = () => {
+    still = window.scrollY === last ? still + 1 : 0;
+    last = window.scrollY;
+    if (still >= 3) resolve(last);
+    else window.requestAnimationFrame(frame);
+  };
+  window.requestAnimationFrame(frame);
+}));
+/** The pointer is over the view: the wheel goes to whatever is under it, so a test checks before it turns the wheel. */
+const overScene = (page, at) => page.evaluate(([p]) => document.querySelector("#scene").contains(document.elementFromPoint(p.x, p.y)), [at]);
 const ready = async (page, query = "") => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -529,11 +543,12 @@ test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer,
   await button(page, "in").click();
   const zoomed = await stateOf(page);
   expect(zoomed.zoom).toBeGreaterThan(1);
-  const parked = await page.evaluate(() => window.scrollY);
+  const parked = await scrollSettled(page);
   const again = await page.locator("#scene").boundingBox();
   at.x = again.x + again.width * 0.7;
   at.y = again.y + again.height * 0.5;
   await page.mouse.move(at.x, at.y);
+  expect(await overScene(page, at)).toBe(true);
   await page.mouse.wheel(0, 80);
   await expect.poll(async () => (await stateOf(page)).panY).toBeLessThan(0);
   expect((await stateOf(page)).zoom).toBe(zoomed.zoom);
@@ -571,8 +586,9 @@ test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer,
   expect(off).not.toBeNull();
   await page.mouse.move(off.x, off.y);
   const before = await stateOf(page);
+  const resting = await scrollSettled(page);
   await page.mouse.wheel(0, 200);
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(top);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(resting);
   expect((await stateOf(page)).zoom).toBe(before.zoom);
 });
 
