@@ -12,7 +12,7 @@ function apply(s) {
   card.style.transform = `rotateZ(${s.roll ?? 0}deg) rotateX(${s.tilt}deg) rotateY(${s.yaw}deg)`;
   zoomer.style.transform = s.zoom === 1 && s.panX === 0 && s.panY === 0 ? "" : `translate(${s.panX}px, ${s.panY}px) scale(${s.zoom})`;
   $("scene").dataset.grabbing = s.reason === "drag" && !s.final ? "1" : "";
-  $("readout").textContent = `yaw ${Math.round(s.yaw)}  tilt ${Math.round(s.tilt)}  roll ${Math.round(s.roll ?? 0)}  zoom ${s.zoom.toFixed(2)}  pan ${Math.round(s.panX)}, ${Math.round(s.panY)}  ${s.turning ? "turning" : "still"}  drag ${s.drag}`;
+  $("readout").textContent = `yaw ${Math.round(s.yaw)}  tilt ${Math.round(s.tilt)}  roll ${Math.round(s.roll ?? 0)}  zoom ${s.zoom.toFixed(2)}  pan ${Math.round(s.panX)}, ${Math.round(s.panY)}  ${s.turning ? "turning" : "still"}`;
 }
 
 controls.addEventListener("kazoku-viewchange", (event) => apply(event.detail));
