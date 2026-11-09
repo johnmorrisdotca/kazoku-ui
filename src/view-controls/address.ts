@@ -1,15 +1,14 @@
 // The choices kept in the page's address: pure string functions, so a server or a test can use them. Only what a person chose is kept
-// (angle, tilt, zoom, what a drag does); the pan is in pixels of one screen and the turning of a moment, so neither is.
+// (angle, tilt, zoom, the roll and the auto-turn choices); the pan is in pixels of one screen and the turning of a moment, so neither is.
 import { type Direction, PACE_FACTOR, parseAxis, parseDirection, parsePace, type TurnAxis } from "./levels.ts";
 import { clamp, DEFAULT_LIMITS, type Limits, wrapYaw } from "./math.ts";
-
-export type DragMode = "move" | "turn";
 
 export interface AddressKeys {
   yaw: string;
   tilt: string;
   zoom: string;
-  drag: string;
+  /** Not used any more: a plain drag always turns, so there is nothing to keep (0.26.0). `formatAddress` removes an old `drag` from the address. */
+  drag?: string;
   /** The auto-turn speed, a number (`0.5`, `2`; 1 is the start and leaves the address). `pace` by default, because a page's own `speed` (a clock's, a replay's) is its own. */
   speed?: string;
   /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
@@ -24,13 +23,12 @@ export interface AddressKeys {
   rollDirection?: string;
 }
 
-export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", drag: "drag", speed: "pace", direction: "direction", roll: "roll", axis: "axis", tiltDirection: "tiltDirection", rollDirection: "rollDirection" };
+export const DEFAULT_KEYS: AddressKeys = { yaw: "yaw", tilt: "tilt", zoom: "zoom", speed: "pace", direction: "direction", roll: "roll", axis: "axis", tiltDirection: "tiltDirection", rollDirection: "rollDirection" };
 
 export interface AddressChoices {
   yaw: number;
   tilt: number;
   zoom: number;
-  drag: DragMode;
   /** The auto-turn speed as a multiple of the element's `speed`: the number of the button that is on. */
   pace?: number;
   /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
@@ -66,8 +64,6 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
   const axis = parseAxis(params.get(keys.axis ?? "axis"));
   if (axis !== undefined) out.axis = axis;
   if (zoom !== undefined) out.zoom = rounded(clamp(zoom, limits.zoomMin, limits.zoomMax), 2);
-  const drag = params.get(keys.drag);
-  if (drag === "turn" || drag === "move") out.drag = drag;
   const said = params.get(keys.speed ?? "pace");
   // A number is the pace; so are the words of 0.12 and 0.13 (`slow`, `fast`), which a link made then still carries.
   const named = parsePace(said);
@@ -98,7 +94,8 @@ export function formatAddress(search: string, choices: AddressChoices, keys: Add
     if (choices.roll !== undefined) set(keys.roll ?? "roll", Math.round(choices.roll) === 0 ? undefined : String(rounded(wrapYaw(choices.roll), 0)));
   }
   set(keys.zoom, Math.abs(choices.zoom - startZoom) < 0.005 ? undefined : String(rounded(choices.zoom, 2)));
-  set(keys.drag, choices.drag === "turn" ? "turn" : undefined);
+  // An old link may still carry `drag=turn`: it means nothing now, so it leaves the address the next time the address is written.
+  set(keys.drag ?? "drag", undefined);
   // The pace key is touched only when the caller has a pace; the start (1) leaves it off the address.
   const paceKey = keys.speed ?? "pace";
   if (choices.pace !== undefined) set(paceKey, choices.pace === 1 ? undefined : String(rounded(choices.pace, 3)));

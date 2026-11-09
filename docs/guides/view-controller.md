@@ -59,7 +59,6 @@ The automatic turn is idle whenever nothing can see the view: while the element 
 | `front()`, `fit()`, `centre(animate?)` | The angle back to 0, zoom back to Fit, the object back to the middle. |
 | `zoomAt(next, at?, final?)`, `zoomBy(factor, at?)` | Zoom about a point, the anchor or the view's middle. |
 | `panBy(stepsX, stepsY)` | Move by whole fractions of the view's size. |
-| `setDrag(mode)` | What a plain drag does while zoomed in: `"move"` or `"turn"`. |
 | `suspendTurn()`, `resumeTurn()`, `holdTurn()`, `releaseTurn()` | Pause the turn for a reason, counted, so they nest. |
 | `bind(view)`, `destroy()` | Attach the hands; let everything go. |
 | `anchor`, `ignore`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`, `objectSize` | Options you can also change at any time. |
@@ -81,7 +80,7 @@ console.log(Object.keys(DEFAULT_KEYS).join(" "));
 // button, a, input, select, textarea, label, [data-kazoku-ignore]
 // {"tiltMax":30,"rollMax":180,"zoomMin":0.1,"zoomMax":50}
 // kazoku-view-controls kazoku-viewchange kazoku-view-controls
-// yaw tilt zoom drag speed direction roll axis tiltDirection rollDirection
+// yaw tilt zoom speed direction roll axis tiltDirection rollDirection
 ```
 
 ## Zooming about a point of your own

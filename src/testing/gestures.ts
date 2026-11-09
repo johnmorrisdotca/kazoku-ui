@@ -11,7 +11,7 @@
 
 /** Every gesture the check does, and what it asks of the view. */
 export const GESTURES = {
-  turn: "a plain drag turns the view (yaw) and does not roll or move it",
+  turn: "a plain drag turns the view (yaw) at Fit and zoomed in, and does not roll or move it",
   roll: "Shift and a drag rolls it",
   "key-turn": "the arrow keys turn and tip it",
   "key-zoom": "+ and - zoom in and out",
@@ -234,7 +234,6 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
 
   await page.evaluate((selector) => (document.querySelector(selector) as HTMLElement | null)?.scrollIntoView({ block: "center", inline: "center" }), view);
   await watch(page, controls);
-  const dragWas = await page.evaluate((selector) => (document.querySelector(selector) as unknown as { state: { drag: string } }).state.drag, controls);
 
   /** The view as the controls' events last said it, checked against the controls' own state. */
   const read = async (): Promise<Seen> => {
@@ -250,7 +249,7 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
     if (!sameView(both.last, both.state)) throw new Error(`the last ${EVENT} event (${JSON.stringify(both.last)}) is not the view the controls hold (${JSON.stringify(both.state)})`);
     return both.last;
   };
-  const put = async (next: Partial<Seen> & { drag?: string }): Promise<void> => {
+  const put = async (next: Partial<Seen>): Promise<void> => {
     await page.evaluate(([selector, v]) => (document.querySelector(selector as string) as unknown as { controller: { set(v: object, final: boolean, reason: string): void } }).controller.set(v as object, true, "set"), [controls, { yaw: 0, tilt: 0, roll: 0, zoom: 1, panX: 0, panY: 0, ...next }] as const);
     await frames(page);
     await ready?.();
@@ -328,8 +327,8 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
   const near = (a: number, b: number, share = 0.2, least = 6): boolean => Math.abs(a - b) <= Math.max(least, Math.abs(b) * share);
 
   /** Do a move at `zoom`, check the controls say the view moved and did not turn, and (unless the view says it cannot be photographed) that the picture moved by the same pixels. */
-  const moves = async (label: string, act: () => Promise<void>, expectReason?: string, drag?: "turn"): Promise<void> => {
-    await put({ zoom, drag });
+  const moves = async (label: string, act: () => Promise<void>, expectReason?: string): Promise<void> => {
+    await put({ zoom });
     const was = await read();
     const before = lacks.picture === undefined ? await settled() : undefined;
     await act();
@@ -356,6 +355,13 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
       const now = await until((s) => Math.abs(s.yaw) > 5);
       if (Math.abs(now.yaw) <= 5) throw new Error(`a drag did not turn the view (yaw ${now.yaw})`);
       if (now.roll !== 0 || now.panX !== 0 || now.panY !== 0 || now.zoom !== 1) throw new Error(`a drag turned the view and also changed something else (${JSON.stringify(now)})`);
+      // Zoomed in, a plain drag turns too (it never moves the view: the middle button, Ctrl or Command, Space and the wheel do that).
+      await put({ zoom });
+      const was = await read();
+      await drag(80, 0);
+      const zoomed = await until((s) => Math.abs(s.yaw - was.yaw) > 1);
+      if (Math.abs(zoomed.yaw - was.yaw) <= 1) throw new Error(`a drag did not turn the view zoomed in at ${zoom}x (yaw ${was.yaw} to ${zoomed.yaw}): a plain drag turns at every zoom`);
+      if (Math.abs(zoomed.panX - was.panX) > 1e-6 || Math.abs(zoomed.panY - was.panY) > 1e-6 || Math.abs(zoomed.roll - was.roll) > 1e-6) throw new Error(`a drag zoomed in at ${zoom}x moved or rolled the view as well as turning it (${JSON.stringify(was)} to ${JSON.stringify(zoomed)})`);
     },
     async roll() {
       await put({});
@@ -423,7 +429,7 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
     },
     async "ctrl-drag-pan"() {
       for (const key of ["Control", "Meta"]) {
-        await moves(`${key} and a drag`, () => drag(60, 30, { keys: [key] }), undefined, "turn");
+        await moves(`${key} and a drag`, () => drag(60, 30, { keys: [key] }));
         const menus = await page.evaluate(() => (window as unknown as { __kazokuGestures: Watch }).__kazokuGestures.menus, undefined);
         if (menus.some((prevented) => !prevented)) throw new Error(`${key} and a drag let the browser's context menu open`);
       }
@@ -437,13 +443,13 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
           for (let i = 1; i <= 10; i += 1) await page.mouse.move(at.x + 6 * i, at.y + 3 * i);
           await page.mouse.up();
         });
-      }, undefined, "turn");
+      });
     },
     async "middle-drag-pan"() {
-      await moves("the middle button and a drag", () => drag(60, 30, { button: "middle" }), undefined, "turn");
+      await moves("the middle button and a drag", () => drag(60, 30, { button: "middle" }));
     },
     async "right-drag-pan"() {
-      await moves("the right button and a drag", () => drag(60, 30, { button: "right" }), undefined, "turn");
+      await moves("the right button and a drag", () => drag(60, 30, { button: "right" }));
       const menus = await page.evaluate(() => (window as unknown as { __kazokuGestures: Watch }).__kazokuGestures.menus, undefined);
       if (menus.some((prevented) => !prevented)) throw new Error("the right button and a drag let the browser's context menu open");
     },
@@ -490,7 +496,6 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
     else if (PANS.every((name) => lacks[name] !== undefined)) report.push({ gesture: "picture", result: "lacks", reason: "no move gesture was checked" });
     else report.push({ gesture: "picture", result: "checked" });
   } finally {
-    await put({ drag: dragWas }).catch(() => undefined);
     await unwatch(page).catch(() => undefined);
   }
   if (failures.length > 0) throw new Error(`${failures.length} of ${GESTURE_NAMES.length} gestures failed on ${view}:\n - ${failures.join("\n - ")}`);

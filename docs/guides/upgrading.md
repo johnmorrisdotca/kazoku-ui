@@ -74,7 +74,7 @@ Nothing is asked of you. The new `layout` attribute (`horizontal`, `vertical`, `
 
 ## To 0.8
 
-- **The default bar is simpler.** Tilt, Front, the pan pad and Move or Turn are behind More. A page that wants them from the start sets `controls="advanced"`. The reader's choice is remembered in `localStorage`.
+- **The default bar is simpler.** Tilt, Front and the pan pad are behind More. A page that wants them from the start sets `controls="advanced"`. The reader's choice is remembered in `localStorage`.
 - A zoom readout and the auto-turn speed (Slow, Medium, Fast) are new. New pure exports: `parseLevel`, `parsePace`, `zoomText`, `PACES`, `PACE_FACTOR`, `LEVEL_STORAGE_KEY`.
 - New labels `zoomLevel`, `zoomReset`, `more`, `speed`, `slow`, `medium` and `fast`. If you replaced all labels, add them.
 

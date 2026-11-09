@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.24.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.25.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -28,7 +28,7 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-60 values and 25 types.
+60 values and 24 types.
 
 ```js
 import { between, carryControls, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, readLimits, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WIDE, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
@@ -539,7 +539,6 @@ interface AddressChoices {
     yaw: number;
     tilt: number;
     zoom: number;
-    drag: DragMode;
     /** The auto-turn speed as a multiple of the element's `speed`: the number of the button that is on. */
     pace?: number;
     /** The way Auto-turn goes. In `formatAddress`: a way is written; `null` leaves it off the address (it is the page's own start); left out, the key is not touched. */
@@ -563,7 +562,8 @@ interface AddressKeys {
     yaw: string;
     tilt: string;
     zoom: string;
-    drag: string;
+    /** Not used any more: a plain drag always turns, so there is nothing to keep (0.26.0). `formatAddress` removes an old `drag` from the address. */
+    drag?: string;
     /** The auto-turn speed, a number (`0.5`, `2`; 1 is the start and leaves the address). `pace` by default, because a page's own `speed` (a clock's, a replay's) is its own. */
     speed?: string;
     /** Which way Auto-turn goes, `left` or `right`; `direction` by default. */
@@ -630,14 +630,6 @@ interface Clock {
     request(callback: (now: number) => void): number;
     cancel(id: number): void;
 }
-```
-
-### DragMode
-
-*type*
-
-```ts
-type DragMode = "move" | "turn";
 ```
 
 ### ElementControls
@@ -838,7 +830,6 @@ interface ViewController {
     zoomBy(factor: number, at?: Point): void;
     /** Move the view by whole fractions of its size: `panBy(1, 0)` is a quarter of its width to the right. */
     panBy(stepsX: number, stepsY: number): void;
-    setDrag(drag: DragMode): void;
     /** Bind the pointer, pinch, wheel and key hands to `view`, and hold the automatic turn while `view` is off screen or the tab is hidden. Returns a function that unbinds them. */
     bind(view: HTMLElement): () => void;
     destroy(): void;
@@ -895,8 +886,6 @@ interface ViewState extends Camera {
     orientation: Quat;
     /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
     turning: boolean;
-    /** What a plain drag does while zoomed in: move the view, or turn the piece. */
-    drag: DragMode;
 }
 ```
 
@@ -928,9 +917,6 @@ interface ViewWords {
     panRight: string;
     panUp: string;
     panDown: string;
-    drag: string;
-    dragMove: string;
-    dragTurn: string;
     zoomLevel: string;
     zoomReset: string;
     more: string;
@@ -4615,7 +4601,7 @@ const GESTURE_NAMES: GestureName[];
 
 ```ts
 const GESTURES: {
-    readonly turn: "a plain drag turns the view (yaw) and does not roll or move it";
+    readonly turn: "a plain drag turns the view (yaw) at Fit and zoomed in, and does not roll or move it";
     readonly roll: "Shift and a drag rolls it";
     readonly "key-turn": "the arrow keys turn and tip it";
     readonly "key-zoom": "+ and - zoom in and out";

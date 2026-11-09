@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { type AddressChoices, formatAddress, parseAddress, parseKeys } from "../src/view-controls/address.ts";
 
-const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1, drag: "move" };
+const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1 };
 
 test("a view at its starting values keeps the address plain", () => {
   assert.equal(formatAddress("", plain), "");
@@ -11,7 +11,7 @@ test("a view at its starting values keeps the address plain", () => {
 });
 
 test("the choices round-trip through the address", () => {
-  for (const choices of [{ yaw: 40, tilt: -12, zoom: 2.5, drag: "turn" }, { yaw: -170, tilt: 30, zoom: 5, drag: "move" }, { yaw: 1, tilt: 0, zoom: 1.25, drag: "move" }] as AddressChoices[]) {
+  for (const choices of [{ yaw: 40, tilt: -12, zoom: 2.5 }, { yaw: -170, tilt: 30, zoom: 5 }, { yaw: 1, tilt: 0, zoom: 1.25 }] as AddressChoices[]) {
     const search = formatAddress("", choices);
     assert.deepEqual({ ...plain, ...parseAddress(search) }, choices);
   }
@@ -29,14 +29,19 @@ test("while it turns by itself the angle is left as it was", () => {
 
 test("keys are configurable", () => {
   const keys = parseKeys("yaw:a, zoom:z,bogus:x,tilt:");
-  assert.deepEqual(keys, { yaw: "a", tilt: "tilt", zoom: "z", drag: "drag", speed: "pace", direction: "direction", roll: "roll", axis: "axis", tiltDirection: "tiltDirection", rollDirection: "rollDirection" });
-  const search = formatAddress("", { yaw: 30, tilt: 5, zoom: 2, drag: "turn" }, keys);
-  assert.equal(search, "?a=30&tilt=5&z=2&drag=turn");
-  assert.deepEqual(parseAddress(search, keys), { yaw: 30, tilt: 5, zoom: 2, drag: "turn" });
+  assert.deepEqual(keys, { yaw: "a", tilt: "tilt", zoom: "z", speed: "pace", direction: "direction", roll: "roll", axis: "axis", tiltDirection: "tiltDirection", rollDirection: "rollDirection" });
+  const search = formatAddress("", { yaw: 30, tilt: 5, zoom: 2 }, keys);
+  assert.equal(search, "?a=30&tilt=5&z=2");
+  assert.deepEqual(parseAddress(search, keys), { yaw: 30, tilt: 5, zoom: 2 });
+});
+
+test("an old drag=turn is ignored on reading and leaves the address when it is written", () => {
+  assert.deepEqual(parseAddress("?yaw=5&drag=turn"), { yaw: 5 });
+  assert.equal(formatAddress("?yaw=5&drag=turn&colour=blue", { ...plain, yaw: 5 }), "?yaw=5&colour=blue");
 });
 
 test("a bad or out-of-range value is dropped or held to its limit", () => {
-  assert.deepEqual(parseAddress("?yaw=abc&tilt=&zoom=nope&drag=sideways"), {});
+  assert.deepEqual(parseAddress("?yaw=abc&tilt=&zoom=nope"), {});
   assert.deepEqual(parseAddress("?tilt=99&zoom=99&yaw=190"), { tilt: 30, zoom: 50, yaw: -170 });
   assert.deepEqual(parseAddress("yaw=5"), { yaw: 5 });
   assert.deepEqual(parseAddress("?zoom=0"), { zoom: 0.1 });

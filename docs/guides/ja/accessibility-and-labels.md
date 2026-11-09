@@ -43,7 +43,7 @@ console.log(Object.keys(themeWords.en).join(" "), "|", Object.keys(languageWords
 // group light dark auto | group | group png svg saved failed
 ```
 
-1つの要素のラベルを置き換えるには、`element.words = { front: "Home" }`と代入します。表示の操作には26のキーがあり、`group`、`angle`、`tilt`、`autoTurn`、`front`、`zoom`、`zoomOut`、`zoomIn`、`fit`、`centre`、`pan`、`drag`、`dragMove`、`dragTurn`、`zoomLevel`、`zoomReset`、`more`、`speed`、`slow`、`medium`、`fast`などです。テーマの切り替えには`group`、`light`、`dark`、`auto`があります。言語の選択のラベルはグループの1つだけです。言語そのものは翻訳せず、それぞれの言語自身で書くからです。保存のボタンには`group`、`png`、`svg`、`saved`、`failed`があります。日本語の読みと意味を添えた全表は、リポジトリの[ラベルのページ](../../labels.md)にあります。両方の言語を並べて見せる、唯一のページです。
+1つの要素のラベルを置き換えるには、`element.words = { front: "Home" }`と代入します。表示の操作には23のキーがあり、`group`、`angle`、`tilt`、`autoTurn`、`front`、`zoom`、`zoomOut`、`zoomIn`、`fit`、`centre`、`pan`、`zoomLevel`、`zoomReset`、`more`、`speed`、`slow`、`medium`、`fast`などです。テーマの切り替えには`group`、`light`、`dark`、`auto`があります。言語の選択のラベルはグループの1つだけです。言語そのものは翻訳せず、それぞれの言語自身で書くからです。保存のボタンには`group`、`png`、`svg`、`saved`、`failed`があります。日本語の読みと意味を添えた全表は、リポジトリの[ラベルのページ](../../labels.md)にあります。両方の言語を並べて見せる、唯一のページです。
 
 ## 日本語はインターフェース用に書いたもの
 

@@ -14,7 +14,7 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 ## ユーザーが得られるもの
 
 - **2つのレベルで、バーを簡潔に保ちます。** 既定の`controls="basic"`では、スライダーが1つと、自動回転の軸（角度、傾き、ロール、すべて）が表示されます。スライダーは、選んだ軸の値を変えます（すべてのときは角度です）。そのあと、自動回転、ズームの縮小と拡大（**数値表示**つき。`2.4×`のように表示され、押すと全体表示に戻ります）、全体表示、小さな「詳細」ボタンが表示されます。「詳細」を押すと、速さのボタン（0.5×、1×、2×）、回る向き（左へ、右へ）、正面、矢印パッドが加わり、その選択は記憶されます。
-- ドラッグで回転します（等倍のとき。指では傾かないので、ページのスクロールは使えます）。ズームしているときのドラッグは、ビューを動かします。ホイールでビューが動き、Shiftとホイールでは横へ動きます。2本指のスワイプでも動きます。Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチで、ポインターを中心にズームします。CtrlまたはCommandを押しながらの左ドラッグ、マウスの中ボタンか右ボタンを押したままのドラッグ、またはSpaceを押しながらのドラッグでビューが動き、2本指をそろえて動かしても動きます。Spaceを押しているあいだポインターは手の形です。左ボタンのドラッグでは回転し、ロールは変わりません。Shiftを押しながらのドラッグ、または2本指のひねりでロールします。全体表示で動かす余地がないときは、ホイールでページがスクロールします。ズームしているときはホイールでビューが動き、移動がその向きの端に達しているときにホイールを新たに回し始めると、またページがスクロールします。
+- 左ボタンのふつうのドラッグと1本指は、どの拡大率でもビューを回します（指では傾かないので、全体表示ではページのスクロールが使えます）。拡大率によってドラッグの働きが変わることはありません。ホイールでビューが動き、Shiftとホイールでは横へ動きます。2本指のスワイプでも動きます。Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチで、ポインターを中心にズームします。CtrlまたはCommandを押しながらの左ドラッグ、マウスの中ボタンか右ボタンを押したままのドラッグ、またはSpaceを押しながらのドラッグでビューが動き、2本指をそろえて動かしても動きます。Spaceを押しているあいだポインターは手の形です。左ボタンのふつうのドラッグでは、ロールは変わりません。Shiftを押しながらのドラッグ、または2本指のひねりでロールします。全体表示で動かす余地がないときは、ホイールでページがスクロールします。ズームしているときはホイールでビューが動き、移動がその向きの端に達しているときにホイールを新たに回し始めると、またページがスクロールします。
 - **どの操作も、回転を止めたり、リセットしたりしません。** ズーム、傾き、移動、全体表示、正面のどれでも、自動回転は続きます。
 - ビュー上のキー：矢印キーで回転と傾き、Shiftと左右の矢印でロール、`+`と`-`でズーム、`0`かHomeで正面と全体表示です。
 - 英語と日本語のラベル、ライトとダーク、48 pxのタッチターゲット、スマートフォンでは小さなバー、動きの軽減を求めるユーザーには自動回転なし。
@@ -54,7 +54,6 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | `zoom` | 0.1から50（`zoom-min`、`zoom-max`）。1が全体表示。シーンは`zoom * fitScale`で描きます。 |
 | `panX`、`panY` | ズームした絵を、ビューの中心から動かしたCSSピクセル。等倍では0。 |
 | `turning` | 自動回転が動いている間は真。 |
-| `drag` | `"move"`か`"turn"`：ズーム中のふつうのドラッグの働き。 |
 | `final` | ドラッグ、ピンチ、スライダー、自動回転の途中の段階では偽、確定したときは真。重い描画は`final`のときに、軽い変形はイベントのたびに行います。 |
 | `reason` | 変化の原因：`init`、`auto`、`drag`、`pinch`、`wheel`、`key`、`slider`、`zoom`、`pan`、`front`、`fit`、`fit-scale`、`play`、`pause`、`set`。 |
 
@@ -89,29 +88,29 @@ description: view-controls要素のすべて。ユーザーが得られるもの
 | `storage` | レベルを記憶する`localStorage`のキー（`kazoku-view-controls`）。 |
 | `flat` | ビューは回りません。角度、傾き、自動回転、正面はなく、ドラッグは移動になります。 |
 | `tilt-max`、`roll-max`、`zoom-min`、`zoom-max` | 上限と下限（30、180、0.1、50）。傾きの自動回転は90未満で振り子、90以上で回転し続けます。 |
-| `address` | 選んだ内容をページのアドレスに残します（`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`）。 |
+| `address` | 選んだ内容をページのアドレスに残します（`?yaw=40&tilt=10&zoom=2&pace=2&direction=left`）。 |
 | `address-keys` | 別のキー名：`yaw:a,zoom:z`。 |
 | `theme` | `light`か`dark`。なければページの配色。 |
 | `overlay` | 位置を指定した親の下部に重ねます。 |
 
-メソッドは、`play()`、`pause()`、`front()`、`fit()`、`centre()`、`set({ yaw, tilt, zoom, panX, panY, drag })`、`setFitScale(n)`、そして裏にある[コントローラー](view-controller.md)の`controller`です。`element.words = { front: "Home" }`でラベルを置き換えられます。色はカスタムプロパティ`--kazoku-ink`、`--kazoku-surface`、`--kazoku-line`、`--kazoku-accent`で、パーツは`bar`、`field`、`slider`、`button`です。
+メソッドは、`play()`、`pause()`、`front()`、`fit()`、`centre()`、`set({ yaw, tilt, zoom, panX, panY })`、`setFitScale(n)`、そして裏にある[コントローラー](view-controller.md)の`controller`です。`element.words = { front: "Home" }`でラベルを置き換えられます。色はカスタムプロパティ`--kazoku-ink`、`--kazoku-surface`、`--kazoku-line`、`--kazoku-accent`で、パーツは`bar`、`field`、`slider`、`button`です。
 
 ## アドレス
 
-残るのは、ユーザーが選んだものだけです。角度、傾き、ズーム、ドラッグの選択、自動回転の速さ（`pace=0.5`か`pace=2`。1はアドレスに残りません）、自動回転の向き（`direction=left`か`direction=right`。ページ自身の最初の向きはアドレスに残りません。ページ自身の`speed`パラメーターには触れません）。移動はその画面のピクセルで、回転はその瞬間のものなので、どちらも残りません。開始時の値は、アドレスに残りません。
+残るのは、ユーザーが選んだものだけです。角度、傾き、ズーム、自動回転の速さ（`pace=0.5`か`pace=2`。1はアドレスに残りません）、自動回転の向き（`direction=left`か`direction=right`。ページ自身の最初の向きはアドレスに残りません。ページ自身の`speed`パラメーターには触れません）。移動はその画面のピクセルで、回転はその瞬間のものなので、どちらも残りません。開始時の値は、アドレスに残りません。
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
-const choices = { yaw: 40, tilt: 10, zoom: 2, drag: "turn" };
+const choices = { yaw: 40, tilt: 10, zoom: 2 };
 console.log(formatAddress("?x=1", choices));
 console.log(JSON.stringify(parseAddress("?yaw=40&tilt=x&zoom=2")));
 console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
-// ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
+// ?x=1&yaw=40&tilt=10&zoom=2
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
 ```
 
 ## シーンの自然な大きさで開く
@@ -151,7 +150,7 @@ controls.setFitScale(0.4); // the scale the scene is drawn at when it fits
 
 | 操作 | 動作 |
 |---|---|
-| ドラッグ | 回転（ヨー）。マウスなら傾きも。ズーム中は、`drag`が「回転」なら回転し、「移動」なら動きます |
+| ドラッグ | 回転（ヨー）。マウスなら傾きも。どの拡大率でも同じです。回転できない平らなビューでは、代わりに動きます |
 | Shiftを押しながらのドラッグ、または2本指のひねり | ロール |
 | CtrlまたはCommandを押しながらの左ドラッグ、Spaceを押しながらのドラッグ、中ボタンか右ボタンのドラッグ、2本指をそろえて動かす | ズーム中のビューを動かす（移動） |
 | ホイール、Shiftとホイール、2本指のスワイプ | ズーム中のビューを動かす（全体表示ではページがスクロールします） |

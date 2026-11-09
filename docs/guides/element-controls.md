@@ -36,7 +36,7 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 
 ## What it does, once
 
-- **Drag and pinch.** A drag turns the picture at Fit and moves it once zoomed; two fingers pinch, move and twist. A double tap goes to 2× and back.
+- **Drag and pinch.** A drag turns the picture at every zoom (the middle button, Ctrl or Command and a drag, Space and a drag, and the wheel move it); two fingers pinch, move and twist. A double tap goes to 2× and back.
 - **The wheel.** At Fit the plain wheel scrolls the page, so the picture is never a trap. Ctrl, Command or Alt with the wheel zooms about the pointer, and once zoomed the plain wheel moves the view.
 - **Keys.** The arrows turn, + and − zoom, 0 and Home put it back. The element gets `tabindex="0"` unless the page gave it one, and also when a bar was bound to it before it started, so the bar's keys always have somewhere to go.
 - **`touch-action`.** It is `pan-y` at Fit, so a finger can still scroll the page, and `none` once zoomed. A custom element is inline unless you say otherwise, and `touch-action` does nothing on an inline element, so an inline element is made a block while it carries the hands.

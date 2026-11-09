@@ -23,9 +23,6 @@ export interface ViewWords {
   panRight: string;
   panUp: string;
   panDown: string;
-  drag: string;
-  dragMove: string;
-  dragTurn: string;
   zoomLevel: string;
   zoomReset: string;
   more: string;
@@ -64,9 +61,6 @@ export const WORDS: Record<Language, ViewWords> = {
     panRight: "Move right",
     panUp: "Move up",
     panDown: "Move down",
-    drag: "What a drag does",
-    dragMove: "Move",
-    dragTurn: "Turn",
     zoomLevel: "Zoom level",
     zoomReset: "back to Fit",
     more: "More",
@@ -77,7 +71,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "Slow",
     medium: "Medium",
     fast: "Fast",
-    gestures: "Turn: drag. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button, or two fingers. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Keys: the arrows turn, + and - zoom. Front and Fit: double-click when zoomed in, Home or 0.",
+    gestures: "Turn: drag, at any zoom. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button, or two fingers. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Keys: the arrows turn, + and - zoom. Front and Fit: double-click when zoomed in, Home or 0.",
   },
   ja: {
     group: "表示の操作",
@@ -99,9 +93,6 @@ export const WORDS: Record<Language, ViewWords> = {
     panRight: "右へ",
     panUp: "上へ",
     panDown: "下へ",
-    drag: "ドラッグの動作",
-    dragMove: "移動",
-    dragTurn: "回転",
     zoomLevel: "ズーム倍率",
     zoomReset: "全体に戻す",
     more: "詳細",
@@ -112,7 +103,7 @@ export const WORDS: Record<Language, ViewWords> = {
     slow: "ゆっくり",
     medium: "ふつう",
     fast: "はやい",
-    gestures: "回転：ドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、CtrlまたはCommandを押しながらのドラッグ、Spaceを押しながらのドラッグ、マウスの中ボタンか右ボタン、または2本指のドラッグ。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。キー：矢印で回転、＋と－で拡大と縮小。正面と全体表示：拡大中にダブルクリック、Homeまたは0。",
+    gestures: "回転：どの拡大率でもドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、CtrlまたはCommandを押しながらのドラッグ、Spaceを押しながらのドラッグ、マウスの中ボタンか右ボタン、または2本指のドラッグ。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。キー：矢印で回転、＋と－で拡大と縮小。正面と全体表示：拡大中にダブルクリック、Homeまたは0。",
   },
 };
 

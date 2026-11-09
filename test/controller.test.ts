@@ -43,7 +43,6 @@ test("a control never stops or resets the turn", () => {
   view.zoomBy(1.4);
   view.zoomAt(2);
   view.panBy(1, 0);
-  view.setDrag("turn");
   view.fit();
   assert.equal(turning(), true);
   assert.equal(view.state.yaw, 50);
@@ -124,7 +123,7 @@ test("every change reports the whole state, and a frame of the automatic turn is
   const last = seen.at(-1);
   assert.equal(last?.reason, "zoom");
   assert.equal(last?.final, true);
-  assert.deepEqual(Object.keys(last?.state ?? {}).sort(), ["drag", "orientation", "panX", "panY", "roll", "tilt", "turning", "yaw", "zoom"]);
+  assert.deepEqual(Object.keys(last?.state ?? {}).sort(), ["orientation", "panX", "panY", "roll", "tilt", "turning", "yaw", "zoom"]);
   assert.equal(last?.state.turning, true);
 });
 
@@ -379,6 +378,60 @@ test("Space and a drag, or the middle button, moves a zoomed view, and a left dr
   assert.equal(turned.view.state.panX, 0);
 });
 
+test("a plain left drag turns at every zoom and never moves the view; a flat view moves instead", () => {
+  for (const zoom of [1, 1.04, 1.06, 1.8, 2, 5, 20]) {
+    const { view } = make();
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    if (zoom !== 1) view.zoomAt(zoom);
+    const [panX, panY] = [view.state.panX, view.state.panY];
+    hands.press(100, 100);
+    hands.move(160, 70);
+    hands.release();
+    assert.ok(view.state.yaw !== 0 && view.state.tilt !== 0, `at ${zoom}x a plain drag turns`);
+    assert.deepEqual([view.state.panX, view.state.panY], [panX, panY], `at ${zoom}x it does not move the view`);
+  }
+  const flat = make({ turnable: false });
+  const flatHands = fakeBound();
+  flat.view.bind(flatHands.fakeView);
+  flat.view.zoomAt(2);
+  flatHands.press(100, 100);
+  flatHands.move(130, 120);
+  flatHands.release();
+  assert.deepEqual([flat.view.state.yaw, flat.view.state.tilt], [0, 0], "a flat view never turns");
+  assert.ok(flat.view.state.panX !== 0 || flat.view.state.panY !== 0, "a flat view moves on a drag when zoomed");
+});
+
+test("one finger turns a zoomed view and does not move it; the page keeps the vertical drag only at Fit", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  const touchAction = (): string | undefined => (hands.fakeView as unknown as { style: { touchAction?: string } }).style.touchAction;
+  assert.equal(touchAction(), "pan-y", "at Fit the page can scroll");
+  view.zoomAt(2);
+  assert.equal(touchAction(), "none", "zoomed, the view takes every touch");
+  hands.pointer("pointerdown", 1, 100, 140);
+  hands.pointer("pointermove", 1, 160, 140);
+  hands.pointer("pointerup", 1, 160, 140);
+  assert.ok(view.state.yaw !== 0, "one finger turns");
+  assert.equal(view.state.tilt, 0, "a finger does not tilt");
+  assert.deepEqual([view.state.panX, view.state.panY], [0, 0]);
+});
+
+test("the middle and right buttons, Ctrl or Command and a drag, and Space move a zoomed view and never turn it", () => {
+  for (const press of [{ button: 1 }, { button: 2 }, { button: 0, ctrlKey: true }, { button: 0, metaKey: true }]) {
+    const { view } = make();
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    view.zoomAt(2);
+    hands.press(10, 10, press.button, press);
+    hands.move(60, 40);
+    hands.release();
+    assert.deepEqual([view.state.panX, view.state.panY], [50, 30], `${JSON.stringify(press)} moves`);
+    assert.deepEqual([view.state.yaw, view.state.tilt], [0, 0], `${JSON.stringify(press)} does not turn`);
+  }
+});
+
 test("Ctrl or Command and a left drag moves a zoomed view, Shift and a drag still rolls, and the context menu is held back only during a move", () => {
   const { view } = make();
   const hands = fakeBound();
@@ -524,13 +577,10 @@ test("Shift and a drag rolls, a twist rolls, and a plain drag leaves roll alone"
 test("grabRadius keeps the touched point under the pointer: the same degrees for a pixel on both axes, a bigger piece turns less, a zoomed one too, and off it is the fixed angle", () => {
   const radian = 180 / Math.PI;
   const drag = (extra: Parameters<typeof createViewController>[0], dx: number, dy: number, zoomFirst = 1) => {
-    const { view } = make({ drag: undefined, ...extra } as never);
+    const { view } = make(extra);
     const hands = fakeBound();
     view.bind(hands.fakeView);
-    if (zoomFirst !== 1) {
-      view.setDrag("turn");
-      view.zoomAt(zoomFirst);
-    }
+    if (zoomFirst !== 1) view.zoomAt(zoomFirst);
     hands.press(100, 100);
     hands.move(100 + dx, 100 + dy);
     hands.release();

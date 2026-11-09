@@ -91,4 +91,4 @@ The types are `AddressState`, `AddressStateOptions`, `AddressChange`, `AddressVa
 
 ## In the family's parts
 
-The element's own `address` attribute uses the same pieces, with its own keys: `?theme=`, `?lang=`, `?yaw=`, `?tilt=`, `?zoom=`, `?drag=`, `?speed=`. Several parts on one page share the address and agree, because every state on the page hears every change. See [View controls](view-controls.md) for the view's keys and `address-keys` to rename them.
+The element's own `address` attribute uses the same pieces, with its own keys: `?theme=`, `?lang=`, `?yaw=`, `?tilt=`, `?zoom=`, `?speed=`. Several parts on one page share the address and agree, because every state on the page hears every change. See [View controls](view-controls.md) for the view's keys and `address-keys` to rename them.

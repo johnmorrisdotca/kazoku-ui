@@ -49,8 +49,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle (the one slider), four axis chips, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, two drag buttons, More.
-  expect(report.count).toBe(24);
+  // Angle (the one slider), four axis chips, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, More; no Move/Turn choice, a drag always turns.
+  expect(report.count).toBe(22);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);
@@ -77,10 +77,6 @@ test("it never turns on its own until asked, and a toggle during the turn keeps 
   await advances("after zoom in");
   await button(page, "in").click();
   await advances("after zooming in again");
-  await button(page, "turn").click();
-  await advances("after the Turn choice");
-  await button(page, "move").click();
-  await advances("after the Move choice");
   await button(page, "right").click();
   await advances("after the pan pad");
   // The tilt field is not shown (the chips pick which axis the one slider sets). Setting it here must not change which axis Auto-turn drives, so the angle keeps moving.
@@ -138,7 +134,7 @@ test("zoom about the pointer keeps what is under it there", async ({ page }) => 
   expect((await stateOf(page))).toMatchObject({ zoom: 0.1, panX: 0, panY: 0 });
 });
 
-test("the buttons zoom, the pan pad appears when zoomed and moves the view, and a drag moves it", async ({ page }) => {
+test("the buttons zoom, the pan pad appears when zoomed and moves the view, and the middle button moves it while a plain drag turns it", async ({ page }) => {
   await ready(page, "?controls=advanced");
   await expect(page.locator(`${BAR} [data-g="pan"]`)).toBeHidden();
   await page.evaluate((tag) => document.querySelector(tag).set({ zoom: 2 }), BAR);
@@ -153,20 +149,25 @@ test("the buttons zoom, the pan pad appears when zoomed and moves the view, and 
   await button(page, "down").click();
   s = await stateOf(page);
   expect(s.panY).toBeGreaterThan(0);
-  // A mouse drag moves it (the Move choice); the angle does not change. A touchscreen has no mouse, so the drag is sent as touch below.
+  // There is no Move/Turn choice: the pad has the four arrows only.
+  await expect(page.locator(`${BAR} [data-b="move"], ${BAR} [data-b="turn"], ${BAR} [data-g="drag"]`)).toHaveCount(0);
+  // A middle-button drag moves it and the angle does not change. A touchscreen has no mouse, so the plain drag below is sent as touch.
   const before = await stateOf(page);
   const scene = await page.locator("#scene").boundingBox();
   const from = { x: scene.x + scene.width / 2, y: scene.y + scene.height / 2 };
-  await touch(page, "pointerdown", 1, from.x, from.y);
-  await touch(page, "pointermove", 1, from.x - 40, from.y - 20);
-  await touch(page, "pointerup", 1, from.x - 40, from.y - 20);
-  const moved = await stateOf(page);
-  expect(moved.panX - before.panX).toBeCloseTo(-40, 0);
-  expect(moved.panY - before.panY).toBeCloseTo(-20, 0);
-  expect(moved.yaw).toBe(before.yaw);
-  // The Turn choice makes the same drag turn it.
-  await button(page, "turn").click();
-  await expect(button(page, "turn")).toHaveAttribute("aria-pressed", "true");
+  const hasMouse = await page.evaluate(() => window.matchMedia("(pointer: fine)").matches);
+  let moved = before;
+  if (hasMouse) {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: "middle" });
+    await page.mouse.move(from.x - 40, from.y - 20, { steps: 4 });
+    await page.mouse.up({ button: "middle" });
+    moved = await stateOf(page);
+    expect(moved.panX - before.panX).toBeCloseTo(-40, 0);
+    expect(moved.panY - before.panY).toBeCloseTo(-20, 0);
+    expect(moved.yaw).toBe(before.yaw);
+  }
+  // A plain drag turns it, zoomed in too.
   await touch(page, "pointerdown", 1, from.x, from.y);
   await touch(page, "pointermove", 1, from.x + 60, from.y);
   await touch(page, "pointerup", 1, from.x + 60, from.y);
@@ -198,14 +199,14 @@ test("one finger turns at 1x and two fingers pinch", async ({ page }) => {
   expect(s.zoom).toBeCloseTo(2, 1);
   await touch(page, "pointerup", 2, mid.x + 100, mid.y);
   await touch(page, "pointerup", 1, mid.x - 100, mid.y);
-  // Zoomed in, one finger moves the view.
+  // Zoomed in, one finger still turns the view (it never moves it), and the view keeps every touch.
   const before = await stateOf(page);
   await touch(page, "pointerdown", 1, mid.x, mid.y);
   await touch(page, "pointermove", 1, mid.x + 30, mid.y + 10);
   await touch(page, "pointerup", 1, mid.x + 30, mid.y + 10);
   s = await stateOf(page);
-  expect(s.panX - before.panX).toBeCloseTo(30, 0);
-  expect(s.yaw).toBe(before.yaw);
+  expect(s.yaw).toBeGreaterThan(before.yaw);
+  expect(s.panX).toBe(before.panX);
   expect(await page.locator("#scene").evaluate((el) => el.style.touchAction)).toBe("none");
 });
 
@@ -222,19 +223,20 @@ test("the keys on the view zoom and turn it", async ({ page }) => {
 
 test("the choices are in the address, and the address is the whole state", async ({ page }) => {
   await ready(page, "?yaw=40&tilt=10&zoom=2&drag=turn&keep=1");
-  expect(await stateOf(page)).toMatchObject({ yaw: 40, tilt: 10, zoom: 2, drag: "turn", panX: 0, panY: 0 });
+  // An old link may carry drag=turn: it is ignored, and leaves the address when the address is next written.
+  expect(await stateOf(page)).toMatchObject({ yaw: 40, tilt: 10, zoom: 2, panX: 0, panY: 0 });
   await expect(page.locator(`${BAR} #yaw`)).toHaveValue("40");
   await button(page, "fit").click();
   await page.locator(`${BAR} #yaw`).fill("-90");
   await expect(page).toHaveURL(/yaw=-90/);
   await expect(page).not.toHaveURL(/zoom=/);
   await expect(page).toHaveURL(/keep=1/);
-  await expect(page).toHaveURL(/drag=turn/);
+  await expect(page).not.toHaveURL(/drag=/);
   const again = page.url();
   await page.goto("about:blank");
   await page.goto(again);
   await expect(page.locator(`${BAR} .bar`)).toBeVisible();
-  expect(await stateOf(page)).toMatchObject({ yaw: -90, tilt: 10, zoom: 1, drag: "turn" });
+  expect(await stateOf(page)).toMatchObject({ yaw: -90, tilt: 10, zoom: 1 });
   // The card on the page follows the state it was started with.
   expect(await page.locator("#card").evaluate((el) => el.style.transform)).toContain("rotateY(-90deg)");
 });
@@ -467,7 +469,7 @@ test("Arrow Up tips like a drag up, or the other way with key-tilt wheel", async
   expect((await stateOf(page)).tilt).toBe(0);
 });
 
-test("Space and a drag, or the middle button, moves a zoomed view", async ({ page }) => {
+test("Space and a drag, or the middle button, moves a zoomed view and a plain drag still turns it", async ({ page }) => {
   await ready(page);
   await button(page, "in").click();
   const box = await page.locator("#scene").boundingBox();
@@ -487,6 +489,14 @@ test("Space and a drag, or the middle button, moves a zoomed view", async ({ pag
   await page.mouse.move(x + 50, y);
   await page.mouse.up({ button: "middle" });
   expect((await stateOf(page)).panX).toBeGreaterThan(20);
+  const moved = await stateOf(page);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 60, y, { steps: 4 });
+  await page.mouse.up();
+  const turned = await stateOf(page);
+  expect(turned.yaw, "a plain left drag turns the zoomed view").toBeGreaterThan(moved.yaw + 10);
+  expect([turned.panX, turned.panY], "and does not move it").toEqual([moved.panX, moved.panY]);
 });
 
 test("Shift and a drag rolls, a twist rolls, and a plain drag leaves roll alone", async ({ page }) => {
@@ -638,9 +648,9 @@ const dragAway = async (page) => {
   const box = await page.locator("#scene").boundingBox();
   const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
+  await page.mouse.down({ button: "middle" });
   await page.mouse.move(from.x + 3000, from.y - 3000, { steps: 8 });
-  await page.mouse.up();
+  await page.mouse.up({ button: "middle" });
 };
 
 test("an item dragged far out of view is held in view, and Centre brings it back to the middle at Fit and the front", async ({ page }) => {

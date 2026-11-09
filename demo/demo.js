@@ -37,8 +37,8 @@ if (options.get("anchor") === "pin") {
 }
 
 const SAY = {
-  en: "Drag the card to turn it. Zoom in, then drag to move it, or use the arrows. The controls never draw: the page does, from the events.",
-  ja: "カードをドラッグすると回ります。拡大してからドラッグで動かすか、矢印を使います。操作部は描画しません。描くのはページです。",
+  en: "Drag the card to turn it, at any zoom. Move it with the middle button, Ctrl or Command and a drag, Space and a drag, the wheel or the arrows. The controls never draw: the page does, from the events.",
+  ja: "カードは、どの拡大率でもドラッグで回ります。動かすには、マウスの中ボタンのドラッグ、CtrlまたはCommandを押しながらのドラッグ、Spaceキーを押しながらのドラッグ、ホイール、矢印のどれかを使います。操作部は描画しません。描くのはページです。",
 };
 const intro = document.querySelector('[data-say="intro"]');
 $("language").addEventListener("kazoku-languagechange", (event) => {

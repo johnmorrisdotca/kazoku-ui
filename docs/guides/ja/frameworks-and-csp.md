@@ -132,7 +132,7 @@ import { PARTS } from "@johnmorrisdotca/kazoku-ui";
 
 console.log(typeof document, typeof applyTheme, typeof themeOf);
 console.log(startingLanguage({ list: ["en", "ja"], preferred: ["ja-JP", "en"] }));
-console.log(formatAddress("", { yaw: 0, tilt: 0, zoom: 2, drag: "move" }));
+console.log(formatAddress("", { yaw: 0, tilt: 0, zoom: 2 }));
 console.log(PARTS.length > 5);
 // undefined function function
 // ja

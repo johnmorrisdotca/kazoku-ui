@@ -78,10 +78,6 @@ const HTML = `
     <button type="button" data-b="up" part="button">${ICON.up}</button>
     <button type="button" data-b="down" part="button">${ICON.down}</button>
     <button type="button" data-b="right" part="button">${ICON.right}</button>
-    <div class="group drag" role="group" data-g="drag">
-      <button type="button" data-b="move" aria-pressed="true" part="button"><span data-w="dragMove"></span></button>
-      <button type="button" data-b="turn" aria-pressed="false" part="button"><span data-w="dragTurn"></span></button>
-    </div>
   </div>
   <button type="button" class="more" data-b="more" aria-expanded="false" part="button">${ICON.more}<span class="text" data-w="more"></span></button>
   <span class="vh" data-w="gestures"></span>
@@ -436,8 +432,6 @@ export class ViewControlsElement extends HTMLElement {
     on("right", () => c().panBy(1, 0));
     on("up", () => c().panBy(0, -1));
     on("down", () => c().panBy(0, 1));
-    on("move", () => c().setDrag("move"));
-    on("turn", () => c().setDrag("turn"));
   }
 
   /** The zoom slider: logarithmic, so a press of + or - moves it the same way anywhere; a drag that ends near a mark goes to it, and the keys step, jump between marks and go to the ends. */
@@ -678,7 +672,6 @@ export class ViewControlsElement extends HTMLElement {
     set('[data-g="pan"]', words.pan);
     set('[data-g="direction"]', words.direction);
     set('[data-g="axes"]', words.axis);
-    set('[data-g="drag"]', words.drag);
     const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
     speeds?.setAttribute("lang", language);
     speeds?.setAttribute("label", words.speed);
@@ -762,12 +755,10 @@ export class ViewControlsElement extends HTMLElement {
     this.dataset.level = this.#level;
     for (const node of this.#root.querySelectorAll<HTMLElement>(".adv")) node.hidden = !advanced;
     q<HTMLElement>('[data-g="pan"]').hidden = !advanced || s.zoom <= ZOOMED;
-    q<HTMLButtonElement>('[data-b="move"]').setAttribute("aria-pressed", String(s.drag === "move"));
-    q<HTMLButtonElement>('[data-b="turn"]').setAttribute("aria-pressed", String(s.drag === "turn"));
     // A flat view cannot turn: the angle, tilt, auto-turn and front are not shown, and a drag only moves.
     const flat = !c.turnable;
     for (const selector of [".angle", ".tilt", ".roll", ".play", '[data-g="axes"]']) q<HTMLElement>(selector).hidden = flat;
-    for (const selector of [".front", '[data-g="drag"]', '[data-g="pacing"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
+    for (const selector of [".front", '[data-g="pacing"]']) q<HTMLElement>(selector).hidden = flat || !advanced;
     // The speed is always in sight while the view turns: one small button in basic, which steps through the three; advanced always has the three.
     q<HTMLElement>(".pace-now").hidden = flat || advanced || !s.turning;
     this.toggleAttribute("data-turning", s.turning);

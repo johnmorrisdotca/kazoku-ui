@@ -61,7 +61,6 @@ myZoomIn.onclick = () => view.zoomBy(1.4);
 | `front()`、`fit()`、`centre(animate?)` | 角度を0に、ズームを全体表示に、オブジェクトを中央に戻します。 |
 | `zoomAt(next, at?, final?)`、`zoomBy(factor, at?)` | 指定した点（なければアンカー、それもなければビューの中心）を中心にズームします。 |
 | `panBy(stepsX, stepsY)` | ビューの大きさの何分の1かずつ動かします。 |
-| `setDrag(mode)` | ズーム中のふつうのドラッグの働き：`"move"`か`"turn"`。 |
 | `suspendTurn()`、`resumeTurn()`、`holdTurn()`、`releaseTurn()` | 理由ごとに回転を止めます。回数が数えられるので、入れ子にできます。 |
 | `bind(view)`、`destroy()` | 操作を結びつけます。すべて手放します。 |
 | `anchor`、`ignore`、`keyTilt`、`stopTurn`、`tiltStep`、`grabRadius`、`objectSize` | いつでも変えられるオプションです。 |
@@ -83,7 +82,7 @@ console.log(Object.keys(DEFAULT_KEYS).join(" "));
 // button, a, input, select, textarea, label, [data-kazoku-ignore]
 // {"tiltMax":30,"rollMax":180,"zoomMin":0.1,"zoomMax":50}
 // kazoku-view-controls kazoku-viewchange kazoku-view-controls
-// yaw tilt zoom drag speed direction roll axis tiltDirection rollDirection
+// yaw tilt zoom speed direction roll axis tiltDirection rollDirection
 ```
 
 ## 自分で決めた点を中心にズームする

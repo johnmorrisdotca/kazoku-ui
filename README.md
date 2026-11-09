@@ -37,7 +37,7 @@ And the pure functions, with no page at all:
 ```js
 import { formatAddress, parseAddress, zoomMarks, zoomText } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
-console.log(formatAddress("?x=1", { yaw: 40, tilt: 10, zoom: 2, drag: "turn" })); // ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
+console.log(formatAddress("?x=1", { yaw: 40, tilt: 10, zoom: 2 })); // ?x=1&yaw=40&tilt=10&zoom=2
 console.log(JSON.stringify(parseAddress("?yaw=40&zoom=2"))); // {"yaw":40,"zoom":2}
 console.log(zoomMarks(1, 5).map((mark) => mark.zoom).join(" ")); // 1 2 3 5
 console.log(zoomText(2.44)); // 2.4×
@@ -172,7 +172,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 
 ## View controls
 
-- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `1×`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, the speed buttons (0.5×, 1×, 2×), Front, and, once zoomed in, the four-arrow pan pad and the Move or Turn choice for what a drag does. The reader's choice with More is remembered in `localStorage` and beats the attribute.
+- **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows the angle slider, Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit, and a small More button; while the view turns, one small **speed** button beside Auto-turn (it shows the word Speed over `1×`, and a press steps to the next speed). More (or `controls="advanced"`) adds the tilt slider, the speed buttons (0.5×, 1×, 2×), Front, and, once zoomed in, and the four-arrow pan pad. The reader's choice with More is remembered in `localStorage` and beats the attribute.
 - The zoom readout is the view's `zoom` (1× is Fit, whatever `fit-scale` is), one decimal, the one zoom number on the bar: it follows the buttons, the wheel, a pinch, a double press, Fit, the keys, the address, `set` and a changed limit. A screen reader is told "Zoom level 2.4×" once the zoom has settled for a moment, not for every step of a pinch.
 - Auto-turn with play and pause; its speed is chosen with the family's [speed buttons](docs/guides/speed-buttons.md): 0.5× (half the `speed` attribute), 1× (the `speed` attribute, 30 degrees a second) or 2× (twice it), kept in the `pace` attribute and in the address as `?pace=0.5` or `?pace=2`. **Left and Right** (under More, beside the speed buttons) choose which way it goes, kept in the `direction` attribute and in the address as `?direction=left`; the angle goes on from where it was, at the same speed.
 - **The wheel moves.** At Fit, with nothing to move to, the wheel scrolls the page; once the view is zoomed in, the wheel moves it, and a new turn of the wheel that starts at the edge of that move scrolls the page again.
@@ -189,12 +189,12 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 
   On a Mac, Ctrl and a click opens the browser's menu; the view holds the menu back while a Ctrl or right-button drag moves it, and leaves it alone otherwise. Every page that binds the controls answers every row the same way, and a package proves it with the shared check in [the guide](docs/guides/view-controls.md#gestures-and-the-check-every-package-runs): `await checkGestures(page, "#view")` from `@johnmorrisdotca/kazoku-ui/testing`.
 
-- Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch, drag together to move it, and a twist rolls.
+- Touch: one finger turns at every zoom; two fingers pinch, drag together to move it, and a twist rolls.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
 - **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 0.1×, 1×, 10× and 50×: see [Layouts](#layouts).
 - Labels in English and Japanese; light and dark; 48 px touch targets; a compact bar on a phone; no automatic turn for a reader who prefers reduced motion.
-- **A control never stops or resets the turn.** Zoom, tilt, pan, the Move or Turn choice, Fit and Front all leave Auto-turn running (Front only sets the angle to 0 and the turn goes on from there). A hand on the angle slider, or turning the view by dragging it, holds the turn still while it is down and the turn carries on from where the hand left it. Only the Auto-turn button pauses it.
+- **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running (Front only sets the angle to 0 and the turn goes on from there). A hand on the angle slider, or turning the view by dragging it, holds the turn still while it is down and the turn carries on from where the hand left it. Only the Auto-turn button pauses it.
 
 ### Layouts
 
@@ -358,7 +358,6 @@ controls.setFitScale(measure()); // the scale the scene is drawn at when it fits
 | `zoom` | 0.1 to 50 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale` (see below). |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
-| `drag` | `"move"` or `"turn"`: what a plain drag does while zoomed in. |
 | `final` | False for the steps of a drag, a pinch, a slider and the automatic turn; true when something settled. Do the costly drawing on `final`, the cheap transform on every event. |
 | `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `fit-scale`, `play`, `pause` or `set`. |
 
@@ -391,17 +390,17 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `zoom-min`, `zoom-max` | The limits (30, 0.1, 50). |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. With `layout="compact"` the row floats 8 px in from the bottom start corner instead of spanning the bottom. |
 
-Methods: `play()`, `pause()`, `front()`, `fit()`, `set({ yaw, tilt, zoom, panX, panY, drag })`, `setFitScale(n)`, and `controller` (the `createViewController` object behind it). `element.words = { front: "Home" }` replaces labels.
+Methods: `play()`, `pause()`, `front()`, `fit()`, `set({ yaw, tilt, zoom, panX, panY })`, `setFitScale(n)`, and `controller` (the `createViewController` object behind it). `element.words = { front: "Home" }` replaces labels.
 Colours are custom properties: `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line`, `--kazoku-accent`; the parts are `bar`, `field`, `slider` and `button`, and the zoom slider's `zoom-slider` (on its field and its input).
 
 ### The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the drag choice, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched, and `?pace=slow` or `fast` of 0.12 and 0.13 still read as 0.5 and 2. The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
+Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched, and `?pace=slow` or `fast` of 0.12 and 0.13 still read as 0.5 and 2. The pan is in pixels of one screen and the turning is of a moment, so neither is; while the view turns by itself the angle is left out. A value at its start (Fit, or the `zoom` the page opens at) leaves the address, and other parameters are kept. The address is written at most four times a second (Safari stops a page that changes its address more than 100 times in 30 seconds). Without the element: `parseAddress(search, keys?)` and `formatAddress(search, choices, keys?, leaveYaw?, startZoom?)`.
 
 ### Why the tag is only defined when it is free
 

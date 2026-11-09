@@ -76,7 +76,7 @@ description: 0.7から0.21まで、各バージョンで対応が必要な変更
 
 ## 0.8へ
 
-- **既定のバーが簡潔になりました。** 傾き、正面、移動パッド、移動か回転の切り替えは、「詳細」の奥にあります。最初から出したいページは`controls="advanced"`にします。ユーザーの選択は`localStorage`に記憶されます。
+- **既定のバーが簡潔になりました。** 傾き、正面、移動パッドは、「詳細」の奥にあります。最初から出したいページは`controls="advanced"`にします。ユーザーの選択は`localStorage`に記憶されます。
 - ズームの数値表示と、自動回転の速さ（ゆっくり、ふつう、はやい）が新しくなりました。新しい純粋なエクスポート：`parseLevel`、`parsePace`、`zoomText`、`PACES`、`PACE_FACTOR`、`LEVEL_STORAGE_KEY`。
 - 新しいラベル`zoomLevel`、`zoomReset`、`more`、`speed`、`slow`、`medium`、`fast`。ラベルをすべて置き換えている場合は、これらを加えてください。
 

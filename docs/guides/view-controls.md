@@ -12,7 +12,7 @@ description: The view-controls element in full: what the reader gets, every attr
 ## What the reader gets
 
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
-- A drag turns the view (at 1x; a finger does not tilt, so the page can still scroll). Zoomed in, a drag moves it. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag still turns and leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
+- A plain left drag, and one finger, turn the view at every zoom (a finger does not tilt, so the page can still scroll at Fit); the hand never changes with the zoom. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - English and Japanese labels, light and dark, 48 px touch targets, a compact bar on a phone, and no automatic turn for a reader who prefers reduced motion.
@@ -52,7 +52,6 @@ Put the element on the view or right beside it, so it is on screen with the view
 | `zoom` | 0.1 to 50 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale`. |
 | `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
 | `turning` | True while Auto-turn is running. |
-| `drag` | `"move"` or `"turn"`: what a plain drag does while zoomed in. |
 | `final` | False for the steps of a drag, a pinch, a slider and the automatic turn; true when something settled. Do the costly drawing on `final`, the cheap transform on every event. |
 | `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `fit-scale`, `play`, `pause` or `set`. |
 
@@ -87,29 +86,29 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 0.1, 50). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&drag=turn&pace=2&direction=left`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&pace=2&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
 
-Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, tilt, zoom, panX, panY, drag })`, `setFitScale(n)`, and `controller`, the [controller](view-controller.md) behind it. `element.words = { front: "Home" }` replaces labels. The colours are the custom properties `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, and the parts are `bar`, `field`, `slider` and `button`.
+Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, tilt, zoom, panX, panY })`, `setFitScale(n)`, and `controller`, the [controller](view-controller.md) behind it. `element.words = { front: "Home" }` replaces labels. The colours are the custom properties `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, and the parts are `bar`, `field`, `slider` and `button`.
 
 ## The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the drag choice, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
+Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";
 
-const choices = { yaw: 40, tilt: 10, zoom: 2, drag: "turn" };
+const choices = { yaw: 40, tilt: 10, zoom: 2 };
 console.log(formatAddress("?x=1", choices));
 console.log(JSON.stringify(parseAddress("?yaw=40&tilt=x&zoom=2")));
 console.log(JSON.stringify(DEFAULT_KEYS));
 console.log(JSON.stringify(parseKeys("yaw:a,zoom:z")));
-// ?x=1&yaw=40&tilt=10&zoom=2&drag=turn
+// ?x=1&yaw=40&tilt=10&zoom=2
 // {"yaw":40,"zoom":2}
-// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
-// {"yaw":"a","tilt":"tilt","zoom":"z","drag":"drag","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"yaw","tilt":"tilt","zoom":"zoom","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
+// {"yaw":"a","tilt":"tilt","zoom":"z","speed":"pace","direction":"direction","roll":"roll","axis":"axis","tiltDirection":"tiltDirection","rollDirection":"rollDirection"}
 ```
 
 ## Opening at the scene's natural size
@@ -149,7 +148,7 @@ Every interactive view in the family answers the same gestures, so a reader neve
 
 | Gesture | Action |
 |---|---|
-| Drag | Turn (yaw), and tilt for a mouse; zoomed in, a drag still turns when `drag` is Turn, and moves when it is Move |
+| Drag | Turn (yaw), and tilt for a mouse, at every zoom; a flat view (it cannot turn) moves instead |
 | Shift and a drag, or a two-finger twist | Roll |
 | Ctrl or Command and a left drag, Space and a drag, the middle or right button and a drag, two fingers dragging together | Move (pan) a zoomed view |
 | The wheel, Shift and the wheel, a two-finger swipe | Move a zoomed view (at Fit the page scrolls) |

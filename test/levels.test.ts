@@ -5,7 +5,7 @@ import { formatAddress, parseAddress, parseKeys, type AddressChoices } from "../
 import { PACE_FACTOR, PACES, parseDirection, parseLevel, parsePace, zoomText } from "../src/view-controls/levels.ts";
 import { WORDS } from "../src/view-controls/words.ts";
 
-const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1, drag: "move" };
+const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1 };
 
 test("the zoom readout shows one decimal at most", () => {
   assert.deepEqual([1, 1.4, 2.4, 1.96, 5, 1.04].map(zoomText), ["1×", "1.4×", "2.4×", "2×", "5×", "1×"]);

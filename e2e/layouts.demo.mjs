@@ -57,7 +57,7 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   await button(page, "more").click();
   await button(page, "in").click();
   const advanced = await look(page);
-  expect(advanced.shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right", "move", "turn"]));
+  expect(advanced.shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right"]));
   expect(advanced.fits).toBe(true);
   expect(errors).toEqual([]);
 });

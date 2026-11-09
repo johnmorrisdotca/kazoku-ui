@@ -41,7 +41,7 @@ console.log(Object.keys(themeWords.en).join(" "), "|", Object.keys(languageWords
 // group light dark auto | group | group png svg saved failed
 ```
 
-To replace labels on one element, assign `element.words = { front: "Home" }`. The view controls have 26 keys, among them `group`, `angle`, `tilt`, `autoTurn`, `front`, `zoom`, `zoomOut`, `zoomIn`, `fit`, `centre`, `pan`, `drag`, `dragMove`, `dragTurn`, `zoomLevel`, `zoomReset`, `more`, `speed`, `slow`, `medium` and `fast`. The theme switch has `group`, `light`, `dark` and `auto`; the language picker has one label for its group, because the languages themselves are never translated: each is written in its own language. The save buttons have `group`, `png`, `svg`, `saved` and `failed`. The full tables, with a reading and a meaning for each Japanese word, are in the repository's [labels page](../labels.md), the one page that shows both languages.
+To replace labels on one element, assign `element.words = { front: "Home" }`. The view controls have 23 keys, among them `group`, `angle`, `tilt`, `autoTurn`, `front`, `zoom`, `zoomOut`, `zoomIn`, `fit`, `centre`, `pan`, `zoomLevel`, `zoomReset`, `more`, `speed`, `slow`, `medium` and `fast`. The theme switch has `group`, `light`, `dark` and `auto`; the language picker has one label for its group, because the languages themselves are never translated: each is written in its own language. The save buttons have `group`, `png`, `svg`, `saved` and `failed`. The full tables, with a reading and a meaning for each Japanese word, are in the repository's [labels page](../labels.md), the one page that shows both languages.
 
 ## The Japanese is written for the interface
 

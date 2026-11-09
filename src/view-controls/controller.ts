@@ -1,7 +1,6 @@
 // The controller: the view's state (angle, tilt, zoom, pan, whether it turns by itself, what a drag does) and the hands that change it:
 // buttons and sliders through its methods, a pointer, two fingers, the wheel and the keys through `bind`. It never draws anything: it
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
-import type { DragMode } from "./address.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import type { TurnAxis } from "./levels.ts";
 import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragRoll, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
@@ -11,8 +10,6 @@ export interface ViewState extends Camera {
   orientation: Quat;
   /** True while the view turns by itself. A control never changes this; only play, pause and a grab of the view's own do not either (see `holdTurn`). */
   turning: boolean;
-  /** What a plain drag does while zoomed in: move the view, or turn the piece. */
-  drag: DragMode;
 }
 
 export interface ChangeInfo {
@@ -118,7 +115,6 @@ export interface ViewController {
   zoomBy(factor: number, at?: Point): void;
   /** Move the view by whole fractions of its size: `panBy(1, 0)` is a quarter of its width to the right. */
   panBy(stepsX: number, stepsY: number): void;
-  setDrag(drag: DragMode): void;
   /** Bind the pointer, pinch, wheel and key hands to `view`, and hold the automatic turn while `view` is off screen or the tab is hidden. Returns a function that unbinds them. */
   bind(view: HTMLElement): () => void;
   destroy(): void;
@@ -152,7 +148,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   let start: "fit" | number = positive(options.zoom) ?? "fit";
   let atStart = true;
   const startState = (): number => (start === "fit" ? 1 : start / fitScale);
-  const state: ViewState = { yaw: 0, tilt: 0, roll: 0, orientation: quatIdentity(), zoom: 1, panX: 0, panY: 0, turning: false, drag: "move", ...options.initial };
+  const state: ViewState = { yaw: 0, tilt: 0, roll: 0, orientation: quatIdentity(), zoom: 1, panX: 0, panY: 0, turning: false, ...options.initial };
   if (state.orientation === undefined) state.orientation = quatIdentity();
   state.roll ??= 0;
 
@@ -319,9 +315,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       emit(true, "set");
     },
     set(next, final = true, reason = "set") {
-      const { turning, drag, ...cam } = next;
+      const { turning, ...cam } = next;
       take({ ...camera(), ...cam });
-      if (drag !== undefined) state.drag = drag;
       if (turning !== undefined && turning !== state.turning) {
         if (turning) controller.play();
         else controller.pause();
@@ -413,10 +408,6 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       const s = size();
       take({ ...camera(), panX: state.panX + stepsX * (s?.width ?? 0) * PAN_STEP, panY: state.panY + stepsY * (s?.height ?? 0) * PAN_STEP });
       emit(true, "pan");
-    },
-    setDrag(drag) {
-      state.drag = drag;
-      emit(true, "set");
     },
     bind(view) {
       bound = view;
@@ -524,10 +515,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         gesture = { kind: "pinch", start: { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, angle: Math.atan2(b.y - a.y, b.x - a.x), camera: shot() } };
         release();
       } else if (pointers.size === 1) {
-        // At 1x a plain press and drag turns the piece; zoomed in it moves the view unless the Turn choice is made. Shift and a left drag rolls, and that still works when the view is zoomed. Ctrl or Command and a left drag, the middle or the right button, and Space, move it. A flat view cannot turn, so a drag moves it. Reduced motion leaves these hands as they are.
+        // A plain left press and drag (and one finger) turns the piece at every zoom, so the hand never changes under the pointer. Shift and a left drag rolls. Ctrl or Command and a left drag, the middle or the right button, and Space, move the view. A flat view cannot turn, so a drag moves it. Reduced motion leaves these hands as they are.
         const grabbed = (e.ctrlKey || e.metaKey) && e.button === 0 && e.pointerType !== "touch";
         const rolling = e.shiftKey && e.button === 0 && !space && !grabbed;
-        const pan = !rolling && (space || grabbed || e.button === 1 || e.button === 2 || (state.zoom > ZOOMED && (!canTurn() || state.drag !== "turn")));
+        const pan = !rolling && (space || grabbed || e.button === 1 || e.button === 2 || !canTurn());
         gesture = { kind: rolling ? "roll" : pan ? "pan" : "turn", x: e.clientX, y: e.clientY, camera: shot(), moved: false };
         menuOff = pan && (grabbed || e.button === 2);
         if (pan && (space || grabbed || e.button === 1)) view.style.cursor = "grabbing";

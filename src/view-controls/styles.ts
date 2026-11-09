@@ -74,7 +74,6 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
 .pace-now .lbl { font-size: 0.7em; font-weight: 400; }
 :host([data-turning][data-level="basic"]) .field.angle { flex-basis: 110px; }
 :host([data-turning][data-level="basic"]) .field.angle output { position: absolute; width: 1px; min-width: 0; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.drag { margin-inline-start: 8px; }
 .more { margin-inline-start: auto; }
 /* The classic bar on a phone: two rows to start with (angle, Auto-turn and More; the zoom), more rows when the reader asks for more; labels read only by a screen reader. */
 @media (max-width: 640px) {
@@ -95,7 +94,6 @@ button[aria-pressed="true"] .i-play, button[aria-pressed="false"] .i-pause { dis
   /* In the free room left of the zoom buttons, so showing it adds no row. */
   ${CLASSIC} .pace-now { grid-area: zoom; justify-self: start; }
   ${CLASSIC} .pan { grid-area: pan; justify-content: center; }
-  ${CLASSIC} .drag { margin-inline-start: 4px; }
 }
 /* In a panel narrower than the buttons and the speed need side by side, the speed takes the row under them. */
 ${CLASSIC} { container-type: inline-size; }
@@ -188,7 +186,6 @@ ${V} [data-b="in"] { grid-area: in; }
 ${V} [data-b="fit"] { grid-area: fit; justify-self: start; }
 ${V} .pace::part(label) { ${UNSEEN} }
 ${V} .pan { flex-wrap: wrap; }
-${V} .drag { margin-inline-start: 0; }
 
 /* Compact: one short row (Auto-turn, zoom out, the zoom now, zoom in, More) for a card or a phone. More opens the rest under it: the zoom slider and Fit, the angle, and the advanced controls. */
 ${C} { display: block; }
