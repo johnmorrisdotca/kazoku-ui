@@ -125,6 +125,22 @@ controls.setFitScale(0.4); // the scale the scene is drawn at when it fits
 // the event's zoom is now 2.5; draw at event.detail.zoom * controls.fitScale
 ```
 
+## 姿勢の計算
+
+要素の回転は、DOMを使わない普通の関数として`view-controls`にあります。同じ数字が必要なページやテストで使えます。
+
+| エクスポート | 返すもの |
+| --- | --- |
+| `quatIdentity()` | 何も回していない姿勢、`{ x: 0, y: 0, z: 0, w: 1 }`。 |
+| `quatFromEuler(yaw, tilt, roll)` | 度で指定した姿勢。Y軸でyaw、次にX軸でtilt、最後にZ軸でroll。 |
+| `eulerFromQuat(q)` | 姿勢をスライダーに出すときのyaw、tilt、roll。tiltは直角の内側に収まります。 |
+| `spinLocal(q, yaw, tilt, roll)` | `q`を自分の軸のまわりにその度数だけ回したもの。小さい動きなら極を通っても飛びません。 |
+| `upVector(q)` | `q`のあとのビューの上向きの軸。 |
+| `pendulumTilt(phase, amplitude)` | 自動回転で`amplitude`度の中を行き来するtilt。範囲のあるtiltがひっくり返りません。 |
+| `tumbleRates(seconds, speed, signs)` | 全軸の回転（`turn-axis="all"`）での各軸の1秒あたりの度数。軸ごとに別の波でゆれるので、同じ動きをくり返しません。 |
+| `rateSign(value)` | -1か1。速さの向き（0は1とみなします）。 |
+| `parseAxis(text)` | 属性から`angle`、`tilt`、`roll`、`all`のどれか。それ以外は`undefined`。 |
+
 ## タグは空いているときだけ定義する理由
 
 `customElements.define`は、名前がすでに使われていると例外を投げます。ページに非がなくても起こります。このパッケージのコピーが2つある場合、スクリプトが2回読み込まれた場合、ページが自前の要素のために先にタグを登録していた場合などです。そこで`defineViewControls`（`define`のインポートが実行するもの）は、先に`customElements.get`を呼び、最初に登録されたものが優先されます。自分で登録したいときのために、クラス`ViewControlsElement`は`view-controls/element`にあります。

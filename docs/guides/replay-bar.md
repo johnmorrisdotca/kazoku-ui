@@ -1,4 +1,9 @@
-# Replay bar
+---
+title: Replay bar
+section: how-to
+order: 17
+description: Play, pause, back to the start and repeat, with the family's speed buttons on the same row, kept in the address; the bar reports what was pressed and the page moves the thing.
+---
 
 Play, pause, back to the start and repeat, with the family's speed buttons on the same row. The bar reports what was pressed. The page moves the thing.
 
@@ -21,3 +26,11 @@ import { flagOn, addressKeys } from "@johnmorrisdotca/kazoku-ui/replay-bar";
 
 console.log(flagOn("on"), addressKeys("play:p").play);
 ```
+
+## The parts
+
+| Import | What it is |
+| --- | --- |
+| `replay-bar/define` | Runs `defineReplayBar()`, which registers `<kazoku-replay-bar>` only when the name is free. |
+| `replay-bar/element` | The class `ReplayBarElement`, to register it yourself. |
+| `replay-bar` | The pure side, with no DOM: `flagOn`, `addressKeys`, and the address keys `PLAY_KEY` (`play`), `REPEAT_KEY` (`repeat`) and `SPEED_KEY` (`replay-speed`). |
