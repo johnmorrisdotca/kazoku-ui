@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-09
+
 - **Print: lighter sheets for children** (KAZOKU-UI-86). John, looking at a connect-the-dots PDF: "too thick of lines... the name doesn't need a box at all, perhaps an underline only... the top border thickness is also too thick". The header's Name is now the label and an underline (a line the child writes on, in every preset and both languages), not a box; `TYPE_PRESETS.kid.lineMm` goes from 3 to 1.2 mm (the old "never under 2.5 mm for `kid`" rule is gone), so the header's rule under the title, the info box's border and the Name underline are 1.2 mm on a child's sheet; `normal` stays 0.4 mm and the type sizes do not change. The option is still called `nameBox`. The demo's sample pictures are drawn with thinner lines to match. Cut marks, glue strips and the QR code have their own widths and are unchanged. See [the guide](docs/guides/print.md).
 
 ## [0.24.0] - 2026-11-09
