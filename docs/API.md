@@ -3206,10 +3206,10 @@ function defineEmbedPanel(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/print`
 
-27 values and 19 types.
+28 values and 23 types.
 
 ```js
-import { buildSheet, cutMarks, DEFAULT_LAYOUT, DEFAULT_MARGIN_MM, isoDate, languageOf, LAYOUT_ATTRIBUTES, layoutFromSheet, layoutOf, MAX_BYTES, MIN_MARGIN_MM, openPrintView, PAGE_NAMES, pageOf, PAGES, pageSize, printableSize, printCss, printSheet, qrMatrix, qrSvg, ROOT_ATTRIBUTE, ROOT_CLASS, tilePoster, TYPE_PRESETS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/print';
+import { buildSheet, cutMarks, DEFAULT_LAYOUT, DEFAULT_MARGIN_MM, fitToPage, isoDate, languageOf, LAYOUT_ATTRIBUTES, layoutFromSheet, layoutOf, MAX_BYTES, MIN_MARGIN_MM, openPrintView, PAGE_NAMES, pageOf, PAGES, pageSize, printableSize, printCss, printSheet, qrMatrix, qrSvg, ROOT_ATTRIBUTE, ROOT_CLASS, tilePoster, TYPE_PRESETS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/print';
 ```
 
 ### buildSheet
@@ -3242,6 +3242,14 @@ const DEFAULT_LAYOUT: Layout;
 
 ```ts
 const DEFAULT_MARGIN_MM = 12.7;
+```
+
+### fitToPage
+
+*function*. Scales a picture to the printable area of a page, keeping its shape, and says which turn of the page suits it. Throws a RangeError for a picture of no size or margins that leave no area.
+
+```ts
+function fitToPage(options: FitOptions): Fit;
 ```
 
 ### isoDate
@@ -3434,6 +3442,40 @@ const WORDS: Record<Language, PrintWords>;
 const wordsFor: (language: Language, overrides?: Partial<PrintWords>) => PrintWords;
 ```
 
+### Fit
+
+*interface*
+
+```ts
+interface Fit {
+    orientation: Orientation;
+    /** The picture's size once scaled: the largest that fits the printable area with its shape kept. */
+    widthMm: number;
+    heightMm: number;
+    /** The scaled size over the given size. */
+    scale: number;
+    /** Where the scaled picture sits to be centred in the printable area, from the area's top left. */
+    offsetXMm: number;
+    offsetYMm: number;
+}
+```
+
+### FitOptions
+
+*interface*
+
+```ts
+interface FitOptions {
+    page: PageName;
+    /** The picture's size, in any one unit (only its shape and, for `scale`, its millimetre size matter). */
+    widthMm: number;
+    heightMm: number;
+    /** `"auto"` (the default) takes the turn that makes the picture larger. */
+    orientation?: Orientation | "auto";
+    marginMm?: number;
+}
+```
+
 ### Language
 
 *type*
@@ -3470,6 +3512,14 @@ type Orientation = "portrait" | "landscape";
 
 ```ts
 type PageName = "a4" | "letter" | "a3" | "tabloid";
+```
+
+### PageNumber
+
+*type*. `"always"` (the default); `"many"`: only a sheet of more than one page; `"never"`.
+
+```ts
+type PageNumber = "always" | "many" | "never";
 ```
 
 ### PageSize
@@ -3667,6 +3717,10 @@ interface SheetOptions extends Partial<Layout> {
     pages?: Node[];
     /** A poster to tile over pages instead. */
     poster?: Poster;
+    /** On a poster, the address as text and a small QR code in the bottom margin of the tile pages: all of them, or the first and the last. Needs `address`. Off by default. */
+    tileFooter?: TileFooter;
+    /** Whether the page number is printed (on sheet pages and tile pages alike). `"many"` leaves it off a one-page sheet, such as a certificate. */
+    pageNumber?: PageNumber;
     /** Words to use instead of the built-in ones, for one or more keys. */
     words?: Partial<PrintWords>;
 }
@@ -3689,6 +3743,14 @@ interface Tile {
     overlapRightMm: number;
     overlapBottomMm: number;
 }
+```
+
+### TileFooter
+
+*type*. `"all"`: every tile page carries the address and its QR code in the bottom margin; `"ends"`: the first and the last only; `"none"` (the default): neither.
+
+```ts
+type TileFooter = "none" | "ends" | "all";
 ```
 
 ### TypeName

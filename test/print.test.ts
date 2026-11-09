@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 
-import { DEFAULT_MARGIN_MM, layoutOf, MIN_MARGIN_MM, PAGES, pageSize, printableSize } from "../src/print/pages.ts";
+import { DEFAULT_MARGIN_MM, fitToPage, layoutOf, MIN_MARGIN_MM, PAGES, pageSize, printableSize } from "../src/print/pages.ts";
 import { printCss } from "../src/print/css.ts";
 import { BLOCKS, errorCorrection, MAX_BYTES, qrMatrix, qrSvg } from "../src/print/qr.ts";
 import { cutMarks, tilePoster } from "../src/print/tile.ts";
@@ -225,4 +225,40 @@ test("the QR picture is one SVG in modules with a quiet zone, and the sheet's fi
   assert.match(svg, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 29 29"/);
   assert.match(svg, /<path d="M4 4h7v1h-7z/);
   assert.match(qrSvg("Hi", { quiet: 2, dark: "#123", light: "#fff" }), /viewBox="0 0 25 25".*fill="#fff".*fill="#123"/);
+});
+
+test("fitToPage scales a picture to the printable area, keeping its shape, and centres it", () => {
+  const tall = fitToPage({ page: "a4", widthMm: 100, heightMm: 200, orientation: "portrait" });
+  const area = printableSize("a4");
+  assert.equal(tall.orientation, "portrait");
+  assert.equal(tall.heightMm, area.heightMm);
+  assert.ok(Math.abs(tall.widthMm / tall.heightMm - 0.5) < 1e-3);
+  assert.ok(Math.abs(tall.scale - area.heightMm / 200) < 1e-12);
+  assert.equal(tall.offsetYMm, 0);
+  assert.ok(Math.abs(tall.offsetXMm - (area.widthMm - tall.widthMm) / 2) < 1e-3);
+  const wide = fitToPage({ page: "a4", widthMm: 300, heightMm: 100, orientation: "portrait" });
+  assert.equal(wide.widthMm, area.widthMm);
+  assert.equal(wide.offsetXMm, 0);
+  assert.ok(wide.offsetYMm > 0);
+});
+
+test("fitToPage picks the turn that makes the picture larger, and a turn given is kept", () => {
+  assert.equal(fitToPage({ page: "a3", widthMm: 420, heightMm: 297 }).orientation, "landscape");
+  assert.equal(fitToPage({ page: "a3", widthMm: 297, heightMm: 420 }).orientation, "portrait");
+  assert.equal(fitToPage({ page: "tabloid", widthMm: 10, heightMm: 10 }).orientation, "portrait");
+  const forced = fitToPage({ page: "a3", widthMm: 420, heightMm: 297, orientation: "portrait" });
+  assert.equal(forced.orientation, "portrait");
+  assert.ok(forced.scale < fitToPage({ page: "a3", widthMm: 420, heightMm: 297 }).scale);
+  const bigMargin = fitToPage({ page: "a4", widthMm: 100, heightMm: 100, orientation: "portrait", marginMm: 30 });
+  assert.equal(bigMargin.widthMm, 150);
+  const landscape = printableSize("a3", "landscape");
+  const got = fitToPage({ page: "a3", widthMm: 420, heightMm: 297 });
+  assert.ok(got.widthMm <= landscape.widthMm + 1e-9 && got.heightMm <= landscape.heightMm + 1e-9);
+});
+
+test("fitToPage scales up a small picture and down a large one, and refuses one of no size", () => {
+  assert.ok(fitToPage({ page: "a4", widthMm: 10, heightMm: 10 }).scale > 1);
+  assert.ok(fitToPage({ page: "a4", widthMm: 1000, heightMm: 1000 }).scale < 1);
+  assert.throws(() => fitToPage({ page: "a4", widthMm: 0, heightMm: 10 }), RangeError);
+  assert.throws(() => fitToPage({ page: "a4", widthMm: 10, heightMm: 10, marginMm: 200 }), RangeError);
 });

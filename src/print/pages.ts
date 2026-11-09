@@ -59,3 +59,45 @@ export function printableSize(page: PageName, orientation: Orientation = "portra
   const size = pageSize(page, orientation);
   return { widthMm: size.widthMm - marginMm * 2, heightMm: size.heightMm - marginMm * 2 };
 }
+
+export interface FitOptions {
+  page: PageName;
+  /** The picture's size, in any one unit (only its shape and, for `scale`, its millimetre size matter). */
+  widthMm: number;
+  heightMm: number;
+  /** `"auto"` (the default) takes the turn that makes the picture larger. */
+  orientation?: Orientation | "auto";
+  marginMm?: number;
+}
+
+export interface Fit {
+  orientation: Orientation;
+  /** The picture's size once scaled: the largest that fits the printable area with its shape kept. */
+  widthMm: number;
+  heightMm: number;
+  /** The scaled size over the given size. */
+  scale: number;
+  /** Where the scaled picture sits to be centred in the printable area, from the area's top left. */
+  offsetXMm: number;
+  offsetYMm: number;
+}
+
+const round3 = (n: number): number => Math.round(n * 1000) / 1000;
+
+/** Scales a picture to the printable area of a page, keeping its shape, and says which turn of the page suits it. Throws a RangeError for a picture of no size or margins that leave no area. */
+export function fitToPage(options: FitOptions): Fit {
+  const { page, widthMm, heightMm, orientation = "auto", marginMm = DEFAULT_MARGIN_MM } = options;
+  if (!(widthMm > 0) || !(heightMm > 0)) throw new RangeError("A picture needs a width and a height above 0");
+  const scaleFor = (turn: Orientation): number => {
+    const area = printableSize(page, turn, marginMm);
+    return Math.min(area.widthMm / widthMm, area.heightMm / heightMm);
+  };
+  const portrait = scaleFor("portrait");
+  const landscape = scaleFor("landscape");
+  const turn: Orientation = orientation === "portrait" || orientation === "landscape" ? orientation : landscape > portrait ? "landscape" : "portrait";
+  const scale = turn === "landscape" ? landscape : portrait;
+  if (!(scale > 0)) throw new RangeError("The margins leave no printable area");
+  const area = printableSize(page, turn, marginMm);
+  const fitted = { widthMm: round3(widthMm * scale), heightMm: round3(heightMm * scale) };
+  return { orientation: turn, ...fitted, scale, offsetXMm: round3((area.widthMm - fitted.widthMm) / 2), offsetYMm: round3((area.heightMm - fitted.heightMm) / 2) };
+}

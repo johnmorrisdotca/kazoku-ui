@@ -68,9 +68,11 @@ Home printers cannot print right to the edge: most stop 3 to 6 mm short. The mar
 | `address` | Footer | The address, as a QR code and as text under the credits. |
 | `pages` | Body | One node for each page. |
 | `poster` | Body | A poster to tile instead of `pages`. |
+| `tileFooter` | Tile pages | `"none"` (the default), `"ends"` or `"all"`: the address as text and a small QR code in the bottom margin of a poster's tile pages. See below. |
+| `pageNumber` | Footer, tile pages | `"always"` (the default), `"many"` or `"never"`: whether the page number is printed. |
 | `words` | | Your own words for any label. |
 
-The footer of every page has its page number: "Page 2 of 3" in English, "2 / 3 ページ" in Japanese, from `pageOf`.
+The footer of every page has its page number: "Page 2 of 3" in English, "2 / 3 ページ" in Japanese, from `pageOf`. A one-page sheet, such as a certificate, does not need "Page 1 of 1": `pageNumber: "many"` prints the number only when there is more than one page, and `pageNumber: "never"` leaves it off always. It applies to a poster's tile pages too.
 
 ## Type for children
 
@@ -104,6 +106,20 @@ const sheet = buildSheet({ page: "a4", title: "Big planet poster", poster: { con
 `tilePoster` says how many pages the poster needs and which part each page prints. Each page's window is the printable area. The pages step by the window less `overlapMm` (10 mm by default), so every page repeats exactly that much of the one before it. That strip is the glue strip: it is shaded and dashed, and labelled "Glue strip" (のりしろ). The last column and row are cut off at the poster's edge. A poster that fits in one window is one page. A poster of no size, or an overlap as big as a window, throws a `RangeError`.
 
 Every tile page has cut marks, one line along each edge at each corner of the window pointing out into the margin, made by `cutMarks(page, orientation, marginMm)`, and a line of words on how to cut and glue. The poster's `content` is copied once for each page, so use an SVG or HTML. A canvas does not survive being copied: draw it to an SVG `<image>` first.
+
+A tile page has no footer, only its margin, so the address and the QR code are an option: `tileFooter: "all"` puts them in the bottom margin of every tile (it needs `address`), and `tileFooter: "ends"` only on the first and the last tile. The code is as tall as the margin allows less 2 mm (10.7 mm at the default margin) with a quiet zone of 1 module, so it is small: it scans from a hand's length, not from across the room. The cut instruction on those tiles is set smaller to make room. The window, and so the tiling, does not change.
+
+## Fit a picture to a page
+
+```js
+import { fitToPage } from "@johnmorrisdotca/kazoku-ui/print";
+
+const fit = fitToPage({ page: "a3", widthMm: 1200, heightMm: 800 });
+console.log(fit.orientation, fit.widthMm, fit.heightMm);
+// landscape 394.6 263.067
+```
+
+`fitToPage({ page, widthMm, heightMm, orientation, marginMm })` scales a picture to the printable area of a paper size, keeping its shape. It returns the `orientation`, the scaled `widthMm` and `heightMm`, the `scale` (it is more than 1 for a picture smaller than the page) and `offsetXMm` and `offsetYMm`, which centre the picture in the printable area. `orientation` is `"auto"` by default and takes the turn that makes the picture larger (a square or a tie stays tall); `"portrait"` or `"landscape"` keeps the turn you give. Pass the result to `buildSheet` and a poster is one page: `buildSheet({ page: "a3", orientation: fit.orientation, poster: { content, widthMm: fit.widthMm, heightMm: fit.heightMm } })`. A picture of no size, or margins that leave no area, throw a `RangeError`.
 
 ## The QR code
 
