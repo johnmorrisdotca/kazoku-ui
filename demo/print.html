@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: print layout</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">print layout</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="save-image.html" data-say="save">Save as an image</a></p>
+  <p class="intro" data-say="intro">A sample sheet: the header, the info box, the footer with a QR code of this page's address, and a poster cut over several pages. Pick a paper, then print it or save it as a PDF.</p>
+  <section class="panel" aria-label="Choices">
+    <div class="row"><span class="name" data-say="what">Sheet</span><span class="seg" role="group" data-group="what" data-testid="what">
+      <button class="pill" type="button" data-value="sheet" aria-pressed="true" data-say="sheet">One page</button>
+      <button class="pill" type="button" data-value="poster" aria-pressed="false" data-say="poster">Poster, cut in pages</button></span></div>
+    <div class="row"><span class="name" data-say="paper">Paper</span><span class="seg" role="group" data-group="page" data-testid="page">
+      <button class="pill" type="button" data-value="a4" aria-pressed="true">A4</button>
+      <button class="pill" type="button" data-value="letter" aria-pressed="false">US Letter</button>
+      <button class="pill" type="button" data-value="a3" aria-pressed="false">A3</button>
+      <button class="pill" type="button" data-value="tabloid" aria-pressed="false">Tabloid</button></span></div>
+    <div class="row"><span class="name" data-say="turn">Turned</span><span class="seg" role="group" data-group="orientation" data-testid="orientation">
+      <button class="pill" type="button" data-value="portrait" aria-pressed="true" data-say="portrait">Tall</button>
+      <button class="pill" type="button" data-value="landscape" aria-pressed="false" data-say="landscape">Wide</button></span></div>
+    <div class="row"><span class="name" data-say="type">Type</span><span class="seg" role="group" data-group="type" data-testid="type">
+      <button class="pill" type="button" data-value="kid" aria-pressed="true" data-say="kid">Big and round (children)</button>
+      <button class="pill" type="button" data-value="normal" aria-pressed="false" data-say="normal">Normal</button></span></div>
+    <div class="row"><button class="pill print" id="print" type="button" data-testid="print">Print / save PDF</button><output id="info" data-testid="info"></output></div>
+  </section>
+  <section class="paper" id="paper" aria-label="Preview" data-testid="paper"><div class="paper-inner" id="paper-inner"></div></section>
+</main>
+<script type="module" src="print.js"></script>
+</body>
+</html>

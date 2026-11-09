@@ -11,7 +11,7 @@ The family's shared interface parts, as their own versioned package: one part pe
 The first part is the **view controls** for any 3D or zoomable view. They never draw the scene: they tell your page what the reader chose, and your canvas, WebGL,
 SVG or CSS 3D applies it.
 
-[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Speed buttons](docs/guides/speed-buttons.md) · [Options window](docs/guides/options-window.md) · [Embed panel](docs/guides/embed-panel.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
+[Demo](https://johnmorrisdotca.github.io/kazoku-ui/) · [Layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html) · [Strict-CSP demo](https://johnmorrisdotca.github.io/kazoku-ui/csp.html) · [Theme switch](docs/theme-switch.md) · [Language picker](docs/language-picker.md) · [Address state](docs/address-state.md) · [Save image](docs/save-image.md) · [Speed buttons](docs/guides/speed-buttons.md) · [Options window](docs/guides/options-window.md) · [Embed panel](docs/guides/embed-panel.md) · [Print layout](docs/guides/print.md) · [Shared 3D renderer](docs/renderer.md) · [The drag rule](docs/drag-rule.md) · [Content-Security-Policy](docs/csp.md) · [Labels, English and 日本語](docs/labels.md) · [Changelog](CHANGELOG.md) · [Builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html) · [API reference](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md) · [Guides](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides)
 
 ## In 30 seconds
 
@@ -59,6 +59,7 @@ console.log(zoomText(2.44)); // 2.4×
 - **Save image** for a canvas, an SVG or any element, as PNG or SVG.
 - **Speed buttons**: one row of 0.5×, 1×, 2× (or the steps you name: a solar system's days a second, a replay's speeds) for the whole family, kept in an attribute and the address.
 - **Embed panel**: the family's one "Put it in your page" panel: a compact picker, a size, a tab for HTML, ES module, React, Vue, Angular, Svelte and iframe (and your own, such as an image), a live picture that always fits its box, Copy, the embed page, the docs and the credit line.
+- **Print layout**: printable sheets for any package on A4, US Letter, A3 or Tabloid, with safe margins, a header, an info box, a footer with a QR code, a poster tiled over pages with cut marks, large type for children, and a Print / save PDF button. No element, no PDF library.
 - **Address state**, with no element: choices kept in the link with `replaceState`.
 - **A shared 3D renderer** and its **freeze checks**: one WebGL context, shared assets, stills, a pixel budget.
 - **Labels in English and Japanese**, light and dark, 48 px touch targets, reduced motion respected.
@@ -164,6 +165,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 | `@johnmorrisdotca/kazoku-ui/embed-panel` | The seven ways a page is made and their text (`embedSnippet`), the sizes, the picker's search and the labels of the embed panel. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/embed-panel/element` | The `EmbedPanelElement` class (needs a browser). |
 | `@johnmorrisdotca/kazoku-ui/embed-panel/define` | Registers `<kazoku-embed-panel>` (once, and only if the tag is free). |
+| `@johnmorrisdotca/kazoku-ui/print` | Page sizes and margins, the header, info box and footer of a printable sheet, a poster tiled over pages with cut marks, kid and normal type, a QR code encoder (byte mode, level M, versions 1 to 20, no dependency) and the Print / save PDF helper. No element; imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/renderer` | The shared 3D renderer: one WebGL context for the focused view, shared assets, stills, drawing on demand, a pixel budget. three.js is an optional peer, loaded by your `import("three")`. Imports on a server. |
 | `@johnmorrisdotca/kazoku-ui/testing` | The freeze checks for a 3D package's e2e: count contexts, GPU objects, draws and frames; the canvas size against the budget; and the browser lock (`withBrowserLock`, `acquireBrowserLock`, a Playwright `globalSetup`, `kazoku-browser-lock status`) so one headless browser runs at a time on a machine. No test framework named. |
 | `@johnmorrisdotca/kazoku-ui/address-state` | Choices kept in the address: read, write and subscribe to URL parameters with `replaceState`. No element; imports on a server. |
@@ -476,6 +478,22 @@ See [the guide](docs/guides/speed-buttons.md) for the attributes, the event and 
 
 See [the guide](docs/guides/embed-panel.md) for the slots (a package's own choices and buttons), the picker, the events and a package that draws nothing, and [the survey](docs/embed-panel-survey.md) for which package's panel does each part best.
 
+## Print layout
+
+`buildSheet` makes a printable sheet: pages exactly the paper's size (`a4`, `letter`, `a3`, `tabloid`, tall or wide) with margins a home printer will not clip (12.7 mm), a header (the brand text you pass in, the package, the title, a "Name:" box), an info box (region, flag, latitude band, season, level, language), a footer (credits, version, date, the address as a QR code and as text, the page number), type for children (names at 28 pt, lines 3 mm thick) or normal type, and a poster tiled over several pages with cut marks and glue strips. `printSheet` prints a print-only copy through the browser's own dialog, which saves a PDF too. The QR code is encoded by a small encoder in the package (byte mode, level M, versions 1 to 20), held by known answers and a decoder in the tests.
+
+```js no-check
+import { buildSheet, printCss, printSheet, tilePoster } from "@johnmorrisdotca/kazoku-ui/print";
+
+document.head.append(Object.assign(document.createElement("style"), { textContent: printCss({ page: "a4", type: "kid" }) }));
+const sheet = buildSheet({ page: "a4", type: "kid", language: "en", brand: "Space Program X", packageName: "My planets", title: "The planets", address: "https://example.com/planets/", pages: [picture] });
+document.querySelector("#preview").append(sheet);
+document.querySelector("#print").addEventListener("click", () => printSheet(sheet));
+console.log(tilePoster({ widthMm: 400, heightMm: 300, page: "a4" }).pages); // 6
+```
+
+See [the guide](docs/guides/print.md) for every option and the demo's `print.html` for a sample sheet and a poster.
+
 ## Shared 3D renderer
 
 A page with many 3D views gets one WebGL context, handed to the focused view; the others are stills made once from the same renderer, kept in a budgeted list. Shared geometries,
@@ -567,7 +585,7 @@ One part, one subpath; the pure code, the element and the registration are three
 
 ## Demos
 
-[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [speed buttons](https://johnmorrisdotca.github.io/kazoku-ui/speed.html), [the replay bar](https://johnmorrisdotca.github.io/kazoku-ui/replay.html), [the options window](https://johnmorrisdotca.github.io/kazoku-ui/options.html), [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [an element that carries the controls](https://johnmorrisdotca.github.io/kazoku-ui/carry.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
+[The demo](https://johnmorrisdotca.github.io/kazoku-ui/) has the view controls, the language picker and the theme switch in its header. Beside it: [speed buttons](https://johnmorrisdotca.github.io/kazoku-ui/speed.html), [the replay bar](https://johnmorrisdotca.github.io/kazoku-ui/replay.html), [the options window](https://johnmorrisdotca.github.io/kazoku-ui/options.html), [layouts](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html), [an element that carries the controls](https://johnmorrisdotca.github.io/kazoku-ui/carry.html), [the builder](https://johnmorrisdotca.github.io/kazoku-ui/builder.html), [address state](https://johnmorrisdotca.github.io/kazoku-ui/address.html), [save image](https://johnmorrisdotca.github.io/kazoku-ui/save-image.html), [print layout](https://johnmorrisdotca.github.io/kazoku-ui/print.html), [the shared renderer](https://johnmorrisdotca.github.io/kazoku-ui/renderer.html), [exact grab](https://johnmorrisdotca.github.io/kazoku-ui/grab.html) and [a strict Content-Security-Policy](https://johnmorrisdotca.github.io/kazoku-ui/csp.html).
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/builder-dark.webp">
@@ -587,6 +605,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [Language picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/language-picker.md) | Each language in its own name |
 | [Address state](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/address-state.md) | Choices kept in the link |
 | [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
+| [Print layout](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/print.md) | Printable sheets, a poster over pages, a QR code, Print / save PDF |
 | [Speed buttons](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/speed-buttons.md) | 0.5×, 1×, 2× or your own steps, kept in an attribute and the address |
 | [The shared renderer](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/renderer.md) | One WebGL context, and the freeze checks |
 | [The browser lock](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/browser-lock.md) | One headless browser at a time: a line in `playwright.config`, or `withBrowserLock` in a script |

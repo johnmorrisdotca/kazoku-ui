@@ -16,6 +16,7 @@ Kazoku UIは、実行時の依存のない、ESモジュールにコンパイル
 | 表示の操作 | `src/view-controls/` | `/view-controls`、`/view-controls/element`、`/view-controls/define` |
 | テーマの切り替え | `src/theme-switch/` | `/theme-switch`、`/theme-switch/element`、`/theme-switch/define` |
 | 言語の選択 | `src/language-picker/` | `/language-picker`、`/language-picker/element`、`/language-picker/define` |
+| 印刷レイアウト | `src/print/` | `/print`（要素なし） |
 | 画像の保存 | `src/save-image/` | `/save-image`、`/save-image/element`、`/save-image/define` |
 | 速さのボタン | `src/speed-buttons/` | `/speed-buttons`、`/speed-buttons/element`、`/speed-buttons/define` |
 | 埋め込みパネル | `src/embed-panel/` | `/embed-panel`、`/embed-panel/element`、`/embed-panel/define` |

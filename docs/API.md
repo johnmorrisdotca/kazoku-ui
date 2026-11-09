@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print"];
 ```
 
 ### Part
@@ -3202,6 +3202,520 @@ import { defineEmbedPanel } from '@johnmorrisdotca/kazoku-ui/embed-panel/define'
 
 ```ts
 function defineEmbedPanel(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/print`
+
+27 values and 19 types.
+
+```js
+import { buildSheet, cutMarks, DEFAULT_LAYOUT, DEFAULT_MARGIN_MM, isoDate, languageOf, LAYOUT_ATTRIBUTES, layoutFromSheet, layoutOf, MAX_BYTES, MIN_MARGIN_MM, openPrintView, PAGE_NAMES, pageOf, PAGES, pageSize, printableSize, printCss, printSheet, qrMatrix, qrSvg, ROOT_ATTRIBUTE, ROOT_CLASS, tilePoster, TYPE_PRESETS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/print';
+```
+
+### buildSheet
+
+*function*. The sheet: one `.kazoku-sheet` holding a `.kazoku-page` for each page (or each tile of a poster). It carries its layout in data attributes. Add `printCss(layout)` once to the page and the sheet looks the same on screen and on paper.
+
+```ts
+function buildSheet(options: SheetOptions, doc?: Document): HTMLElement;
+```
+
+### cutMarks
+
+*function*. The cut marks of one page, in millimetres from the page's top left: at each corner of the printable window, one line along each edge pointing out into the margin, kept off the window by `gapMm`.
+
+```ts
+function cutMarks(page: PageName, orientation?: Orientation, marginMm?: number, lengthMm?: number, gapMm?: number): Segment[];
+```
+
+### DEFAULT_LAYOUT
+
+*constant*
+
+```ts
+const DEFAULT_LAYOUT: Layout;
+```
+
+### DEFAULT_MARGIN_MM
+
+*constant*. Half an inch. Home printers cannot print right to the edge (most stop 3 to 6 mm short), so nothing the sheet needs sits nearer than this.
+
+```ts
+const DEFAULT_MARGIN_MM = 12.7;
+```
+
+### isoDate
+
+*constant*
+
+```ts
+const isoDate: (date: Date) => string;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### LAYOUT_ATTRIBUTES
+
+*constant*. The attributes that record the layout on a sheet, so `printSheet` can read it back.
+
+```ts
+const LAYOUT_ATTRIBUTES: {
+    readonly page: "data-page";
+    readonly orientation: "data-orientation";
+    readonly marginMm: "data-margin-mm";
+    readonly type: "data-type";
+    readonly language: "data-language";
+};
+```
+
+### layoutFromSheet
+
+*function*. The layout a sheet was built with, read back from its data attributes.
+
+```ts
+function layoutFromSheet(sheet: Element): Layout;
+```
+
+### layoutOf
+
+*function*. A layout from whatever was given: a name that is not a page, an orientation or a type that is not one, or a margin under the least falls back.
+
+```ts
+function layoutOf(given?: Partial<Layout>): Layout;
+```
+
+### MAX_BYTES
+
+*constant*. The most bytes of text one code holds at level M.
+
+```ts
+const MAX_BYTES: number;
+```
+
+### MIN_MARGIN_MM
+
+*constant*. The least margin allowed; a smaller one is raised to it, so a sheet never loses its edge on a home printer.
+
+```ts
+const MIN_MARGIN_MM = 8;
+```
+
+### openPrintView
+
+*function*. Makes the print-only view of a sheet (a copy of it) and the page rules for its paper. Call `close` when done; a view already open is closed first.
+
+```ts
+function openPrintView(sheet: HTMLElement, doc?: Document): PrintView;
+```
+
+### PAGE_NAMES
+
+*constant*
+
+```ts
+const PAGE_NAMES: PageName[];
+```
+
+### pageOf
+
+*constant*. "Page 2 of 6" (or "2 / 6 `ページ`").
+
+```ts
+const pageOf: (words: PrintWords, n: number, total: number) => string;
+```
+
+### PAGES
+
+*constant*. The sizes a sheet is printed on, in millimetres, in portrait.
+
+```ts
+const PAGES: Record<PageName, PageSize>;
+```
+
+### pageSize
+
+*function*. The whole page, turned for the orientation.
+
+```ts
+function pageSize(page: PageName, orientation?: Orientation): PageSize;
+```
+
+### printableSize
+
+*function*. What is left inside the margins.
+
+```ts
+function printableSize(page: PageName, orientation?: Orientation, marginMm?: number): PageSize;
+```
+
+### printCss
+
+*function*. The CSS for a sheet: the page size, the print-only view (everything else on the page hidden on paper, the copy hidden on screen) and the look of the header, info box, footer and poster tiles.
+
+```ts
+function printCss(given?: Partial<Layout>): string;
+```
+
+### printSheet
+
+*function*. Prints a sheet: opens the print-only view, calls `window.print()` (the dialog's "Save as PDF" makes the file), and removes the view when the dialog is done.
+
+```ts
+function printSheet(sheet: HTMLElement, options?: PrintOptions, doc?: Document): PrintView;
+```
+
+### qrMatrix
+
+*function*. The modules of a QR code for some text (UTF-8, level M, the smallest version that holds it): `true` is dark. Throws a RangeError for more than `MAX_BYTES` bytes.
+
+```ts
+function qrMatrix(text: string, options?: QrOptions): boolean[][];
+```
+
+### qrSvg
+
+*function*. A QR code as an SVG string: one path for every dark module, a light square behind it, `viewBox` in modules so any CSS size works.
+
+```ts
+function qrSvg(text: string, options?: QrSvgOptions): string;
+```
+
+### ROOT_ATTRIBUTE
+
+*constant*
+
+```ts
+const ROOT_ATTRIBUTE = "data-kazoku-print";
+```
+
+### ROOT_CLASS
+
+*constant*. The `.kazoku-print-root` class of the print-only copy, and the attribute on `<html>` while it is open.
+
+```ts
+const ROOT_CLASS = "kazoku-print-root";
+```
+
+### tilePoster
+
+*function*. How many pages a poster needs and which part of it each page prints. Throws a RangeError for a poster of no size or an overlap as big as a page's window.
+
+```ts
+function tilePoster(options: PosterOptions): PosterPlan;
+```
+
+### TYPE_PRESETS
+
+*constant*
+
+```ts
+const TYPE_PRESETS: Record<TypeName, TypePreset>;
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, PrintWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<PrintWords>) => PrintWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### Layout
+
+*interface*
+
+```ts
+interface Layout {
+    page: PageName;
+    orientation: Orientation;
+    marginMm: number;
+    type: TypeName;
+    language: Language;
+}
+```
+
+### Orientation
+
+*type*
+
+```ts
+type Orientation = "portrait" | "landscape";
+```
+
+### PageName
+
+*type*
+
+```ts
+type PageName = "a4" | "letter" | "a3" | "tabloid";
+```
+
+### PageSize
+
+*interface*
+
+```ts
+interface PageSize {
+    widthMm: number;
+    heightMm: number;
+}
+```
+
+### Poster
+
+*interface*
+
+```ts
+interface Poster {
+    /** What is printed: any node (an SVG is best; a canvas does not survive being copied). Copied once for each page. */
+    content: Node;
+    widthMm: number;
+    heightMm: number;
+    /** The repeat between pages, in millimetres (10 by default). */
+    overlapMm?: number;
+}
+```
+
+### PosterOptions
+
+*interface*
+
+```ts
+interface PosterOptions {
+    /** The poster's size, in millimetres. */
+    widthMm: number;
+    heightMm: number;
+    page: PageName;
+    orientation?: Orientation;
+    marginMm?: number;
+    /** How much of one page's picture is repeated on the next, so the pages can be glued over each other. 10 mm by default. */
+    overlapMm?: number;
+}
+```
+
+### PosterPlan
+
+*interface*
+
+```ts
+interface PosterPlan {
+    columns: number;
+    rows: number;
+    pages: number;
+    /** The window on each page: the printable area, which shows this much of the poster. */
+    windowMm: {
+        widthMm: number;
+        heightMm: number;
+    };
+    tiles: Tile[];
+}
+```
+
+### PrintOptions
+
+*interface*
+
+```ts
+interface PrintOptions {
+    /** What to call instead of `window.print`, for tests. */
+    print?: () => void;
+}
+```
+
+### PrintView
+
+*interface*
+
+```ts
+interface PrintView {
+    /** The print-only copy, a child of `<body>`: hidden on screen, the only thing on paper. */
+    root: HTMLElement;
+    /** Removes the copy, the style and the mark on `<html>`. */
+    close(): void;
+}
+```
+
+### PrintWords
+
+*interface*
+
+```ts
+interface PrintWords {
+    /** The label before the box a child writes a name in. */
+    name: string;
+    region: string;
+    flag: string;
+    latitudeBand: string;
+    season: string;
+    level: string;
+    language: string;
+    version: string;
+    date: string;
+    address: string;
+    /** "Page {n} of {total}" with the numbers filled in by `pageOf`. */
+    page: string;
+    glue: string;
+    cut: string;
+    tileOf: string;
+    button: string;
+    qr: string;
+}
+```
+
+### QrOptions
+
+*interface*
+
+```ts
+interface QrOptions {
+    /** Use this mask (0 to 7) instead of the best one; for tests. */
+    mask?: number;
+}
+```
+
+### QrSvgOptions
+
+*interface*
+
+```ts
+interface QrSvgOptions {
+    /** Light modules around the code, in modules (the standard asks for 4). */
+    quiet?: number;
+    dark?: string;
+    light?: string;
+}
+```
+
+### Segment
+
+*interface*
+
+```ts
+interface Segment {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+}
+```
+
+### SheetInfo
+
+*interface*
+
+```ts
+interface SheetInfo {
+    region?: string;
+    /** The address of the flag's picture (a path or a data: address) and what it shows. */
+    flagSrc?: string;
+    flagAlt?: string;
+    latitudeBand?: string;
+    season?: string;
+    level?: string;
+    language?: string;
+    /** More boxes after those, each a label and a value. */
+    more?: {
+        label: string;
+        value: string;
+    }[];
+}
+```
+
+### SheetOptions
+
+*interface*
+
+```ts
+interface SheetOptions extends Partial<Layout> {
+    /** The header's first line, such as the family's name; passed in, never built in. */
+    brand?: string;
+    packageName?: string;
+    title: string;
+    /** The "Name: ____" box in the header (on by default). */
+    nameBox?: boolean;
+    /** The info box under the header of the first page. */
+    info?: SheetInfo;
+    credits?: string;
+    version?: string;
+    /** A Date is written as YYYY-MM-DD; a string is written as it is. */
+    date?: Date | string;
+    /** The address to print: as a QR code and as text. Too long for a QR code, it is printed as text only. */
+    address?: string;
+    /** What each page holds, one node for each page. */
+    pages?: Node[];
+    /** A poster to tile over pages instead. */
+    poster?: Poster;
+    /** Words to use instead of the built-in ones, for one or more keys. */
+    words?: Partial<PrintWords>;
+}
+```
+
+### Tile
+
+*interface*
+
+```ts
+interface Tile {
+    /** 1 for the first page, row by row from the top left. */
+    index: number;
+    column: number;
+    row: number;
+    /** Where this page's window starts on the poster, in millimetres from its top left. */
+    xMm: number;
+    yMm: number;
+    /** How much of this page's picture is repeated on the page to its right, and the page below (0 for the last column and row): the glue strips. */
+    overlapRightMm: number;
+    overlapBottomMm: number;
+}
+```
+
+### TypeName
+
+*type*
+
+```ts
+type TypeName = "kid" | "normal";
+```
+
+### TypePreset
+
+*interface*
+
+```ts
+interface TypePreset {
+    /** The sheet's title. */
+    titlePt: number;
+    /** The names a sheet prints (a planet, a country), in `.kazoku-name`. Never under 24 pt for `kid`. */
+    namePt: number;
+    bodyPt: number;
+    /** Credits, version, address: the fine print. */
+    smallPt: number;
+    /** How thick the sheet's own lines are (boxes, rules, the Name box). Never under 2.5 mm for `kid`. */
+    lineMm: number;
+    fontFamily: string;
+}
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`

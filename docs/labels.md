@@ -95,6 +95,29 @@ The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no 
 
 The gesture line in the help is the view controls' `gestures` sentence, not a second copy.
 
+## Print layout
+
+The words on a printed sheet. The Japanese is plain, mostly hiragana, for children. `{n}`, `{total}`, `{row}` and `{column}` are filled in.
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `name` | Name: | なまえ: | namae, name |
+| `region` | Region | ちいき | chiiki, region |
+| `flag` | Flag | はた | hata, flag |
+| `latitudeBand` | Latitude band | いどの おび | ido no obi, latitude band |
+| `season` | Season | きせつ | kisetsu, season |
+| `level` | Level | レベル | reberu, level |
+| `language` | Language | ことば | kotoba, language |
+| `version` | Version | バージョン | bājon, version |
+| `date` | Date | ひづけ | hizuke, date |
+| `address` | Address | アドレス | adoresu, address |
+| `page` | Page {n} of {total} | {n} / {total} ページ | pēji, page |
+| `glue` | Glue strip | のりしろ | norishiro, the strip you glue |
+| `cut` | Cut along the corner marks. Glue each page over the glue strip of the page next to it. | すみの しるしで きります。となりの ページの のりしろに かさねて はります。 | sumi no shirushi de kirimasu, tonari no pēji no norishiro ni kasanete harimasu, cut at the corner marks and glue over the next page's strip |
+| `tileOf` | Row {row}, column {column} | {row} だん め、{column} れつ め | dan me, retsu me, which row and column |
+| `button` | Print / save PDF | いんさつ / PDFで ほぞん | insatsu / PDF de hozon, print / save as PDF |
+| `qr` | QR code of the address | アドレスの QRコード | adoresu no QR kōdo, the QR code of the address |
+
 ## Embed panel
 
 | Key | English | 日本語 | Reading and meaning |
