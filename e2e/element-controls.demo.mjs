@@ -132,14 +132,14 @@ test("controls=\"none\" takes no hands, and turning it on and off takes effect a
 test("a bar for the element takes the hands while it is there, and gives them back when it goes", async ({ page }) => {
   await ready(page);
   await expect(view(page, "barred")).toHaveAttribute("data-kazoku-bar", "");
-  await page.locator('kazoku-view-controls [data-b="in"]').click();
+  await page.locator('[data-testid="bar"] [data-b="in"]').click();
   const zoomed = (await read(page, "barred")).zoom;
   expect(zoomed).toBeCloseTo(1.4, 2);
   await view(page, "barred").scrollIntoViewIfNeeded();
   await ctrlWheel(page, "barred", -50);
   // One hand zooms it once: the wheel's factor, from where the bar had it.
   expect((await read(page, "barred")).zoom).toBeCloseTo(zoomed * Math.exp(0.5), 1);
-  await page.locator("kazoku-view-controls").evaluate((el) => el.remove());
+  await page.locator('[data-testid="bar"]').evaluate((el) => el.remove());
   await expect(view(page, "barred")).not.toHaveAttribute("data-kazoku-bar", "");
   await view(page, "barred").scrollIntoViewIfNeeded();
   const there = await centreOf(page, "barred");
@@ -148,6 +148,32 @@ test("a bar for the element takes the hands while it is there, and gives them ba
   await page.mouse.move(there.x + 30, there.y, { steps: 4 });
   await page.mouse.up();
   await expect.poll(async () => (await read(page, "barred")).yaw, "the element starts again from its own Fit").toBeGreaterThan(10);
+});
+
+test("a bar for an element with limits in code takes them, and the bar's own attributes win", async ({ page }) => {
+  await ready(page);
+  const bar = page.locator('[data-testid="coded-bar"]');
+  const zoom = () => bar.evaluate((el) => el.state.zoom);
+  const slider = bar.locator("#zoom");
+  await view(page, "coded").scrollIntoViewIfNeeded();
+  await slider.focus();
+  await page.keyboard.press("End");
+  expect(await zoom()).toBeCloseTo(2.5, 6);
+  await page.keyboard.press("Home");
+  expect(await zoom()).toBeCloseTo(1e-6, 9);
+  await page.keyboard.press("End");
+  for (let i = 0; i < 6; i += 1) await ctrlWheel(page, "coded", -400);
+  expect(await zoom()).toBeCloseTo(2.5, 6);
+  for (let i = 0; i < 40; i += 1) await ctrlWheel(page, "coded", 400);
+  expect(await zoom()).toBeCloseTo(1e-6, 9);
+  await bar.evaluate((el) => el.setAttribute("zoom-max", "4"));
+  await slider.focus();
+  await page.keyboard.press("End");
+  expect(await zoom()).toBeCloseTo(4, 6);
+  await bar.evaluate((el) => el.removeAttribute("zoom-max"));
+  await expect.poll(zoom).toBeCloseTo(2.5, 6);
+  await bar.evaluate((el) => el.remove());
+  await expect(view(page, "coded")).not.toHaveAttribute("data-kazoku-bar", "");
 });
 
 test("an element that leaves the page lets its hands go, and a moved element gets them again", async ({ page }) => {

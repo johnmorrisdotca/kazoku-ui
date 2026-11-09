@@ -187,7 +187,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 - Touch: one finger turns at 1x and moves the view when zoomed in; two fingers pinch, and a twist rolls.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - The choices are kept in the address, with keys you can rename.
-- **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 1×, 2× and the ends: see [Layouts](#layouts).
+- **Four layouts** (`layout`: classic, horizontal, vertical, compact) and a **zoom slider** with marks at 0.1×, 1×, 10× and 50×: see [Layouts](#layouts).
 - Labels in English and Japanese; light and dark; 48 px touch targets; a compact bar on a phone; no automatic turn for a reader who prefers reduced motion.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, the Move or Turn choice, Fit and Front all leave Auto-turn running (Front only sets the angle to 0 and the turn goes on from there). A hand on the angle slider, or turning the view by dragging it, holds the turn still while it is down and the turn carries on from where the hand left it. Only the Auto-turn button pauses it.
 
@@ -195,7 +195,7 @@ Each its own subpath; later ones: picture-tile pickers, Help, GitHub and npm pil
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/layouts-dark.webp">
-<img alt="The four layouts side by side, each under a turned card. Horizontal: an Angle slider with Auto-turn and More on one row, and under it a Zoom slider marked 1×, 2×, 3× and 5× with zoom out, the readout 1.6×, zoom in and Fit. Vertical: a column beside the view with Auto-turn and More at the top, then the Angle slider, the Zoom slider with its marks, and zoom out, 1.6×, zoom in and Fit. Compact: one short row of Auto-turn, zoom out, 1.6×, zoom in and More, here opened to show the zoom slider and Fit, the angle and tilt, the three speeds, Front and the pan pad. Classic: the bar as before. Each has its code and a Copy button." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/layouts-light.webp" width="720">
+<img alt="The four layouts side by side, each under a turned card. Horizontal: an Angle slider with Auto-turn and More on one row, and under it a Zoom slider marked 0.1×, 1×, 10× and 50× with zoom out, the readout 1.6×, zoom in and Fit. Vertical: a column beside the view with Auto-turn and More at the top, then the Angle slider, the Zoom slider with its marks, and zoom out, 1.6×, zoom in and Fit. Compact: one short row of Auto-turn, zoom out, 1.6×, zoom in and More, here opened to show the zoom slider and Fit, the angle and tilt, the three speeds, Front and the pan pad. Classic: the bar as before. Each has its code and a Copy button." src="https://raw.githubusercontent.com/johnmorrisdotca/kazoku-ui/main/docs/images/layouts-light.webp" width="720">
 </picture>
 
 Try them on the [layouts demo](https://johnmorrisdotca.github.io/kazoku-ui/layouts.html): every layout live, side by side, each with its code to copy, and a choice of zoom range to see the slider's marks change.

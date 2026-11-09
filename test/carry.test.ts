@@ -25,11 +25,13 @@ function fakeElement(attrs: Record<string, string> = {}, display = "block") {
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }),
     ownerDocument: { defaultView: { getComputedStyle: () => ({ display }), setTimeout: () => 0, clearTimeout: () => undefined, addEventListener: () => undefined, removeEventListener: () => undefined, innerHeight: 800, innerWidth: 1000 }, addEventListener: () => undefined, removeEventListener: () => undefined },
   };
+  const events: CustomEvent[] = [];
+  (element as Record<string, unknown>).dispatchEvent = (event: CustomEvent) => events.push(event);
   const wheel = (init: object): boolean => { let stopped = false; listeners.get("wheel")?.({ ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, deltaX: 0, deltaY: 0, deltaMode: 0, clientX: 200, clientY: 150, timeStamp: 1000, preventDefault: () => { stopped = true; }, ...init }); return stopped; };
   const key = (k: string): void => listeners.get("keydown")?.({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, preventDefault: () => undefined });
   /** What a bar does when it binds or lets go: the mark first, then the event. */
   const bar = (on: boolean): void => { if (on) attrs["data-kazoku-bar"] = ""; else delete attrs["data-kazoku-bar"]; listeners.get("kazoku-viewbar")?.({}); };
-  return { element: element as unknown as HTMLElement, attrs, listeners, style, wheel, key, bar };
+  return { element: element as unknown as HTMLElement, attrs, listeners, style, events, wheel, key, bar };
 }
 
 const carry = (rig: ReturnType<typeof fakeElement>, extra: object = {}) => carryControls(rig.element, { clock, onChange: () => undefined, ...extra });
@@ -129,6 +131,22 @@ test("a bar for the element takes the hands over while it is there, and gives th
   const barred = fakeElement({ "data-kazoku-bar": "" });
   carry(barred).unbind();
   assert.equal(barred.listeners.has("wheel"), false, "a bar that was there first is respected");
+});
+
+test("while a bar is bound the element says its limits: its attributes over the package's, and the defaults under both", () => {
+  const said = (rig: ReturnType<typeof fakeElement>) => rig.events.filter((e) => e.type === "kazoku-viewcarry").map((e) => e.detail.limits);
+  const coded = fakeElement();
+  const a = carry(coded, { limits: { zoomMin: 1e-6, zoomMax: 2.5 } });
+  assert.deepEqual(said(coded), [], "no bar, nothing said");
+  coded.bar(true);
+  assert.deepEqual(said(coded).at(-1), { ...DEFAULT_LIMITS, zoomMin: 1e-6, zoomMax: 2.5 });
+  coded.attrs["zoom-max"] = "8";
+  coded.listeners.get("kazoku-viewbar")?.({});
+  assert.equal(said(coded).at(-1)?.zoomMax, 8);
+  a.unbind();
+  const first = fakeElement({ "data-kazoku-bar": "" });
+  carry(first).unbind();
+  assert.deepEqual(said(first), [DEFAULT_LIMITS], "a bar that was there first hears it when the element starts");
 });
 
 test("unbind lets every hand go, takes back what it gave, and the controller is done", () => {

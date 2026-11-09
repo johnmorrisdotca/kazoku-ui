@@ -4,11 +4,11 @@ import { createAddressWriter } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
-import { BAR_EVENT, BAR_MARK } from "./carry.ts";
+import { BAR_EVENT, BAR_MARK, CARRY_EVENT } from "./carry.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
 import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, type TurnAxis, zoomText } from "./levels.ts";
-import { type Point, readLimits, ZOOM_STEP, ZOOMED } from "./math.ts";
+import { DEFAULT_LIMITS, type Limits, type Point, readLimits, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import "../speed-buttons/define.ts";
 import type { SpeedButtonsElement, SpeedChangeDetail } from "../speed-buttons/element.ts";
@@ -105,6 +105,8 @@ export class ViewControlsElement extends HTMLElement {
   #controller: ViewController | undefined;
   #view: HTMLElement | undefined;
   #unbind: (() => void) | undefined;
+  /** The limits of a view that carries its own controls, which this bar's attributes win over; the defaults otherwise. */
+  #carried: Limits = DEFAULT_LIMITS;
   #words: Partial<ViewWords> = {};
   #ready = false;
   #sliderHeld = 0;
@@ -604,7 +606,7 @@ export class ViewControlsElement extends HTMLElement {
 
   #limits(): void {
     const c = this.#ensure();
-    Object.assign(c.limits, readLimits((name) => this.getAttribute(name)));
+    Object.assign(c.limits, readLimits((name) => this.getAttribute(name), this.#carried));
     const tilt = this.#root.querySelector<HTMLInputElement>("#tilt");
     if (tilt !== null) {
       tilt.min = String(-c.limits.tiltMax);
@@ -634,13 +636,22 @@ export class ViewControlsElement extends HTMLElement {
     // A view takes the keys only if it can be focused: a page that wants arrows and plus and minus on it gives it a tabindex.
     if (element !== undefined) {
       // A package element that carries the controls itself stands down while this bar is bound to it.
+      const carried = (event: Event): void => {
+        this.#carried = (event as CustomEvent<{ limits: Limits }>).detail.limits;
+        this.#limits();
+        this.#ensure().set({});
+      };
+      element.addEventListener(CARRY_EVENT, carried);
       element.setAttribute(BAR_MARK, "");
       element.dispatchEvent(new Event(BAR_EVENT));
       const off = this.#ensure().bind(element);
       this.#unbind = () => {
         off();
+        element.removeEventListener(CARRY_EVENT, carried);
         element.removeAttribute(BAR_MARK);
         element.dispatchEvent(new Event(BAR_EVENT));
+        this.#carried = DEFAULT_LIMITS;
+        this.#limits();
       };
     }
     this.#watch();

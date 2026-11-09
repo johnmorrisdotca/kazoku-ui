@@ -1,10 +1,12 @@
 // A package's own custom element carries the view controls: the drag, the pinch, the wheel and the keys, with no bar. It touches the DOM only when called.
 import { type ChangeInfo, createViewController, type ViewController, type ViewControllerOptions, type ViewState } from "./controller.ts";
-import { DEFAULT_LIMITS, readLimits } from "./math.ts";
+import { DEFAULT_LIMITS, type Limits, readLimits } from "./math.ts";
 
 /** A `<kazoku-view-controls for="...">` marks the view it is bound to with this attribute and says so with `BAR_EVENT`: the bar's hands are then the only ones, and the element's stand down until the bar goes. */
 export const BAR_MARK = "data-kazoku-bar";
 export const BAR_EVENT = "kazoku-viewbar";
+/** While a bar is bound, the element says what its limits are with this event, whenever they may have changed: `detail.limits`. The bar uses them under its own `zoom-min`, `zoom-max`, `tilt-max` and `roll-max`. */
+export const CARRY_EVENT = "kazoku-viewcarry";
 
 export interface CarryOptions extends Omit<ViewControllerOptions, "onChange"> {
   /** The page's own drawing: apply the state. The element's drag, pinch, wheel and keys all arrive here. */
@@ -53,6 +55,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     const { zoom } = controller.state;
     const { zoomMin, zoomMax } = controller.limits;
     if (zoom < zoomMin || zoom > zoomMax) controller.set({ zoom: Math.min(zoomMax, Math.max(zoomMin, zoom)) });
+    if (element.hasAttribute(BAR_MARK)) element.dispatchEvent(new CustomEvent<{ limits: Limits }>(CARRY_EVENT, { detail: { limits: readLimits(get, base) } }));
     const asked = get("controls");
     const wanted = asked === null ? on : asked !== "none";
     if (!wanted) hold(true);

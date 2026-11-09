@@ -53,7 +53,7 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 
 ## With a bar
 
-`<kazoku-view-controls for="card">` on the same element takes the hands over while it is there: it marks the element with `data-kazoku-bar` and says so with a `kazoku-viewbar` event, and the element's own hands stand down, so a drag is never handled twice. The page then applies the bar's `kazoku-viewchange` events as before. When the bar goes, the element's hands come back, from Fit. The zoom range then comes from the bar's own `zoom-min` and `zoom-max`.
+`<kazoku-view-controls for="card">` on the same element takes the hands over while it is there: it marks the element with `data-kazoku-bar` and says so with a `kazoku-viewbar` event, and the element's own hands stand down, so a drag is never handled twice. The page then applies the bar's `kazoku-viewchange` events as before. When the bar goes, the element's hands come back, from Fit. The zoom range then comes from the bar's own `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` where it has them, and from the element's otherwise (its attributes, then the `limits` the package passed): the element tells the bar with a `kazoku-viewcarry` event (`detail.limits`) whenever they change.
 
 ## The zoom range and why it is wide
 
