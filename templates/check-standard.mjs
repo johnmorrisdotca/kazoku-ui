@@ -18,7 +18,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 /** The day this file was last changed, in every repository at once. A test in each repository records the file's hash beside it. */
-export const STANDARD_VERSION = "2026-11-10";
+export const STANDARD_VERSION = "2026-11-10b";
 
 const OWNER = "johnmorrisdotca";
 
