@@ -131,7 +131,8 @@ test("manual makes the picture and says so, but downloads nothing", async ({ pag
   await page.evaluate(() => document.getElementById("save-canvas").setAttribute("manual", ""));
   const download = page.waitForEvent("download", { timeout: 800 }).catch(() => null);
   await page.locator('#save-canvas button[data-v="png"]').click();
-  await expect(page.locator("#result")).toContainText("canvas-sample.png");
+  // The picture is made from a serialised copy of the page: on a hosted runner busy with another test's software drawing, that took longer than the default 5 s (KAZOKU-UI-96, CI run 42789310715).
+  await expect(page.locator("#result")).toContainText("canvas-sample.png", { timeout: 30_000 });
   expect(await download).toBeNull();
 });
 
