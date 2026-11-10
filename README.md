@@ -629,7 +629,6 @@ One part, one subpath; the pure code, the element and the registration are three
 | [Accessibility and labels](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/accessibility-and-labels.md) | The rules and the words |
 | [Architecture](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/architecture.md) | The parts and the rules |
 | [Troubleshooting and FAQ](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/troubleshooting.md) | A bar that does nothing, an unknown tag |
-| [The data door](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/data-door.md) | How a package takes outside data as a source with its own licence and credit: the shared template and its four functions |
 | [Upgrading](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/upgrading.md) | What each version asks of you |
 
 Each guide has a Japanese page of the same name in [docs/guides/ja](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/ja). The reference for every export is [docs/API.md](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/API.md), written from the built declarations. The repository's own notes: [theme switch](docs/theme-switch.md), [language picker](docs/language-picker.md), [address state](docs/address-state.md), [save image](docs/save-image.md), [renderer](docs/renderer.md), [the drag rule](docs/drag-rule.md), [CSP](docs/csp.md), [labels](docs/labels.md), [the package standard](docs/package-standard.md).
