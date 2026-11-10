@@ -26,7 +26,7 @@ const OWNER = "johnmorrisdotca";
  * The SHA-256 of kazoku-ui's templates/data-door.ts (the data door of MODULES-831), line ends as "\n". A package that has src/data-door.ts must hold exactly that file; a kazoku-ui test keeps this
  * line equal to the template, so changing the template means changing this line, and then every package's copy of both files.
  */
-export const DATA_DOOR_SHA256 = "cccd0fbe56f5efda9f7127fc2213c87be6d84b26161d8500e5bb743a382bdcdf";
+export const DATA_DOOR_SHA256 = "e73fcb926ad317d008e707a9ac2af4bf5343e1801d767fe4a3b1d9f76200d801";
 
 /** The usage every package's README (or a guide it links) shows, each as the words a reader would find it by. */
 export const USAGE = {
