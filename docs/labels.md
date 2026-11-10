@@ -123,6 +123,16 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 | `wide` | Wide | ワイド | waido, wide (the button in Normal) |
 | `normal` | Normal | ふつう | futsū, normal (the button in Wide) |
 
+## Page frame
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `home` | Home | ホーム | hōmu, home (the link to the demo's home page) |
+| `sheets` | Printable sheets | 印刷用シート | insatsu-yō shīto, sheets for printing (the link to the sheets) |
+| `credits` | Data and credits | データと出典 | dēta to shutten, data and its sources (the link, and the lead-in to a credit line) |
+| `site` | This site | このサイト | kono saito, this site (the links' name for a screen reader) |
+| `colon` | `: ` | `：` | the colon between the package's name and what the page shows; full width in Japanese |
+
 ## Embed panel
 
 | Key | English | 日本語 | Reading and meaning |

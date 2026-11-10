@@ -8,7 +8,7 @@
 //
 //   "family": { "notApplicable": { "angular": "a data package with no element", "embed": "no view to frame" } }
 //
-// The items: demo, pages, homepage, embed, embed-panel, family-files, docs-site, ja-guides, usage-tested, usage-in-ci, and the README's (or a guide's) usage for script-tag,
+// The items: demo, pages, homepage, embed, embed-panel, page-frame, family-files, docs-site, ja-guides, usage-tested, usage-in-ci, and the README's (or a guide's) usage for script-tag,
 // esm, bundlers, react, vue, svelte, angular, iframe and typescript.
 import console from "node:console";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -17,7 +17,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 /** The day this file was last changed, in every repository at once. A test in each repository records the file's hash beside it. */
-export const STANDARD_VERSION = "2026-11-03";
+export const STANDARD_VERSION = "2026-11-10";
 
 const OWNER = "johnmorrisdotca";
 
@@ -41,6 +41,7 @@ export const ITEMS = {
   homepage: `package.json's homepage is the demo (https://${OWNER}.github.io/<package>/) and the README links it`,
   embed: "an embed page, demo/embed.html (or demo/embed/index.html)",
   "embed-panel": "the demo's \"Put it in your page\" is kazoku-ui's <kazoku-embed-panel> (a package that draws nothing gives it the code tabs only)",
+  "page-frame": "every demo page (not an embed or a test page) has kazoku-ui's <kazoku-page-header> (what the page is, a way home, the printable sheets) and <kazoku-page-credits>, and a <title>; an embed page has the credit line",
   "family-files": "the family's files, unedited: scripts/family-template.mjs (listing this package, with the kazoku-ui language picker and theme switch in the header), scripts/family-readme.mjs and demo/family.css",
   "docs-site": "a documentation site: scripts/docs-site.mjs, docs/site.json and at least one guide in docs/guides/",
   "ja-guides": "a Japanese twin in docs/guides/ja/ for every guide, one language to a page",
@@ -83,6 +84,20 @@ export function standardOf(root = ".") {
 
   const pages_ = existsSync(at(root, "demo")) ? readdirSync(at(root, "demo")).filter((name) => name.endsWith(".html")) : [];
   need("embed-panel", pages_.some((name) => /<kazoku-embed-panel\b/.test(read(at(root, "demo", name)))), "put kazoku-ui's <kazoku-embed-panel> in the demo (import \"@johnmorrisdotca/kazoku-ui/embed-panel/define\"), filled with the package's own choices and code; docs/embed-panel-survey.md and the kazoku-ui guide \"embed-panel\" say how");
+
+  // Every page of the demo says what it is and credits its data (kazoku-ui's page-frame part). A page a build makes from a source file may hold the placeholders <!--frame:head-->, <!--frame:header-->
+  // and <!--frame:credits--> (the family template's <!--family:head--> counts for the head), which the build replaces with pageHeadHtml, pageHeaderHtml and pageCreditsHtml.
+  const framed = pages_.filter((name) => !/(^|[-_.])(test|check)\./.test(name));
+  const unframed = framed.flatMap((name) => {
+    const html = read(at(root, "demo", name));
+    const embed = /^embed(-3d|-page)?\.html$|-embed\.html$/.test(name);
+    const lacks = [];
+    if (!/<title>[^<]*\S[^<]*<\/title>|<!--(frame|family):head-->/.test(html)) lacks.push("a <title>");
+    if (!embed && !/<kazoku-page-header\b|<!--frame:header-->/.test(html)) lacks.push("<kazoku-page-header>");
+    if (!/<kazoku-page-credits\b|<!--frame:credits-->/.test(html)) lacks.push("<kazoku-page-credits>");
+    return lacks.length > 0 ? [`${name} (${lacks.join(", ")})`] : [];
+  });
+  need("page-frame", unframed.length === 0, `give every demo page the page frame (import "@johnmorrisdotca/kazoku-ui/page-frame/define"; kazoku-ui's guide "page-frame" says how): ${unframed.join("; ")}`);
 
   const template = existsSync(at(root, "scripts", "family-template.mjs")) ? read(at(root, "scripts", "family-template.mjs")) : "";
   need(

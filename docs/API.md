@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame"];
 ```
 
 ### Part
@@ -3453,6 +3453,325 @@ import { defineWideToggle } from '@johnmorrisdotca/kazoku-ui/wide-layout/define'
 
 ```ts
 function defineWideToggle(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/page-frame`
+
+15 values and 8 types.
+
+```js
+import { applyPageMeta, CREDITS_TAG, escapeHtml, languageOf, pageCreditsHtml, pageHeaderHtml, pageHeadHtml, pageProblems, pageTitle, pickText, samePage, TAG, watchPageMeta, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/page-frame';
+```
+
+### applyPageMeta
+
+*function*. Sets `document.title` and the description (and the Open Graph pair, when the page has them) from the page's words in `language`. Returns what it set.
+
+```ts
+function applyPageMeta(doc: Document, texts: PageTexts, language: Language): {
+    title: string;
+    description: string;
+};
+```
+
+### CREDITS_TAG
+
+*constant*
+
+```ts
+const CREDITS_TAG = "kazoku-page-credits";
+```
+
+### escapeHtml
+
+*constant*. Text as it is written into HTML, between tags or inside a double-quoted attribute.
+
+```ts
+const escapeHtml: (text: string) => string;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### pageCreditsHtml
+
+*function*. `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both.
+
+```ts
+function pageCreditsHtml(credits: PageCredits | undefined, options?: PageCreditsOptions): string;
+```
+
+### pageHeaderHtml
+
+*function*. `<kazoku-page-header>` as a string, for a build: the package's name, what this page shows, the page's description (kept for `meta`), and the links, with the same words
+
+```ts
+function pageHeaderHtml(texts: PageTexts, options?: PageHeaderOptions): string;
+```
+
+### pageHeadHtml
+
+*function*. The lines of `<head>` that name the page: `<title>`, the description, and the same two for a shared link (Open Graph). Write them at build time, so the built HTML carries them
+
+```ts
+function pageHeadHtml(texts: PageTexts, language?: Language): string;
+```
+
+### pageProblems
+
+*function*. What is wrong with one page's HTML, as lines of text; an empty list means the page is fine. A page needs a real `<title>` and description in the HTML itself, a
+
+```ts
+function pageProblems(html: string, options?: PageCheckOptions): string[];
+```
+
+### pageTitle
+
+*function*. The page's `<title>`: the package's name, then what the page shows ("Hoshi Stars: The 88 constellations"; in Japanese a full-width colon).
+
+```ts
+function pageTitle(text: Pick<PageText, "name" | "what">, language?: Language): string;
+```
+
+### pickText
+
+*constant*. The words for `language`: its own table, else English.
+
+```ts
+const pickText: (texts: PageTexts, language: Language) => PageText;
+```
+
+### samePage
+
+*function*. True when `href` (relative to `base`) is the page at `base`: `index.html`, `./` and `/demo/` are one page, and a search or hash does not make another.
+
+```ts
+function samePage(href: string, base: string): boolean;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-page-header";
+```
+
+### watchPageMeta
+
+*function*. Sets the title and description now, and again whenever the page's `lang` changes (the language picker writes it on `<html>`). Returns a function that stops watching.
+
+```ts
+function watchPageMeta(doc: Document, texts: PageTexts): () => void;
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, PageFrameWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<PageFrameWords>) => PageFrameWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### PageCheckOptions
+
+*interface*. What a page must have. An embed page (made for someone else's site) needs the credit line only.
+
+```ts
+interface PageCheckOptions {
+    /** True for a page that sits inside another site: the credit line, in its small form, and no header. */
+    embed?: boolean;
+}
+```
+
+### PageCredits
+
+*interface*. What the page says in each language about its credits: the line itself. English is required.
+
+```ts
+interface PageCredits {
+    en: string;
+    ja?: string;
+}
+```
+
+### PageCreditsOptions
+
+*interface*. How the credit line is made.
+
+```ts
+interface PageCreditsOptions {
+    /** A link to the NOTICE or credits page ("Data and credits"). With a line of credits too, the link follows it. */
+    href?: string;
+    /** The small form for a page that sits inside someone else's site: the credit line only. */
+    embed?: boolean;
+    /** The language of the words written inside the tag. Default `en`. */
+    language?: Language;
+    /** Your own words, over the family's. */
+    words?: Partial<PageFrameWords>;
+}
+```
+
+### PageFrameWords
+
+*interface*
+
+```ts
+interface PageFrameWords {
+    /** The link to the demo's home page. */
+    home: string;
+    /** The link to the printable sheets. */
+    sheets: string;
+    /** The link to the credits page, and the lead-in to a page's own credit line. */
+    credits: string;
+    /** The name of the header's links for a screen reader. */
+    site: string;
+    /** What stands between the package's name and what the page shows: a colon. */
+    colon: string;
+}
+```
+
+### PageHeaderOptions
+
+*interface*. Where the links go and how the header is made.
+
+```ts
+interface PageHeaderOptions {
+    /** The demo's home page, as an address the page can use. Default `index.html`. */
+    home?: string;
+    /** The printable sheets, when the package has them. Left out, the header has no Sheets link. */
+    sheets?: string;
+    /** The language of the words written inside the tag. Default `en`; the element changes it with the reader's. */
+    language?: Language;
+    /** Also set the document's title and description from these words when the language changes (the element's `meta` attribute). */
+    meta?: boolean;
+    /** Your own words for Home and the sheets link, over the family's. */
+    words?: Partial<PageFrameWords>;
+}
+```
+
+### PageText
+
+*interface*. One language's words for one page.
+
+```ts
+interface PageText {
+    /** The package's name as that language writes it: "Hoshi Stars". */
+    name: string;
+    /** What this page shows, in plain words for a person who has never heard of the package: "Every one of the 88 constellations, pictured". */
+    what: string;
+    /** The page's description, for a search result and a shared link: one or two sentences. */
+    description: string;
+}
+```
+
+### PageTexts
+
+*interface*. A page's words in each language. English is required, and stands in for a language that is left out.
+
+```ts
+interface PageTexts {
+    en: PageText;
+    ja?: PageText;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/page-frame/element`
+
+4 values and 0 types.
+
+```js
+import { CREDITS_TAG, PageCreditsElement, PageHeaderElement, TAG } from '@johnmorrisdotca/kazoku-ui/page-frame/element';
+```
+
+### CREDITS_TAG
+
+*constant*
+
+```ts
+const CREDITS_TAG = "kazoku-page-credits";
+```
+
+### PageCreditsElement
+
+*class*. Attributes: `credits` (this page's credit line, for example "Stars: Yale Bright Star Catalogue, public domain"), `credits-ja`, `href` (a link to the NOTICE or credits page,
+
+```ts
+class PageCreditsElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Your own words over the family's, for example `{ credits: "Sources" }`. */
+    set words(words: Partial<PageFrameWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(): void;
+}
+```
+
+### PageHeaderElement
+
+*class*. Attributes: `name` (the package's name), `what` (what this page shows, in plain words), `home` (the demo's home page; `index.html` by default), `sheets` (the printable sheets; no
+
+```ts
+class PageHeaderElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The page's words as one table, over the attributes. */
+    get texts(): PageTexts | undefined;
+    set texts(texts: PageTexts | undefined);
+    /** Your own words for Home and the sheets link over the family's, for example `{ sheets: "Sheets to print" }`. */
+    set words(words: Partial<PageFrameWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-page-header";
+```
+
+## `@johnmorrisdotca/kazoku-ui/page-frame/define`
+
+1 value and 0 types.
+
+```js
+import { definePageFrame } from '@johnmorrisdotca/kazoku-ui/page-frame/define';
+```
+
+### definePageFrame
+
+*function*. Registers both tags on `registry`; true if it registered at least one.
+
+```ts
+function definePageFrame(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/print`

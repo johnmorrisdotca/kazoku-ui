@@ -27,12 +27,14 @@ import { sample } from "@johnmorrisdotca/sample-pkg";
 
 Vite, webpack, React, Vue, Svelte, Angular and TypeScript: see the guides.
 `;
+const FRAMED = "<!doctype html><title>Sample: a page</title><kazoku-page-header what=\"a page\"></kazoku-page-header><kazoku-page-credits credits=\"Own data.\"></kazoku-page-credits>";
 const FILES: Record<string, string> = {
   "package.json": JSON.stringify({ name: "@johnmorrisdotca/sample-pkg", homepage: HOME, scripts: { "test:usage": "node scripts/check-usage.ts" } }),
   "README.md": README,
-  "demo/index.html": "<!doctype html><kazoku-embed-panel></kazoku-embed-panel>",
-  "demo/builder.html": "<!doctype html><kazoku-embed-panel kinds=\"html\"></kazoku-embed-panel>",
-  "demo/embed.html": "<!doctype html>",
+  "demo/index.html": `${FRAMED}<kazoku-embed-panel></kazoku-embed-panel>`,
+  "demo/builder.html": `${FRAMED}<kazoku-embed-panel kinds="html"></kazoku-embed-panel>`,
+  "demo/embed.html": "<!doctype html><title>Embed</title><kazoku-page-credits embed credits=\"Own data.\"></kazoku-page-credits>",
+  "demo/element-check.html": "<!doctype html>",
   "demo/family.css": "/* css */",
   "scripts/family-template.mjs": 'export const FAMILY = [{ id: "sample-pkg" }]; const header = "<kazoku-language-picker></kazoku-language-picker><kazoku-theme-switch></kazoku-theme-switch>";',
   "scripts/family-readme.mjs": "// writer",
@@ -75,7 +77,8 @@ test("each item, taken away, is named, and only it", () => {
     pages: (files) => (files[".github/workflows/pages.yml"] = null),
     homepage: (files) => (files["package.json"] = JSON.stringify({ name: "@johnmorrisdotca/sample-pkg", scripts: { "test:usage": "x" } })),
     embed: (files) => (files["demo/embed.html"] = null),
-    "embed-panel": (files) => ((files["demo/index.html"] = "<!doctype html>"), (files["demo/builder.html"] = "<!doctype html>")),
+    "embed-panel": (files) => ((files["demo/index.html"] = FRAMED), (files["demo/builder.html"] = FRAMED)),
+    "page-frame": (files) => (files["demo/builder.html"] = `<!doctype html><kazoku-embed-panel kinds="html"></kazoku-embed-panel>`),
     "family-files": (files) => (files["scripts/family-template.mjs"] = 'export const FAMILY = [{ id: "other" }];'),
     "docs-site": (files) => (files["scripts/docs-site.mjs"] = null),
     "ja-guides": (files) => (files["docs/guides/ja/getting-started.md"] = null),
@@ -104,6 +107,24 @@ test("an item that cannot apply is exempt when package.json says why, and not wh
   assert.deepEqual(missing(exempt("no")), ["angular"]);
   const unknown = (files: Record<string, string | null>) => (files["package.json"] = JSON.stringify({ name: "@johnmorrisdotca/sample-pkg", homepage: HOME, scripts: { "test:usage": "x" }, family: { notApplicable: { nothing: "not an item on the list at all" } } }));
   assert.deepEqual(missing(unknown), ["nothing"]);
+});
+
+test("the page frame: a page that lacks the title, the header or the credit line is named, with what it lacks; placeholders and exempt pages count", () => {
+  const say = (change: (files: Record<string, string | null>) => void): string => {
+    const root = make(change);
+    try {
+      return standard.standardOf(root).missing.map((one) => one.say).join("|");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+  assert.match(say((files) => (files["demo/builder.html"] = "<kazoku-embed-panel></kazoku-embed-panel>")), /builder\.html \(a <title>, <kazoku-page-header>, <kazoku-page-credits>\)/);
+  assert.match(say((files) => (files["demo/embed.html"] = "<!doctype html><title>Embed</title>")), /embed\.html \(<kazoku-page-credits>\)/);
+  // An embed page needs no header; a test page needs nothing; the build's placeholders are the tags.
+  assert.deepEqual(missing((files) => (files["demo/builder.html"] = "<!--frame:head--><!--frame:header--><!--frame:credits--><kazoku-embed-panel></kazoku-embed-panel>")), []);
+  assert.deepEqual(missing((files) => (files["demo/builder.html"] = "<!--family:head--><!--frame:header--><!--frame:credits--><kazoku-embed-panel></kazoku-embed-panel>")), []);
+  assert.deepEqual(missing((files) => (files["demo/embed-3d.html"] = "<!doctype html><title>3D</title><!--frame:credits-->")), []);
+  assert.deepEqual(missing((files) => (files["demo/embed-panel.html"] = "<!doctype html>")), ["page-frame"], "embed-panel.html is a page like any other");
 });
 
 test("the check is plain JavaScript with no dependency and names no private host or key", () => {
