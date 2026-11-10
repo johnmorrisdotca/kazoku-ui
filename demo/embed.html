@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: embed page of the demo badge</title>
   <meta name="description" content="The demo badge, drawn at the size of the frame it sits in, for the embed panel to put in a page." />
-  <style>html, body { margin: 0; background: transparent; } body { display: grid; grid-template-rows: 1fr auto; place-items: center; min-height: 100vh; } demo-badge { grid-row: 1; } kazoku-page-credits { grid-row: 2; width: 100%; padding: 0 8px; box-sizing: border-box; }</style>
+  <style>html, body { margin: 0; background: transparent; } body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr auto; place-items: center; min-height: 100vh; } demo-badge { grid-row: 1; } kazoku-page-credits { grid-row: 2; width: 100%; padding: 0 8px; box-sizing: border-box; }</style>
 </head>
 <body>
 <kazoku-page-credits embed credits="Drawn by the Kazoku UI demo; no outside data." credits-ja="Kazoku UIのデモが描いた絵です。外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>

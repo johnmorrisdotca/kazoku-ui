@@ -32,3 +32,5 @@ function words() {
 }
 new globalThis.MutationObserver(() => globalThis.queueMicrotask(words)).observe(document.documentElement, { attributes: true, attributeFilter: ["lang"] });
 words();
+// The picker may have written `lang` while this script was loading, and the header changes the title in its own turn: read it once more after that.
+globalThis.queueMicrotask(words);

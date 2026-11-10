@@ -4,6 +4,8 @@ import { expect, test } from "@playwright/test";
 const view = (page, id) => page.locator(`#${id}`);
 const read = (page, id) => view(page, id).evaluate((el) => ({ zoom: Number(el.dataset.zoom), yaw: Number(el.dataset.yaw), tilt: Number(el.dataset.tilt), panX: Number(el.dataset.panX) }));
 const centreOf = async (page, id) => {
+  // The mouse works in the viewport's coordinates: bring the element into view first (the page's header takes room on a phone).
+  await view(page, id).scrollIntoViewIfNeeded();
   const box = await view(page, id).boundingBox();
   return { x: box.x + box.width / 2, y: box.y + box.height / 2, width: box.width, height: box.height };
 };

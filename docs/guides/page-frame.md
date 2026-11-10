@@ -32,6 +32,7 @@ Put the header inside the page's top bar, as one more row of it (it has no backg
   credits-ja="星：イェール輝星星表（パブリックドメイン）。星座線：自作の図です。" href="NOTICE.html"></kazoku-page-credits>
 
 <script type="module">
+  import "@johnmorrisdotca/kazoku-ui/language-picker/define";
   import "@johnmorrisdotca/kazoku-ui/page-frame/define";
 </script>
 ```
@@ -85,12 +86,12 @@ const credits = pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue." }, { 
 
 `pageProblems(html, { embed })` reads one page's HTML and returns what is wrong with it, as lines of text: no `<title>` in the HTML, no description of a sentence, no header, a header with no `what`, no credit line, a credit line with neither `credits` nor `href`, or an embed page whose credit line is not the `embed` form. A package's own test runs it over every page its build wrote (`site/*.html`), leaving out test pages:
 
-```js
+```js no-check
 import { readFileSync, readdirSync } from "node:fs";
 import { pageProblems } from "@johnmorrisdotca/kazoku-ui/page-frame";
 
 for (const name of readdirSync("site").filter((file) => file.endsWith(".html"))) {
-  const problems = pageProblems(readFileSync(`site/${name}`, "utf8"), { embed: /^embed/.test(name) });
+  const problems = pageProblems(readFileSync(`site/${name}`, "utf8"), { embed: /^embed(-3d|-page)?\.html$|-embed\.html$/.test(name) });
   if (problems.length > 0) throw new Error(`${name}: ${problems.join("; ")}`);
 }
 ```

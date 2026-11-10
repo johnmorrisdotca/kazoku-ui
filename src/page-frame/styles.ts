@@ -34,6 +34,6 @@ p { flex: 1 1 20rem; min-width: 0; margin: 0; overflow-wrap: break-word; }
 :host([embed]) { font-size: 0.8125rem; color: var(--_muted); }
 :host([embed]) .box { display: block; padding: 6px 0; border-top: 0; }
 :host([embed]) p { display: inline; }
-:host([embed]) a { display: inline; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font-size: inherit; text-decoration: underline; }
+:host([embed]) a { display: inline; margin-left: 0.35em; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; font-size: inherit; text-decoration: underline; }
 :host([embed]) a:focus-visible { outline-offset: 1px; }
 `;

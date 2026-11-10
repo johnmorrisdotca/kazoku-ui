@@ -34,6 +34,7 @@ description: どのデモページにも、メニューを開かなくても見�
   credits-ja="星：イェール輝星星表（パブリックドメイン）。星座線：自作の図です。" href="NOTICE.html"></kazoku-page-credits>
 
 <script type="module">
+  import "@johnmorrisdotca/kazoku-ui/language-picker/define";
   import "@johnmorrisdotca/kazoku-ui/page-frame/define";
 </script>
 ```
@@ -87,12 +88,12 @@ const credits = pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue." }, { 
 
 `pageProblems(html, { embed })`は、1ページのHTMLを読み、問題を文の一覧で返します。たとえば、HTMLに`<title>`がない、1文の説明がない、見出しがない、見出しに`what`がない、クレジットの行がない、`credits`も`href`もない、埋め込みページなのにクレジットが`embed`の形でない、などです。パッケージ自身のテストが、ビルドが書いた全ページ（`site/*.html`）にこれを実行します。テスト用のページは除きます。
 
-```js
+```js no-check
 import { readFileSync, readdirSync } from "node:fs";
 import { pageProblems } from "@johnmorrisdotca/kazoku-ui/page-frame";
 
 for (const name of readdirSync("site").filter((file) => file.endsWith(".html"))) {
-  const problems = pageProblems(readFileSync(`site/${name}`, "utf8"), { embed: /^embed/.test(name) });
+  const problems = pageProblems(readFileSync(`site/${name}`, "utf8"), { embed: /^embed(-3d|-page)?\.html$|-embed\.html$/.test(name) });
   if (problems.length > 0) throw new Error(`${name}: ${problems.join("; ")}`);
 }
 ```

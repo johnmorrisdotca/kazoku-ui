@@ -105,7 +105,9 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-test("the keyboard reaches Home and Sheets, shows where it is, and Enter follows the link", async ({ page }) => {
+test("the keyboard reaches Home and Sheets, shows where it is, and Enter follows the link", async ({ page, browserName }) => {
+  // Safari and WebKit do not put links in the Tab order unless the reader turns that on (Option-Tab), so the Tab walk is Chromium's to prove.
+  test.skip(browserName === "webkit", "WebKit leaves links out of the Tab order by default");
   await ready(page, "address.html");
   const focused = () => page.evaluate(() => { const host = document.activeElement; const inner = host?.shadowRoot?.activeElement; return { host: host?.localName, text: inner?.textContent ?? "", outline: inner ? getComputedStyle(inner).outlineStyle : "" }; });
   let seen;

@@ -148,3 +148,4 @@ kazoku-page-credits { margin-top: 20px; }
 /* The page frame: the header line sits in the top bar (a row of its own inside it, not a second bar); the credit line is the last thing on the page, above where a footer would be. */
 kazoku-page-header { flex: 1 1 100%; margin: 2px 0 6px; }
 kazoku-page-credits { margin-top: 20px; }
+.panel h3.ex { margin: 14px 0 2px; font-size: 0.95rem; }
