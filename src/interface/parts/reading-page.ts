@@ -35,6 +35,7 @@ h2 { margin: 0 0 16px; color: ${kui("text")}; font-size: 24px; font-weight: 600;
 .big { font-family: ${MONO}; font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .big a { color: ${kui("text")}; text-decoration: none; border-bottom: 1px dotted ${kui("text-quiet")}; }
 .big a:hover { color: ${kui("sky-hover")}; }
+.num { white-space: nowrap; }
 .big sup, td.v sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
 .unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 14px; font-weight: 400; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
@@ -108,7 +109,7 @@ export class ReadingPageElement extends InterfacePart {
   #value(doc: Document, value: string | number | null | undefined, unit: string | undefined, source: SourceLink | undefined, language: "en" | "ja", label: string): HTMLElement {
     const text = formatValue(value);
     const where = source === undefined ? "" : say(source.label, language);
-    const content: (string | Node)[] = valueNodes(doc, value);
+    const content: (string | Node)[] = [h(doc, "span", { class: "num" }, valueNodes(doc, value))];
     if (unit !== undefined && unit !== "") content.push(h(doc, "span", { class: "unit" }, [unit]));
     return source === undefined
       ? h(doc, "span", {}, content)

@@ -25,6 +25,7 @@ ${PLACEMENT}
 .stat dd { margin: 0; font-family: var(--kui-font-mono, ui-monospace, monospace); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .stat dd a { color: ${kui("text")}; text-decoration: underline dotted ${kui("text-quiet")}; text-underline-offset: 4px; }
 .stat dd a:hover { color: ${kui("sky-hover")}; text-decoration-style: solid; }
+.num { white-space: nowrap; }
 .stat dd sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
 .unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 12px; font-weight: 400; }
 .note { margin: 0 0 16px; color: ${kui("text-quiet")}; font-size: 12px; }
@@ -120,7 +121,7 @@ export class ObjectCardElement extends InterfacePart {
       const value = h(doc, "dd", { part: "value", "data-computed": stat.computed === true });
       const sourceText = stat.source === undefined ? "" : say(stat.source.label, language);
       const link = stat.source !== undefined ? h(doc, "a", { href: stat.source.href, "aria-label": `${label}: ${text}${stat.unit ? ` ${stat.unit}` : ""}. ${words.source}: ${sourceText}${stat.computed === true ? `. ${words.computed}` : ""}`, title: `${words.source}: ${sourceText}` }) : h(doc, "span", {});
-      link.append(...valueNodes(doc, stat.value));
+      link.append(h(doc, "span", { class: "num" }, valueNodes(doc, stat.value)));
       if (stat.unit !== undefined && stat.unit !== "") link.append(h(doc, "span", { class: "unit" }, [stat.unit]));
       value.append(link);
       stats.append(h(doc, "div", { class: "stat", part: "stat" }, [h(doc, "dt", { class: "label" }, [label]), value]));

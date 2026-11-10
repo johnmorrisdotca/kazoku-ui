@@ -71,7 +71,9 @@ tabs.addEventListener("keydown", (event) => {
   event.preventDefault();
   show(TABS[(at + move + TABS.length) % TABS.length][0], true);
 });
-show(TABS.some(([id]) => `#${id}` === location.hash) ? location.hash.slice(1) : "tokens", false);
+const fromAddress = () => (TABS.some(([id]) => `#${id}` === location.hash) ? location.hash.slice(1) : "tokens");
+show(fromAddress(), false);
+window.addEventListener("hashchange", () => show(fromAddress(), false));
 
 // Tokens.
 const swatches = $("swatches");
@@ -106,5 +108,6 @@ $("top").trail = [{ label: "Solar system", href: "interface.html" }, { label: { 
 onLang(() => {
   for (const el of document.querySelectorAll("[data-say]")) el.textContent = SAY[lang()][el.dataset.say];
   for (const [id, words] of TABS) $(`t-${id}`).textContent = words[lang()];
+  $("top").setAttribute("placeholder", lang() === "ja" ? "星、惑星、ロケットを検索" : "Search stars, planets, rockets");
   $("top").trail = [{ label: lang() === "ja" ? "太陽系" : "Solar system", href: "interface.html" }, { label: { en: "Jupiter", ja: "木星" } }];
 });

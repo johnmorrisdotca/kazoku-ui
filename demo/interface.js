@@ -25,6 +25,7 @@ syncSources();
 
 onLang(() => {
   for (const el of document.querySelectorAll("[data-say]")) el.textContent = SAY[lang()][el.dataset.say];
+  $("top").setAttribute("placeholder", lang() === "ja" ? "星、惑星、ロケットを検索" : "Search stars, planets, rockets");
   $("top").trail = lang() === "ja" ? TRAIL_JA : TRAIL;
   $("foot").sources = CREDITS;
 });
