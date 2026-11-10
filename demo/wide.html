@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: wide layout</title>
+  <meta name="description" content="A Wide and Normal button that gives the view the whole page width and moves the side panel below it, as theatre mode does on a video site." />
   <link rel="stylesheet" href="demo.css" />
   <style>
     html[data-wide="on"] main { max-width: none; }
@@ -24,6 +25,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="wide layout" what-ja="ワイド表示" description="A Wide and Normal button that gives the view the whole page width and moves the side panel below it, as theatre mode does on a video site." description-ja="ワイドとふつうを切り替えるボタンです。動画サイトのシアターモードのように、表示がページの幅いっぱいになり、横のパネルがその下に移ります。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
   <p class="intro" data-say="intro">The Wide button, or the T key, gives the view the page's whole width and moves the side panel below it. Normal puts it back. The choice is kept in the address (?wide=on) and on this device.</p>
@@ -35,7 +37,9 @@
       <section class="panel"><h2 data-say="notes">Notes</h2><p data-say="note">The panel is a column beside the view, and a row of boxes below it in Wide. On a phone it is always below.</p></section>
     </aside>
   </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="wide.js"></script>
 </body>
 </html>

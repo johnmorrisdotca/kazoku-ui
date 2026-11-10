@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: the embed panel</title>
+  <meta name="description" content="The family's &quot;Put it in your page&quot; panel: pick a size and a tab, see the picture, and copy the code for HTML, a module, React, Vue, Angular, Svelte or an iframe." />
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body>
@@ -15,6 +16,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="the embed panel" what-ja="埋め込みパネル" description="The family's &quot;Put it in your page&quot; panel: pick a size and a tab, see the picture, and copy the code for HTML, a module, React, Vue, Angular, Svelte or an iframe." description-ja="ファミリー共通の「自分のページに入れる」パネルです。大きさとタブを選び、絵を見て、HTML、モジュール、React、Vue、Angular、Svelte、iframeのコードをコピーできます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="speed.html" data-say="speed">Speed buttons</a></p>
   <p class="intro" data-say="intro">The one "Put it in your page" panel of the family. A package gives it a list of things, the code for each way a page is made and the picture the code makes. Pick a badge, choose a size and a tab, and copy.</p>
@@ -39,7 +41,9 @@
     <p class="intro" data-say="twoText">No picture, no size, two tabs: a data package says what it has and the panel keeps the rest.</p>
     <kazoku-embed-panel id="data" no-preview no-size kinds="html module" docs-href="https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/embed-panel.md" data-testid="data"></kazoku-embed-panel>
   </section>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="embed-panel.js"></script>
 </body>
 </html>

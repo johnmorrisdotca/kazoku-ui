@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: replay bar</title>
+  <meta name="description" content="Play, pause, back to the start and repeat, in one row with the family's speed buttons, for anything that moves on a clock." />
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body>
@@ -15,6 +16,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="replay bar" what-ja="リプレイバー" description="Play, pause, back to the start and repeat, in one row with the family's speed buttons, for anything that moves on a clock." description-ja="再生、一時停止、最初へ、繰り返しを、ファミリー共通の速さのボタンと同じ行に置きます。時間で動くものなら何にでも使えます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="speed.html" data-say="speed">Speed buttons</a></p>
   <p class="intro" data-say="intro">Play, pause, back to the start and repeat, with the family's speed buttons on the same row. The bar reports the choice. The page moves the thing.</p>
@@ -24,7 +26,9 @@
       <output id="out" data-testid="out"></output>
     </section>
   </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="replay.js"></script>
 </body>
 </html>

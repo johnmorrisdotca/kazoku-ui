@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: options window</title>
+  <meta name="description" content="A small window of options that floats over a 3D view, can be dragged, snapped to an edge, folded and brought back, and stays out of the way on a phone." />
   <link rel="stylesheet" href="demo.css" />
   <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
   <style>
@@ -27,6 +28,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="options window" what-ja="オプションウィンドウ" description="A small window of options that floats over a 3D view, can be dragged, snapped to an edge, folded and brought back, and stays out of the way on a phone." description-ja="3D表示の上に浮かぶ小さなオプションウィンドウです。ドラッグして動かし、端に寄せ、たたみ、また開けます。スマホでは邪魔になりません。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
   <p class="intro" data-say="intro">A small window over the view. Drag the title, fold it to a chip, and snap it to a corner. The page fills it.</p>
@@ -97,7 +99,9 @@
       <p>Turn speed</p>
     </kazoku-options-window>
   </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data; the 3D drawing uses three.js (MIT licence)." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。3Dの描画にはthree.js（MITライセンス）を使っています。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="options.js"></script>
 </body>
 </html>

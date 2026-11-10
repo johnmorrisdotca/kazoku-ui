@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: exact grab</title>
+  <meta name="description" content="Drag a point on a turned and zoomed view and it stays under the pointer, instead of sliding away from it." />
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body>
@@ -14,6 +15,7 @@
     <div class="tools">
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="exact grab" what-ja="正確なドラッグ" description="Drag a point on a turned and zoomed view and it stays under the pointer, instead of sliding away from it." description-ja="回したり拡大したりした表示でも、つかんだ点はポインターの下にとどまり、滑って離れません。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro"><a href="index.html">The view controls</a> · A drawn globe, 120 pixels in radius. Drag it: the point you touch stays under the pointer. With <code>?grab=off</code> the drag turns it by a fixed angle across the view instead: a half turn over the view's width.</p>
   <div class="scene" id="scene" tabindex="0" role="group" aria-roledescription="globe" data-testid="scene">
@@ -21,7 +23,9 @@
   </div>
   <kazoku-view-controls id="controls" for="scene" tilt-max="80" data-testid="controls"></kazoku-view-controls>
   <output class="readout" id="readout" data-testid="readout" aria-live="off"></output>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="grab.js"></script>
 </body>
 </html>

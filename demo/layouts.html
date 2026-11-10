@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: view controls layouts</title>
+  <meta name="description" content="The view controls laid out horizontally, vertically and compactly, at three levels of detail, and what each does on a phone." />
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body class="wide">
@@ -15,6 +16,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="view controls layouts" what-ja="表示の操作のレイアウト" description="The view controls laid out horizontally, vertically and compactly, at three levels of detail, and what each does on a phone." description-ja="表示の操作を、横並び、縦並び、コンパクトの三つの配置と、三つの細かさで見比べます。スマホでの動きも確かめられます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html">The view controls</a> · <a href="https://github.com/johnmorrisdotca/kazoku-ui#layouts">The layouts in the README</a></p>
   <p class="intro">One element, four layouts, chosen by the <code>layout</code> attribute. Each one below is live: drag a card, press the buttons, slide the zoom. More shows the rest in every layout.</p>
@@ -78,6 +80,7 @@
       <div class="snippet"><pre class="code"><code data-code="classic"></code></pre><button class="pill copy" type="button" data-copy="classic">Copy</button></div>
     </section>
   </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
 <template id="card">
   <div class="zoomer">
@@ -95,6 +98,7 @@
     </div>
   </div>
 </template>
+<script type="module" src="frame.js"></script>
 <script type="module" src="layouts.js"></script>
 </body>
 </html>

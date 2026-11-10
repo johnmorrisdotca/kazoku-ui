@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: print layout</title>
+  <meta name="description" content="Printable sheets and posters made in the page: a header, a footer with a QR code of the address, and a poster split across several pages." />
   <link rel="stylesheet" href="demo.css" />
 </head>
 <body>
@@ -15,6 +16,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="print layout" what-ja="印刷レイアウト" description="Printable sheets and posters made in the page: a header, a footer with a QR code of the address, and a poster split across several pages." description-ja="ページの中で作る印刷用のシートとポスターです。ヘッダー、アドレスのQRコードつきのフッター、複数のページに分けたポスターを試せます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="save-image.html" data-say="save">Save as an image</a></p>
   <p class="intro" data-say="intro">A sample sheet: the header, the info box, the footer with a QR code of this page's address, and a poster cut over several pages. Pick a paper, then print it or save it as a PDF.</p>
@@ -36,7 +38,9 @@
     <div class="row"><button class="pill print" id="print" type="button" data-testid="print">Print / save PDF</button><output id="info" data-testid="info"></output></div>
   </section>
   <section class="paper" id="paper" aria-label="Preview" data-testid="paper"><div class="paper-inner" id="paper-inner"></div></section>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="print.js"></script>
 </body>
 </html>

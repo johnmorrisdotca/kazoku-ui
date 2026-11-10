@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: shared 3D renderer</title>
+  <meta name="description" content="One shared 3D renderer for a whole page of views: one graphics context, drawing only what is in sight, with still pictures for the rest." />
   <link rel="stylesheet" href="demo.css" />
   <style>
     main { max-width: 1100px; }
@@ -28,6 +29,7 @@
     <div class="tools">
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="shared 3D renderer" what-ja="共有3Dレンダラー" description="One shared 3D renderer for a whole page of views: one graphics context, drawing only what is in sight, with still pictures for the rest." description-ja="ページ上のたくさんの表示を、一つの3Dレンダラーでまとめて描きます。グラフィックスコンテキストは一つだけで、描くのは見えているものだけ、残りは静止画です。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html">The view controls</a> · <a href="address.html">Choices kept in the address</a> · <a href="save-image.html">Save as an image</a></p>
   <p class="intro">Thirty views, one WebGL context. The one you focus (click, or Tab to it) goes live and turns with the controls; the others are stills, made once from the same renderer. Nothing is drawn while it rests, or when it is out of sight.</p>
@@ -37,7 +39,9 @@
   </div>
   <div class="wall" id="wall" data-testid="wall"></div>
   <ul class="stats" id="stats" data-testid="stats" aria-label="Renderer numbers"></ul>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data; the 3D drawing uses three.js (MIT licence)." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。3Dの描画にはthree.js（MITライセンス）を使っています。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="renderer.js"></script>
 </body>
 </html>

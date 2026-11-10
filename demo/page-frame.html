@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: page header and credits</title>
+  <meta name="description" content="The header line and the credit line every demo page shows without opening a menu: what the page is, a way home, the printable sheets, and who is credited." />
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">page header and credits</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="page header and credits" what-ja="ページの見出しとクレジット" description="The header line and the credit line every demo page shows without opening a menu: what the page is, a way home, the printable sheets, and who is credited." description-ja="どのデモページにも、メニューを開かなくても見える、見出しの行とクレジットの行があります。ページの内容、ホームへのリンク、印刷用シート、出典が分かります。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
+  <p class="intro" data-say="intro">A visitor can land on any page of a demo, from a search, a shared link or a README. Every page therefore says what it is, gives a way home and to the printable sheets, and credits its data, in the top bar and above the footer, with nothing to open.</p>
+  <section class="panel">
+    <h2 data-say="headerHead">The header line</h2>
+    <p data-say="headerText">The package's name and what this page shows, with Home and, when the package has sheets, a link to them. Home is marked as the current page on the home page. It sits in the page's own top bar, a row of its own, not a second bar.</p>
+    <pre class="code" data-testid="code-header"><code>&lt;kazoku-page-header name="Hoshi Stars" what="The 88 constellations" what-ja="88の星座"
+  description="A picture of each of the 88 constellations." sheets="kids.html" meta&gt;&lt;/kazoku-page-header&gt;</code></pre>
+  </section>
+  <section class="panel">
+    <h2 data-say="creditsHead">The credit line, three ways</h2>
+    <h3 data-say="lineHead">This page's own credits</h3>
+    <kazoku-page-credits id="line" credits="Stars: Yale Bright Star Catalogue, public domain. Constellation lines: our own drawing." credits-ja="星：イェール輝星星表（パブリックドメイン）。星座線：自作の図です。" data-testid="credits-line"></kazoku-page-credits>
+    <h3 data-say="bothHead">A line and the link to the full credits</h3>
+    <kazoku-page-credits id="both" credits="Stars: Yale Bright Star Catalogue, public domain." credits-ja="星：イェール輝星星表（パブリックドメイン）。" href="https://github.com/johnmorrisdotca/kazoku-ui/blob/main/LICENSE" data-testid="credits-both"></kazoku-page-credits>
+    <h3 data-say="embedHead">The embed form: the credit only, small</h3>
+    <kazoku-page-credits id="embed" embed credits="Stars: Yale Bright Star Catalogue, public domain." credits-ja="星：イェール輝星星表（パブリックドメイン）。" href="https://github.com/johnmorrisdotca/kazoku-ui/blob/main/LICENSE" data-testid="credits-embed"></kazoku-page-credits>
+    <pre class="code" data-testid="code-credits"><code>&lt;kazoku-page-credits credits="Stars: Yale Bright Star Catalogue, public domain." credits-ja="星：イェール輝星星表（パブリックドメイン）。"
+  href="NOTICE.html" embed&gt;&lt;/kazoku-page-credits&gt;</code></pre>
+  </section>
+  <section class="panel">
+    <h2 data-say="headHead">The title and the description</h2>
+    <p data-say="headText">The page's title and description are made from the same words as the header line, so they cannot disagree. A build writes them into the HTML with pageHeadHtml; the header's meta attribute changes them when the reader changes language.</p>
+    <p><output id="meta" data-testid="meta"></output></p>
+  </section>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="page-frame.js"></script>
+</body>
+</html>

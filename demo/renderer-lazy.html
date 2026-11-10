@@ -5,17 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <title>Kazoku UI: renderer, loaded on demand</title>
+  <meta name="description" content="A page that holds a picture, and fetches the 3D library only when the button is pressed, so a page that never needs 3D never pays for it." />
   <link rel="stylesheet" href="demo.css" />
   <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
 </head>
 <body>
 <main>
-  <h1>Kazoku UI <span class="sub">renderer, loaded on demand</span></h1>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">renderer, loaded on demand</span></h1>
+    <kazoku-page-header name="Kazoku UI" what="renderer, loaded on demand" what-ja="必要なときに読み込むレンダラー" description="A page that holds a picture, and fetches the 3D library only when the button is pressed, so a page that never needs 3D never pays for it." description-ja="ページには絵が置いてあり、ボタンを押したときだけ3Dのライブラリを読み込みます。3Dを使わないページは、その分のデータを読み込まずにすみます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
   <p class="intro nav"><a href="renderer.html">The shared 3D renderer</a></p>
   <p class="intro">The page holds a picture. three.js is fetched only when you press the button.</p>
   <div class="scene" id="host" data-testid="host"></div>
   <p><button type="button" class="pill" id="go" data-testid="go">Make it live</button></p>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data; the 3D drawing uses three.js (MIT licence)." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。3Dの描画にはthree.js（MITライセンス）を使っています。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="renderer-lazy.js"></script>
 </body>
 </html>

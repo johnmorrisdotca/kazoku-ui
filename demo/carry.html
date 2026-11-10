@@ -4,7 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
-  <title>Kazoku UI: an element that carries the controls</title>
+  <title>Kazoku UI: an element that carries its own controls</title>
+  <meta name="description" content="A page element that takes drag, pinch, wheel and keys itself, with no bar, so a view can be turned and zoomed anywhere on a page." />
   <link rel="stylesheet" href="demo.css" />
   <style>
     kazoku-carry-demo { width: 100%; height: 220px; border: 1px dashed var(--line); border-radius: 12px; background: var(--bg); }
@@ -19,6 +20,7 @@
       <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
       <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
     </div>
+    <kazoku-page-header name="Kazoku UI" what="an element that carries its own controls" what-ja="操作を内蔵した要素" description="A page element that takes drag, pinch, wheel and keys itself, with no bar, so a view can be turned and zoomed anywhere on a page." description-ja="バーがなくても、ページの要素がドラッグ、ピンチ、ホイール、キーの操作を直接受け付けます。ページのどこでも、表示を回したり拡大したりできます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
   </header>
   <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="layouts.html" data-say="layouts">Layouts</a></p>
   <p class="intro" data-say="intro">A package's own element can take the drag, the pinch, the wheel and the keys without a bar. The wheel scrolls the page at Fit; Ctrl or Command and the wheel zooms.</p>
@@ -49,7 +51,9 @@ connectedCallback() {
 disconnectedCallback() {
   this.controls?.unbind();
 }</code></pre>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
 </main>
+<script type="module" src="frame.js"></script>
 <script type="module" src="carry.js"></script>
 </body>
 </html>
