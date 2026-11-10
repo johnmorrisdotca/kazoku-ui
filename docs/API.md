@@ -3913,10 +3913,10 @@ function definePageFrame(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/interface`
 
-53 values and 26 types.
+55 values and 27 types.
 
 ```js
-import { canStep, cardProblems, COLOURS, contrastRatio, CONTROL_ORDER, cultureSegments, FONTS, formatMoment, formatValue, fromInputValue, hasValue, ICON_NAMES, ICON_STROKE, ICONS, iconSvg, installTokens, isIconName, isScaleStep, kui, LANGUAGE_SEGMENTS, languageOf, licenceText, lookName, LOOKS, luminance, nextLook, parseControls, parseLooks, parseScaleSteps, parseSegments, RADII, READABLE_PAIRS, readingProblems, say, SCALE_STEPS, scaleName, SIZES, sourcesFromCredits, SPEED_LADDER, speedWords, stepSpeed, TAG, TAGS, TIME_CONTROLS, toInputValue, TOKEN_PROPERTIES, tokensCss, trailText, unreadablePairs, VIEW_CONTROLS, WORDS, wordsFor, zoneName } from '@johnmorrisdotca/kazoku-ui/interface';
+import { canStep, cardProblems, COLOURS, contrastRatio, CONTROL_ORDER, cultureSegments, FONTS, formatMoment, formatValue, fromInputValue, hasValue, ICON_NAMES, ICON_STROKE, ICONS, iconSvg, installTokens, isIconName, isScaleStep, kui, LANGUAGE_SEGMENTS, languageOf, licenceText, lookName, LOOKS, luminance, nextLook, parseControls, parseLooks, parseScaleSteps, parseSegments, RADII, READABLE_PAIRS, readingProblems, say, SCALE_STEPS, scaleName, scientificParts, SIZES, sourcesFromCredits, SPEED_LADDER, speedWords, stepSpeed, superscript, TAG, TAGS, TIME_CONTROLS, toInputValue, TOKEN_PROPERTIES, tokensCss, trailText, unreadablePairs, VIEW_CONTROLS, WORDS, wordsFor, zoneName } from '@johnmorrisdotca/kazoku-ui/interface';
 ```
 
 ### canStep
@@ -4013,7 +4013,7 @@ function formatMoment(ms: number, language: Language, zone?: "utc" | "local", wi
 
 ### formatValue
 
-*function*. A number as the card writes it: up to six significant figures with thousands separated, and powers of ten for the very large and the very small ("1.898e27"). Text is returned as it is;
+*function*. A number as the card writes it: up to six significant figures with thousands separated, and for the very large and the very small a power of ten with a real superscript ("1.898 × 10²⁷", never "1.898e27").
 
 ```ts
 function formatValue(value: string | number | null | undefined): string;
@@ -4242,6 +4242,14 @@ const SCALE_STEPS: readonly ["surface", "moons", "solar", "stars", "galaxy"];
 const scaleName: (step: ScaleStep, words: Pick<InterfaceWords, ScaleStep>) => string;
 ```
 
+### scientificParts
+
+*function*. The pieces of a very large or very small number (a size of a billion or more, or under a thousandth): "1.898" and 27 for 1.898e27. `undefined` for any number that is written in full, and for text.
+
+```ts
+function scientificParts(value: string | number | null | undefined): ScientificParts | undefined;
+```
+
 ### SIZES
 
 *constant*. The sizes, in px, the design names.
@@ -4300,6 +4308,14 @@ function speedWords(speed: number, language: Language, running: boolean, words: 
 
 ```ts
 function stepSpeed(speed: number, direction: 1 | -1, ladder?: readonly number[]): number;
+```
+
+### superscript
+
+*constant*. An exponent as superscript characters: 27 is "²⁷", -5 is "⁻⁵".
+
+```ts
+const superscript: (exponent: number) => string;
 ```
 
 ### TAG
@@ -4748,6 +4764,17 @@ interface ReadingTile {
 
 ```ts
 type ScaleStep = (typeof SCALE_STEPS)[number];
+```
+
+### ScientificParts
+
+*interface*. A number in two pieces, for a part that draws the exponent as a real superscript: `1.898 × 10` and `27`.
+
+```ts
+interface ScientificParts {
+    mantissa: string;
+    exponent: number;
+}
 ```
 
 ### SectionLink

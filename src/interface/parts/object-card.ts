@@ -1,7 +1,7 @@
 // <kazoku-object-card>: part 4. One layout for every kind of object. A label line with the kind, the name with its Japanese name beside it, a close button, a grid of numbers (a label over a mono value,
 // each value a link to its source), the line that says so, then the filled button and the outlined one. On a desk a 320 px panel at the top right; on a phone a sheet that rises from above the control bar.
 import { type ObjectCardData, formatValue, say } from "../card.ts";
-import { h, setAttr } from "../dom.ts";
+import { h, setAttr, valueNodes } from "../dom.ts";
 import { InterfacePart } from "../part.ts";
 import { PHONE, PLACEMENT, UI_BASE } from "../styles.ts";
 import { kui, RADII, SIZES } from "../tokens.ts";
@@ -25,6 +25,7 @@ ${PLACEMENT}
 .stat dd { margin: 0; font-family: var(--kui-font-mono, ui-monospace, monospace); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .stat dd a { color: ${kui("text")}; text-decoration: underline dotted ${kui("text-quiet")}; text-underline-offset: 4px; }
 .stat dd a:hover { color: ${kui("sky-hover")}; text-decoration-style: solid; }
+.stat dd sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
 .unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 12px; font-weight: 400; }
 .note { margin: 0 0 16px; color: ${kui("text-quiet")}; font-size: 12px; }
 .actions { display: flex; gap: 8px; }
@@ -119,7 +120,7 @@ export class ObjectCardElement extends InterfacePart {
       const value = h(doc, "dd", { part: "value", "data-computed": stat.computed === true });
       const sourceText = stat.source === undefined ? "" : say(stat.source.label, language);
       const link = stat.source !== undefined ? h(doc, "a", { href: stat.source.href, "aria-label": `${label}: ${text}${stat.unit ? ` ${stat.unit}` : ""}. ${words.source}: ${sourceText}${stat.computed === true ? `. ${words.computed}` : ""}`, title: `${words.source}: ${sourceText}` }) : h(doc, "span", {});
-      link.append(text);
+      link.append(...valueNodes(doc, stat.value));
       if (stat.unit !== undefined && stat.unit !== "") link.append(h(doc, "span", { class: "unit" }, [stat.unit]));
       value.append(link);
       stats.append(h(doc, "div", { class: "stat", part: "stat" }, [h(doc, "dt", { class: "label" }, [label]), value]));

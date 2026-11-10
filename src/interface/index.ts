@@ -19,7 +19,7 @@ export { canStep, formatMoment, fromInputValue, zoneName, SPEED_LADDER, speedWor
 export { CONTROL_ORDER, LOOKS, lookName, nextLook, parseControls, parseLooks, TIME_CONTROLS, VIEW_CONTROLS, type ControlName, type Look } from "./controls.ts";
 export { isScaleStep, parseScaleSteps, SCALE_STEPS, scaleName, type ScaleStep } from "./scale.ts";
 export { cultureSegments, LANGUAGE_SEGMENTS, parseSegments, type Segment } from "./segments.ts";
-export { cardProblems, formatValue, hasValue, say, type Bilingual, type CardAction, type CardStat, type ObjectCardData, type SourceLink } from "./card.ts";
+export { cardProblems, formatValue, hasValue, say, scientificParts, superscript, type Bilingual, type CardAction, type CardStat, type ObjectCardData, type ScientificParts, type SourceLink } from "./card.ts";
 export { licenceText, sourcesFromCredits, type DoorCredit, type DoorSourceInfo, type LayerItem, type LayerSource } from "./layers.ts";
 export { trailText, type SectionLink, type TrailItem } from "./trail.ts";
 export { readingProblems, type ReadingGroup, type ReadingPageData, type ReadingRelated, type ReadingRow, type ReadingTile } from "./reading.ts";

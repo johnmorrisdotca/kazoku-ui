@@ -162,6 +162,13 @@ test("object card: one layout, every number a link to its source, a computed val
   }
   await expect(card.locator('[data-computed] a')).toHaveText(/^\d+(\.\d+)? ?AU$/);
   await expect(card.locator(".note")).toContainText("Every number links to its source");
+  // A very large number is "1.898 × 10²⁷" with a real superscript, never "1.898e27".
+  const mass = card.locator("dd").filter({ hasText: "kg" });
+  await expect(mass).toContainText("1.898 × 10");
+  expect(await mass.locator("sup").textContent()).toBe("27");
+  expect(await mass.locator("sup").evaluate((el) => getComputedStyle(el).verticalAlign)).toBe("super");
+  expect(await mass.locator("a").getAttribute("aria-label")).toMatch(/1\.898 × 10²⁷ kg/);
+  expect(await card.locator(".stats").innerText()).not.toMatch(/\d[eE][+-]?\d/);
   const buttons = card.locator("kazoku-button");
   await expect(buttons).toHaveCount(2);
   await expect(buttons.first()).toHaveAttribute("variant", "filled");
@@ -349,6 +356,8 @@ test("reading page: the picture beside the name, three tiles, the numbers with s
     expect(await reading.locator("h1").evaluate((el) => getComputedStyle(el).fontSize)).toBe("56px");
     await expect(reading.locator("th.c")).toBeVisible();
   }
+  expect(await reading.locator("main").innerText()).not.toMatch(/\d[eE][+-]?\d/);
+  await expect(reading.locator("td.v", { hasText: "kg" }).locator("sup")).toHaveText("27");
   await expect(reading.locator(".related a").first()).toBeVisible();
   await expect(page.getByTestId("footer").locator("li")).toHaveCount(5);
   await lang(page, "ja");

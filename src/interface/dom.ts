@@ -1,4 +1,5 @@
 // A few helpers every interface element builds its shadow tree with. Browser only: used by the elements, never at import.
+import { formatValue, scientificParts } from "./card.ts";
 import { ICON_STROKE, ICONS, type IconName } from "./icons.ts";
 
 type Attributes = Record<string, string | number | boolean | undefined>;
@@ -56,3 +57,13 @@ export const reducedMotion = (): boolean => globalThis.matchMedia?.("(prefers-re
 
 /** Whether a screen is phone-sized, the one breakpoint the parts share: 640 px or less. */
 export const PHONE_QUERY = "(max-width: 640px)";
+
+/** A number as nodes: plain text, or for a very large or small one the mantissa, " × 10" and the exponent in a real `<sup>` (so a reader never meets "e27"). */
+export function valueNodes(doc: Document, value: string | number | null | undefined): (string | Node)[] {
+  const parts = scientificParts(value);
+  if (parts === undefined) return [formatValue(value)];
+  const sup = doc.createElement("sup");
+  sup.textContent = String(parts.exponent).replace("-", "−");
+  sup.setAttribute("aria-hidden", "true");
+  return [`${parts.mantissa} × 10`, sup];
+}

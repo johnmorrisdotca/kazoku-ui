@@ -45,19 +45,44 @@ export interface ObjectCardData {
 /** `text` in the language, or its English when the other is empty. */
 export const say = (text: string | Bilingual, language: Language): string => (typeof text === "string" ? text : text[language] || text.en);
 
+const SUPERSCRIPT: Record<string, string> = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻" };
+
+/** An exponent as superscript characters: 27 is "²⁷", -5 is "⁻⁵". */
+export const superscript = (exponent: number): string => [...String(exponent)].map((char) => SUPERSCRIPT[char] ?? char).join("");
+
+/** A number in two pieces, for a part that draws the exponent as a real superscript: `1.898 × 10` and `27`. */
+export interface ScientificParts {
+  mantissa: string;
+  exponent: number;
+}
+
 /**
- * A number as the card writes it: up to six significant figures with thousands separated, and powers of ten for the very large and the very small ("1.898e27"). Text is returned as it is;
- * a missing value is "—".
+ * The pieces of a very large or very small number (a size of a billion or more, or under a thousandth): "1.898" and 27 for 1.898e27. `undefined` for any number that is written in full, and for text.
+ * @example
+ * scientificParts(1.8982e27); // { mantissa: "1.898", exponent: 27 }
+ */
+export function scientificParts(value: string | number | null | undefined): ScientificParts | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  const size = Math.abs(value);
+  if (size === 0 || (size < 1e9 && size >= 1e-3)) return undefined;
+  const [mantissa, exponent] = Number(value.toPrecision(4)).toExponential().split("e") as [string, string];
+  return { mantissa, exponent: Number(exponent) };
+}
+
+/**
+ * A number as the card writes it: up to six significant figures with thousands separated, and for the very large and the very small a power of ten with a real superscript ("1.898 × 10²⁷", never "1.898e27").
+ * Text is returned as it is; a missing value is "—". A part that can draw markup writes the exponent in `<sup>` from `scientificParts`; this is the same number as plain text.
  * @example
  * formatValue(142984); // "142,984"
- * formatValue(1.898e27); // "1.898e27"
+ * formatValue(1.898e27); // "1.898 × 10²⁷"
+ * formatValue(0.00001234); // "1.234 × 10⁻⁵"
  */
 export function formatValue(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   if (typeof value === "string") return value.trim() === "" ? "—" : value;
   if (!Number.isFinite(value)) return "—";
-  const size = Math.abs(value);
-  if (size !== 0 && (size >= 1e9 || size < 1e-3)) return Number(value.toPrecision(4)).toExponential().replace("e+", "e");
+  const parts = scientificParts(value);
+  if (parts !== undefined) return `${parts.mantissa} × 10${superscript(parts.exponent)}`;
   return Number(value.toPrecision(6)).toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
 

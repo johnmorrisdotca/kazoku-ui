@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { cardProblems, formatValue, type ObjectCardData } from "../src/interface/card.ts";
+import { cardProblems, formatValue, scientificParts, superscript, type ObjectCardData } from "../src/interface/card.ts";
 import { canStep, formatMoment, fromInputValue, speedWords, SPEED_LADDER, stepSpeed, toInputValue, zoneName } from "../src/interface/clock.ts";
 import { createStandInClock } from "../src/interface/clock-adapter.ts";
 import { CONTROL_ORDER, nextLook, parseControls, parseLooks } from "../src/interface/controls.ts";
@@ -153,8 +153,15 @@ test("a card is checked: every number has a source and a computed value is never
 
 test("numbers are written the way a card shows them", () => {
   assert.equal(formatValue(142984), "142,984");
-  assert.equal(formatValue(1.898e27), "1.898e27");
-  assert.equal(formatValue(0.00001234), "1.234e-5");
+  assert.equal(formatValue(1.898e27), "1.898 × 10²⁷");
+  assert.equal(formatValue(-6.674e-11), "−6.674 × 10⁻¹¹".replace("−", "-"));
+  assert.equal(formatValue(0.00001234), "1.234 × 10⁻⁵");
+  assert.deepEqual(scientificParts(1.8982e27), { mantissa: "1.898", exponent: 27 });
+  assert.equal(scientificParts(142984), undefined);
+  assert.equal(scientificParts("1e27"), undefined);
+  assert.equal(superscript(-5), "⁻⁵");
+  // No number is ever printed as e-notation.
+  for (const exponent of [-30, -12, -5, -4, 0, 3, 8, 9, 12, 27, 30]) for (const mantissa of [1, 1.5, 2.2345, 9.99, -3.3]) assert.doesNotMatch(formatValue(mantissa * 10 ** exponent), /\d[eE][+-]?\d/, String(mantissa * 10 ** exponent));
   assert.equal(formatValue(5.20288), "5.20288");
   assert.equal(formatValue("9 h 56 min"), "9 h 56 min");
   assert.equal(formatValue(null), "—");

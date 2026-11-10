@@ -1,7 +1,7 @@
 // <kazoku-reading-page>: part 10. An object's own page, one layout for every kind. At most 1,120 px wide. In order: the picture beside the kind, the name, one sentence and the buttons; "Right now" as a row of
 // three tiles; "The numbers" as a table (measure, value, a comparison with its source); related objects as link tiles; and the footer, which the page puts in the `footer` slot. On a phone it is one column and the table keeps two.
 import { formatValue, say, type SourceLink } from "../card.ts";
-import { h, setAttr } from "../dom.ts";
+import { h, setAttr, valueNodes } from "../dom.ts";
 import { InterfacePart } from "../part.ts";
 import { type ReadingPageData } from "../reading.ts";
 import { trailText } from "../trail.ts";
@@ -35,6 +35,7 @@ h2 { margin: 0 0 16px; color: ${kui("text")}; font-size: 24px; font-weight: 600;
 .big { font-family: ${MONO}; font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .big a { color: ${kui("text")}; text-decoration: none; border-bottom: 1px dotted ${kui("text-quiet")}; }
 .big a:hover { color: ${kui("sky-hover")}; }
+.big sup, td.v sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
 .unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 14px; font-weight: 400; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th, td { padding: 12px 14px 12px 0; border-bottom: 1px solid ${kui("line")}; text-align: left; vertical-align: top; }
@@ -107,7 +108,7 @@ export class ReadingPageElement extends InterfacePart {
   #value(doc: Document, value: string | number | null | undefined, unit: string | undefined, source: SourceLink | undefined, language: "en" | "ja", label: string): HTMLElement {
     const text = formatValue(value);
     const where = source === undefined ? "" : say(source.label, language);
-    const content: (string | Node)[] = [text];
+    const content: (string | Node)[] = valueNodes(doc, value);
     if (unit !== undefined && unit !== "") content.push(h(doc, "span", { class: "unit" }, [unit]));
     return source === undefined
       ? h(doc, "span", {}, content)
