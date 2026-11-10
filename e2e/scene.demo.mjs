@@ -271,8 +271,10 @@ test("the shared view controls turn and zoom the scene about the body in focus, 
   await settle(page);
 });
 
-test("what is drawn is really there: hiding the Earth, the stars or the satellite each changes the picture", async ({ page }) => {
+test("what is drawn is really there: hiding the Earth, the stars or the satellite each changes the picture", async ({ page, browserName }) => {
   test.setTimeout(120_000);
+  // WebKit's page screenshot did not change when a body was hidden on a hosted runner (CI run 42817910095), so it cannot say whether the canvas is read back; Chromium's does.
+  test.skip(browserName !== "chromium", "only Chromium's page screenshot reads the software WebGL canvas back");
   await ready(page);
   await page.evaluate(() => window.kazokuDemo.clock.pause());
   const stage = page.locator('[data-testid="stage"]');
