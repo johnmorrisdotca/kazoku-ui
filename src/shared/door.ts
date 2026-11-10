@@ -29,6 +29,14 @@ export interface DoorCredit {
   used: number;
 }
 
+/** Licence names that are plain phrases, not identifiers, and so are translated: "Public domain" is パブリックドメイン. Identifiers such as "CC BY-NC 3.0 IGO" are names and stay as they are. */
+const JA_LICENCE_NAMES: Readonly<Record<string, string>> = { "public domain": "パブリックドメイン" };
+
+/** The licence's name in the language: a plain phrase is translated for Japanese, an identifier is not. */
+export function licenceName(info: DoorSourceInfo, language: Language = "en"): string {
+  return language === "ja" ? (JA_LICENCE_NAMES[info.licence.name.trim().toLowerCase()] ?? info.licence.name) : info.licence.name;
+}
+
 /**
  * The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws. In Japanese the terms follow the
  * name in full-width parentheses: "CC BY-NC 3.0 IGO（非営利のみ、同一条件で共有）".
@@ -37,8 +45,9 @@ export interface DoorCredit {
  */
 export function licenceText(info: DoorSourceInfo, words: { nonCommercial: string; shareAlike: string }, language: Language = "en"): string {
   const flags = [info.licence.nonCommercial === true ? words.nonCommercial : "", info.licence.shareAlike === true ? words.shareAlike : ""].filter((flag) => flag !== "");
-  if (flags.length === 0) return info.licence.name;
-  return language === "ja" ? `${info.licence.name}（${flags.join("、")}）` : `${info.licence.name} (${flags.join(", ")})`;
+  const name = licenceName(info, language);
+  if (flags.length === 0) return name;
+  return language === "ja" ? `${name}（${flags.join("、")}）` : `${name} (${flags.join(", ")})`;
 }
 
 /**
@@ -54,7 +63,7 @@ export function creditsText(credits: readonly DoorCredit[], language: Language, 
     if (!ja) return `${text} (${licenceText(credit.source, words)})`;
     // Japanese: one pair of full-width parentheses, the licence name and its terms in a flat list after "、".
     const { licence } = credit.source;
-    const terms = [licence.name, licence.nonCommercial === true ? words.nonCommercial : "", licence.shareAlike === true ? words.shareAlike : ""].filter((term) => term !== "");
+    const terms = [licenceName(credit.source, language), licence.nonCommercial === true ? words.nonCommercial : "", licence.shareAlike === true ? words.shareAlike : ""].filter((term) => term !== "");
     return `${text}（${terms.join("、")}）`;
   });
   return parts.length === 0 ? "" : ja ? parts.join("／") : `${parts.join("; ")}.`;
