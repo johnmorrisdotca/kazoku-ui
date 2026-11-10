@@ -14,9 +14,9 @@ const ready = async (page, query = "") => {
   await page.waitForFunction(() => window.kazokuDemo?.view?.live === true, null, { timeout: 60_000 });
   return errors;
 };
-/** Wait until the frame already asked for has run (no more are asked for) and the GPU has caught up. */
+/** Wait until no frame is waiting to run (the scheduler says so: a pause that cancels a frame leaves `requests - frames` one over for good) and the GPU has caught up. */
 const settle = async (page) => {
-  await expect.poll(async () => { const { frames } = await demo(page); return frames.requests - frames.frames; }, { timeout: 30_000 }).toBe(0);
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.renderer.scheduler.pending), { timeout: 30_000 }).toBe(false);
   await drainGpu(page);
 };
 const focusOn = async (page, id) => {
@@ -26,11 +26,13 @@ const focusOn = async (page, id) => {
 
 test("a plain link opens running, from now, at the focused body's speed, and the readout moves", async ({ page }) => {
   const errors = await ready(page);
-  const open = await page.evaluate(() => ({ running: window.kazokuDemo.clock.running, speed: window.kazokuDemo.clock.speed, touched: window.kazokuDemo.clock.touched, time: window.kazokuDemo.clock.time, now: Date.now() }));
+  const open = await page.evaluate(() => ({ running: window.kazokuDemo.clock.running, speed: window.kazokuDemo.clock.speed, touched: window.kazokuDemo.clock.touched, time: window.kazokuDemo.clock.time, sinceLoad: window.performance.now(), opened: Date.now() - window.performance.now() }));
   expect(open.running).toBe(true);
   expect(open.speed).toBe(3600);
   expect(open.touched).toBe(false);
-  expect(Math.abs(open.time - open.now)).toBeLessThan(60_000);
+  // From now: the moment is the wall clock's at the page's start, and has run on at most 3600 times the real time since.
+  expect(open.time).toBeGreaterThanOrEqual(open.opened - 1000);
+  expect(open.time - open.opened).toBeLessThanOrEqual(open.speed * open.sinceLoad + 5000);
   const first = await page.locator('[data-testid="date"]').textContent();
   await expect.poll(() => page.locator('[data-testid="date"]').textContent(), { timeout: 5000 }).not.toBe(first);
   await expect(page.locator('[data-testid="bar"] button[data-act="play"]')).toHaveText("Pause");
@@ -104,15 +106,17 @@ test("paused, nothing is drawn and no frame is asked for; running, at most 30 a 
   // A slow software frame holds the clock back: wait until it is drawing, then time a window by the page's own clock.
   const first = await demo(page);
   await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 30_000 }).toBeGreaterThan(3);
-  const from = await page.evaluate((n) => ({ at: window.performance.now(), draws: n }), (await demo(page)).draws);
+  // The page's own clock and the draw count are read in one step, so no draw falls between them.
+  const mark = () => page.evaluate(() => ({ at: window.performance.now(), draws: window.kazokuDemo.renderer.stats.draws }));
+  const from = await mark();
   await page.waitForTimeout(3000);
-  const to = await page.evaluate(() => window.performance.now());
-  const draws = (await demo(page)).draws - from.draws;
-  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * ((to - from.at) / 1000)) + 1);
+  const to = await mark();
+  const draws = to.draws - from.draws;
+  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * ((to.at - from.at) / 1000)) + 1);
   expect(draws).toBeGreaterThan(0);
   await page.evaluate(() => window.kazokuDemo.clock.pause());
   await settle(page);
-  expect((await demo(page)).frames.requests - (await demo(page)).frames.frames).toBe(0);
+  expect(await page.evaluate(() => window.kazokuDemo.renderer.scheduler.pending)).toBe(false);
   await drainGpu(page);
 });
 
@@ -247,7 +251,8 @@ test("no request is made at rest, and the page's credit line names every layer's
   expect(asked).toEqual([]);
   const credits = (await page.locator("kazoku-page-credits").getAttribute("credits")) ?? "";
   for (const text of await page.evaluate(() => window.kazokuDemo.scene.credits().map((c) => c.text))) expect(credits).toContain(text);
-  expect((await page.evaluate(() => window.kazokuDemo.scene.credits().length))).toBe(3);
+  // The three stand-in bodies share one credit, the stars have their own: each is said once.
+  expect(await page.evaluate(() => window.kazokuDemo.scene.credits().length)).toBe(2);
 });
 
 test("the shared view controls turn and zoom the scene about the body in focus, and the camera never goes inside it", async ({ page }) => {
