@@ -4,15 +4,23 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import process from "node:process";
+import { plexCss, plexFiles } from "./fonts.mjs";
 import { fileURLToPath } from "node:url";
 
 const root = join(fileURLToPath(import.meta.url), "..", "..");
 const port = Number(process.env.PORT ?? 8400);
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json", ".webp": "image/webp", ".png": "image/png" };
 
+const FONT_FILES = new Map(plexFiles().map(({ file, path }) => [file, path]));
+
 createServer(async (request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
   const rel = normalize(path === "/" ? "/index.html" : path).replace(/^([/\\])+/, "");
+  if (rel === "fonts/plex.css") { response.writeHead(200, { "content-type": TYPES[".css"], "cache-control": "no-store" }).end(plexCss()); return; }
+  if (rel.startsWith("fonts/") && FONT_FILES.has(rel.slice(6))) {
+    response.writeHead(200, { "content-type": "font/woff2", "cache-control": "no-store" }).end(await readFile(FONT_FILES.get(rel.slice(6))));
+    return;
+  }
   const vendor = rel.startsWith("vendor/three/");
   const base = rel.startsWith("dist/") ? root : join(root, "demo");
   const file = vendor ? join(root, "node_modules", "three", "build", rel.slice("vendor/three/".length)) : join(base, rel);

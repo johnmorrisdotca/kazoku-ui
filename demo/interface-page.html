@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: the reading page</title>
+  <meta name="description" content="An object's own page, one layout for every kind: the picture, the name, one sentence, what is true right now, the numbers with their sources, related objects and the footer." />
+  <link rel="stylesheet" href="demo.css" />
+  <link rel="stylesheet" href="interface.css" />
+  <style>
+    main.wide { max-width: none; padding: 0; }
+    .dark-head { padding: 8px 16px 0; background: var(--bg); }
+    .dark-body { background: #0B0E14; }
+    kazoku-page-credits { padding: 0 16px; }
+  </style>
+</head>
+<body>
+<main class="wide">
+  <header class="top dark-head">
+    <h1>Kazoku UI <span class="sub" data-say="title">the reading page</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="the reading page" what-ja="読むためのページ" description="An object's own page, one layout for every kind: the picture, the name, one sentence, what is true right now, the numbers with their sources, related objects and the footer." description-ja="天体それぞれのページです。どの種類も同じ形式で、絵、名前、ひとこと説明、いまの様子、出典つきの数値、関連する天体、フッターを並べます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav dark-head" style="margin:0;padding-bottom:8px"><a href="index.html" data-say="back">The view controls</a> · <a href="interface.html" data-say="view">The parts over a view</a> · <a href="interface-parts.html" data-say="parts">Every part, one at a time</a></p>
+  <div class="dark-body">
+  <kazoku-top-bar id="top" placement="static" brand="Kazoku UI" home="index.html" placeholder="Search stars, planets, rockets" data-testid="top-bar"><a slot="menu" href="index.html">Home</a></kazoku-top-bar>
+  <kazoku-reading-page id="page" data-testid="reading">
+    <kazoku-page-footer slot="footer" variant="page" package="Kazoku UI" package-href="index.html" href="NOTICE.html" cite-href="#cite" sheets-href="print.html" home-label="Kazoku UI home" data-testid="footer"></kazoku-page-footer>
+  </kazoku-reading-page>
+  </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. The numbers are NASA's published figures; the ones for right now are worked out from JPL's approximate elements." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。数値はNASAが公表している値で、いまの値はJPLの近似軌道要素から計算しています。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="interface-page.js"></script>
+</body>
+</html>

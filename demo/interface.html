@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: interface parts</title>
+  <meta name="description" content="The family's interface parts working together over a view: the top bar, the scale switch, the object card, the layers panel, the control bar and the credits line." />
+  <link rel="stylesheet" href="demo.css" />
+  <link rel="stylesheet" href="interface.css" />
+</head>
+<body>
+<main class="wide">
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">interface parts</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="interface parts" what-ja="インターフェースの部品" description="The family's interface parts working together over a view: the top bar, the scale switch, the object card, the layers panel, the control bar and the credits line." description-ja="ビューの上で組み合わせて使う、ファミリー共通のインターフェース部品です。トップバー、スケール切り替え、天体カード、レイヤーパネル、操作バー、出典の行を並べています。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="interface-parts.html" data-say="parts">Every part, one at a time</a> · <a href="interface-page.html" data-say="reading">The reading page</a></p>
+  <div class="stage" id="stage" data-screen data-testid="stage">
+    <i class="orbit" style="width: 46%; height: 52%"></i><i class="orbit" style="width: 70%; height: 80%"></i>
+    <img class="planet" src="interface-jupiter.svg" alt="" />
+    <kazoku-top-bar id="top" placement="absolute" brand="Kazoku UI" home="index.html" culture="western" placeholder="Search stars, planets, rockets" data-testid="top-bar"></kazoku-top-bar>
+    <kazoku-scale-switch id="scale" placement="absolute" value="solar" data-testid="scale"></kazoku-scale-switch>
+    <kazoku-object-card id="card" placement="absolute" sources-href="NOTICE.html" data-testid="card"></kazoku-object-card>
+    <kazoku-layers-panel id="layers" placement="absolute" hidden data-testid="layers"></kazoku-layers-panel>
+    <kazoku-control-bar id="bar" placement="absolute" layers-open="false" data-testid="bar"></kazoku-control-bar>
+    <kazoku-page-footer id="foot" placement="absolute" href="NOTICE.html" data-testid="foot"></kazoku-page-footer>
+  </div>
+  <output class="readout-line" id="last" data-testid="last" aria-live="off"></output>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. The numbers on the card are NASA's published figures; the distance from the Sun is worked out from JPL's approximate elements." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。カードの数値はNASAが公表している値で、太陽からの距離はJPLの近似軌道要素から計算しています。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="interface.js"></script>
+</body>
+</html>

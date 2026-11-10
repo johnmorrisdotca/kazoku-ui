@@ -1,5 +1,6 @@
 // Builds the static demo for GitHub Pages into ./site: the page, its script and styles, and the compiled library beside them.
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { plexCss, plexFiles, plexLicences } from "./fonts.mjs";
 import { publishThumbnails, thumbnailHead } from "./family-thumbnail.mjs";
 
 rmSync("site", { recursive: true, force: true });
@@ -15,4 +16,8 @@ cpSync("dist", "site/dist", { recursive: true, filter: (from) => !/\.d\.ts$/.tes
 // The renderer demo's copy of three.js (the library never bundles it; the demo's import map points here).
 mkdirSync("site/vendor/three", { recursive: true });
 for (const file of ["three.module.js", "three.core.js"]) cpSync(`node_modules/three/build/${file}`, `site/vendor/three/${file}`);
+// The demo's fonts (IBM Plex, SIL OFL 1.1), from the demo's own address.
+mkdirSync("site/fonts", { recursive: true });
+writeFileSync("site/fonts/plex.css", plexCss());
+for (const { file, path } of [...plexFiles(), ...plexLicences()]) copyFileSync(path, `site/fonts/${file}`);
 console.log("site/ is ready");

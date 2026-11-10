@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: interface parts, one at a time</title>
+  <meta name="description" content="Each of the family's interface parts on its own, with its states: the tokens, icon button, control bar, scale switch, object card, layers panel, segmented switch, buttons, top bar and footer." />
+  <link rel="stylesheet" href="demo.css" />
+  <link rel="stylesheet" href="interface.css" />
+</head>
+<body>
+<main class="wide">
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">interface parts, one at a time</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="interface parts, one at a time" what-ja="インターフェースの部品を一つずつ" description="Each of the family's interface parts on its own, with its states: the tokens, icon button, control bar, scale switch, object card, layers panel, segmented switch, buttons, top bar and footer." description-ja="ファミリー共通のインターフェース部品を、状態ごとに一つずつ見せます。色と文字、アイコンボタン、操作バー、スケール切り替え、天体カード、レイヤーパネル、切り替えスイッチ、ボタン、トップバー、フッターです。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="interface.html" data-say="view">The parts over a view</a> · <a href="interface-page.html" data-say="reading">The reading page</a></p>
+  <div class="tabs" role="tablist" aria-label="Parts" id="tabs" data-testid="tabs"></div>
+
+  <section class="sheet-panel" id="p-tokens" role="tabpanel" data-screen>
+    <h2 data-say="tokensH">Colour and type</h2><p class="say" data-say="tokensT">Dark first. One warm colour marks what you can do; one cool colour marks where you can go. Numbers, dates, times and units are always in Plex Mono.</p>
+    <div class="swatches" id="swatches" data-testid="swatches"></div>
+    <div class="specimen" style="margin-top: 20px"><div class="n" lang="en">Mars <span lang="ja">火星</span></div><p class="m">3,389.5 km · 24 h 37 min</p><p class="label" style="color:#9AA6B8;font:500 11px/1.3 'IBM Plex Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase">Planet · rocky</p></div>
+  </section>
+
+  <section class="sheet-panel" id="p-icon" role="tabpanel" hidden data-screen>
+    <h2 data-say="iconH">Icon button</h2><p class="say" data-say="iconT">A real button, 44 by 44 px, an 18 px icon. Clear at rest, filled on hover and when on. Every one has an accessible name.</p>
+    <div class="cell" id="icons" data-testid="icons"></div>
+    <div class="cell" style="margin-top: 14px"><kazoku-icon-button icon="layers" pressed="false" data-testid="toggle"></kazoku-icon-button><kazoku-icon-button icon="layers" pressed="true" data-testid="toggle-on"></kazoku-icon-button><kazoku-icon-button icon="play" disabled data-testid="disabled"></kazoku-icon-button></div>
+  </section>
+
+  <section class="sheet-panel" id="p-bar" role="tabpanel" hidden data-screen>
+    <h2 data-say="barH">Control bar</h2><p class="say" data-say="barT">The same on every view, in this order. A view that cannot do one leaves it out. Press the clock to pick any date and time.</p>
+    <div class="cell col"><kazoku-control-bar id="bar" placement="static" layers-open="false" data-testid="bar"></kazoku-control-bar>
+    <p class="say" data-say="barSmall" style="margin-top: 12px">Without Your place and Free flight:</p>
+    <kazoku-control-bar id="bar2" placement="static" controls="slower play faster clock now layers look" data-testid="bar-small"></kazoku-control-bar></div>
+    <output class="readout-line" id="last" data-testid="last" style="color:#9AA6B8"></output>
+  </section>
+
+  <section class="sheet-panel" id="p-scale" role="tabpanel" hidden data-screen>
+    <h2 data-say="scaleH">Scale switch</h2><p class="say" data-say="scaleT">Five steps, always in this order. A panel at the left on a desk, a row of pills on a phone.</p>
+    <kazoku-scale-switch id="scale" placement="static" value="moons" data-testid="scale"></kazoku-scale-switch>
+  </section>
+
+  <section class="sheet-panel" id="p-card" role="tabpanel" hidden data-screen>
+    <h2 data-say="cardH">Object card</h2><p class="say" data-say="cardT">One layout for a star, a planet, a moon, a galaxy, a black hole or a rocket. Every number links to its source; a number worked out for the time shown is never blank.</p>
+    <kazoku-object-card id="card" placement="static" sources-href="NOTICE.html" data-testid="card"></kazoku-object-card>
+  </section>
+
+  <section class="sheet-panel" id="p-layers" role="tabpanel" hidden data-screen>
+    <h2 data-say="layersH">Layers panel</h2><p class="say" data-say="layersT">Real checkboxes, in two columns. It also lists the data door's outside sources, each with its credit and licence, so one can be switched off.</p>
+    <kazoku-layers-panel id="layers" placement="static" data-testid="layers"></kazoku-layers-panel>
+  </section>
+
+  <section class="sheet-panel" id="p-segmented" role="tabpanel" hidden data-screen>
+    <h2 data-say="segH">Segmented switch</h2><p class="say" data-say="segT">For the language and for the sky culture. The chosen segment is filled; each is a button with aria-pressed.</p>
+    <div class="cell"><kazoku-segmented-switch kind="language" no-apply data-testid="seg-language"></kazoku-segmented-switch><kazoku-segmented-switch kind="culture" value="western" data-testid="seg-culture"></kazoku-segmented-switch></div>
+  </section>
+
+  <section class="sheet-panel" id="p-buttons" role="tabpanel" hidden data-screen>
+    <h2 data-say="buttonsH">Buttons</h2><p class="say" data-say="buttonsT">One filled button a screen, for the main thing to do. Everything else is outlined or an icon.</p>
+    <div class="cell"><kazoku-button variant="filled" icon="flight" href="interface-page.html" id="b-filled" data-testid="b-filled">Open page</kazoku-button><kazoku-button href="interface.html" data-testid="b-outlined">Its moons</kazoku-button><kazoku-button disabled data-testid="b-disabled">Compare</kazoku-button></div>
+  </section>
+
+  <section class="sheet-panel" id="p-top" role="tabpanel" hidden data-screen>
+    <h2 data-say="topH">Top bar</h2><p class="say" data-say="topT">The brand, where you are, search and the language. A sky view adds the sky culture switch to the bar itself.</p>
+    <div style="position: relative; height: 150px; overflow: visible"><kazoku-top-bar id="top" placement="absolute" brand="Kazoku UI" home="index.html" culture="western" placeholder="Search stars, planets, rockets" data-testid="top-bar"><a slot="menu" href="index.html">Home</a><a slot="menu" href="interface.html">Universe</a></kazoku-top-bar></div>
+  </section>
+
+  <section class="sheet-panel" id="p-footer" role="tabpanel" hidden data-screen>
+    <h2 data-say="footH">Footer and credits line</h2><p class="say" data-say="footT">On a view, one quiet line. On a reading page, the footer with the sources, how to cite and the sheets.</p>
+    <div class="cell col"><kazoku-page-footer id="foot-view" placement="static" href="NOTICE.html" data-testid="foot-view"></kazoku-page-footer><kazoku-page-footer id="foot-page" placement="static" variant="page" package="Kazoku UI" package-href="index.html" href="NOTICE.html" cite-href="#cite" sheets-href="print.html" data-testid="foot-page"></kazoku-page-footer></div>
+  </section>
+
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. IBM Plex is licensed under the SIL Open Font License 1.1." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。IBM Plexは、SIL Open Font License 1.1のもとで提供されています。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="interface-parts.js"></script>
+</body>
+</html>
