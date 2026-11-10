@@ -270,3 +270,57 @@ test("the shared view controls turn and zoom the scene about the body in focus, 
   await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.distanceKm)).toBeGreaterThan(await page.evaluate(() => window.kazokuDemo.EARTH_KM));
   await settle(page);
 });
+
+test("what is drawn is really there: hiding the Earth, the stars or the satellite each changes the picture", async ({ page }) => {
+  test.setTimeout(120_000);
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  const stage = page.locator('[data-testid="stage"]');
+  const shot = async () => { await page.evaluate(() => window.kazokuDemo.view.invalidate()); await settle(page); return stage.screenshot(); };
+  const hide = (what) => page.evaluate((id) => {
+    const { layers } = window.kazokuDemo;
+    const layer = layers.find((l) => l.id === id);
+    const object = layer.sky ?? layer.bodies[0].root;
+    object.visible = !object.visible;
+  }, what);
+  // Earth in view, with the stars behind it and the satellite near.
+  await page.evaluate(() => window.kazokuDemo.scene.camera.set({ focus: "earth", distanceKm: 20_000, tilt: 20, yaw: 25 }));
+  const all = await shot();
+  await hide("earth");
+  const noEarth = await shot();
+  await hide("earth");
+  expect(Buffer.compare(all, noEarth)).not.toBe(0);
+  await hide("stars");
+  const noStars = await shot();
+  await hide("stars");
+  expect(Buffer.compare(all, noStars)).not.toBe(0);
+  // The picture is not one flat colour: the Earth's lit side is far from the dark sky.
+  const spread = await page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, image.width, image.height).data;
+    let bright = 0;
+    let dark = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const sum = pixels[i] + pixels[i + 1] + pixels[i + 2];
+      if (sum > 240) bright += 1;
+      else if (sum < 60) dark += 1;
+    }
+    return { bright, dark, total: pixels.length / 4 };
+  }, all.toString("base64"));
+  expect(spread.bright).toBeGreaterThan(spread.total * 0.02);
+  expect(spread.dark).toBeGreaterThan(spread.total * 0.1);
+  await focusOn(page, "satellite");
+  await page.evaluate(() => window.kazokuDemo.scene.camera.set({ distanceKm: 0.3, tilt: 20, yaw: 40 }));
+  const withSatellite = await shot();
+  await hide("satellite");
+  const without = await shot();
+  await hide("satellite");
+  expect(Buffer.compare(withSatellite, without)).not.toBe(0);
+});
