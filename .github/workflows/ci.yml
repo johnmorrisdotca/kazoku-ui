@@ -21,8 +21,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
   demo:
+    # The demo suite grew past 15 minutes with the page frame (KAZOKU-UI-94, run 42783929763 cancelled at the limit). Three parts, 25 minutes each, as chikyu-earth and wakusei-planets do; every test still runs once.
+    name: demo (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -33,7 +39,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
       - name: The demo, played in Chromium and WebKit at a phone's width and a desk's
-        run: pnpm test:demo
+        run: pnpm test:demo --shard=${{ matrix.shard }}/3
   package:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
