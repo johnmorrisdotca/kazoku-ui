@@ -180,18 +180,24 @@ export class ControlBarElement extends InterfacePart {
       clock?.set("now");
     } else if (action === "layers") {
       const open = !flag(this, "layers-open");
-      this.toggleAttribute("layers-open", open);
+      this.#setFlag("layers-open", open);
       value = open;
     } else if (action === "flight" || action === "place") {
       const attr = action === "flight" ? "flight" : "place-on";
       const on = !flag(this, attr);
-      this.toggleAttribute(attr, on);
+      this.#setFlag(attr, on);
       value = on;
     } else if (action === "look") {
       this.look = nextLook(this.look, parseLooks(this.getAttribute("looks")));
       value = this.look;
     }
     this.emit<ControlDetail>(CONTROL_EVENT, { action, value });
+  }
+
+  /** Writes a flag attribute on or off, whatever it said before (`layers-open="false"` is off; `toggleAttribute` would leave it). */
+  #setFlag(name: string, on: boolean): void {
+    if (on) this.setAttribute(name, "");
+    else this.removeAttribute(name);
   }
 
   #openPicker(): void {

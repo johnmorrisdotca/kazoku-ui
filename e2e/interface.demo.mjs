@@ -72,12 +72,13 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   await page.keyboard.press("Enter");
   await expect(bar.locator(".clock .s")).toHaveText("1 day each second");
   await page.keyboard.press("Shift+Tab");
-  await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Enter");
   await expect(bar.locator(".clock .s")).toHaveText("Paused");
   await expect(bar.locator('kazoku-icon-button[data-act="play"] button')).toHaveAttribute("aria-label", "Play");
   await page.keyboard.press("Enter");
   await expect(bar.locator('kazoku-icon-button[data-act="play"] button')).toHaveAttribute("aria-label", "Pause");
+  await page.keyboard.press("Enter");
+  await expect(bar.locator(".clock .s")).toHaveText("Paused");
   // Layers and Free flight are toggles that say so.
   await bar.locator('kazoku-icon-button[data-act="layers"] button').click();
   await expect(bar.locator('kazoku-icon-button[data-act="layers"] button')).toHaveAttribute("aria-expanded", "true");
@@ -159,7 +160,7 @@ test("object card: one layout, every number a link to its source, a computed val
     expect((await stat.locator("dd").innerText()).trim()).not.toBe("");
     expect(await stat.locator("dd").evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/Plex Mono/);
   }
-  await expect(card.locator('[data-computed="true"] a')).toHaveText(/^\d+(\.\d+)? ?AU$/);
+  await expect(card.locator('[data-computed] a')).toHaveText(/^\d+(\.\d+)? ?AU$/);
   await expect(card.locator(".note")).toContainText("Every number links to its source");
   const buttons = card.locator("kazoku-button");
   await expect(buttons).toHaveCount(2);
@@ -415,6 +416,8 @@ for (const [timezoneId, name, other] of [["America/Denver", "MST", "JST"], ["Asi
       const hour = await page.evaluate(() => String(new Date().getHours()).padStart(2, "0"));
       expect(shown).toContain(` · ${hour}:`);
       // The picker takes and gives local time: a winter date, so Denver is MST and not MDT.
+      await page.getByTestId("bar").locator('kazoku-icon-button[data-act="play"] button').click();
+      await expect(clock.locator(".s")).toHaveText("Paused");
       await clock.click();
       await page.getByTestId("bar").locator('input[type="datetime-local"]').fill("2030-01-04T05:06");
       await page.getByTestId("bar").locator("[data-set]").click();
