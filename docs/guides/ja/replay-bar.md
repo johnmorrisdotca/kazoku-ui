@@ -21,7 +21,7 @@ description: 再生、一時停止、最初に戻る、くり返しのボタン�
 
 速さのボタンは同じ`<kazoku-speed-buttons>`です。`steps`が速さの一覧、`speed`が選ばれている速さです。アドレスのキーは`speed-key`で変えない限り`replay-speed`なので、ビューの`pace`には触りません。変わったときは、いつもの`kazoku-speedchange`イベントが出ます。
 
-「動きを減らす」設定のときは、再生は始まりません。ボタンはありますが何もしません。アドレスに`play=on`とあっても始まりません。
+「動きを減らす」設定のときは、再生は始まりません。ボタンはありますが何もしません。アドレスに`play=on`とあっても始まりません。`user-play`を付けると、そのときでも、読む人が自分で押した再生ボタンは働きます（自動では何も始まらず、アドレスに`play=on`とあっても始まりません）。これは、[ファミリーの時計](clock.md)が「止まった表示で再生が使える」状態をつくるために必要です。
 
 ```ts
 import { flagOn, addressKeys } from "@johnmorrisdotca/kazoku-ui/replay-bar";

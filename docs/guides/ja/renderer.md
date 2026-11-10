@@ -70,7 +70,7 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 - `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, antialias, onContext, clock, document, assets, scheduler })`
 - `renderer.view(host, item, { still })`はビューを返します：`focus()`、`blur()`、`invalidate()`、`showStill()`、`dispose()`、`live`、`scene`、`host`、`item`。
 - `renderer.focused`、`renderer.stats`（`contexts`、`draws`、`snapshots`、`live`、`lost`、`canvas`、`frames`、`assets`、`stills`）、`renderer.assets`、`renderer.stills`、`renderer.scheduler`、`renderer.dispose()`。
-- アイテムは`{ key, build({ three, assets, width, height }) }`で、`{ scene, camera, update?, resize?, dispose? }`を返します。`update(dt, now)`は動いているものがあれば真を返し、ビューは上限（毎秒30回まで）が許す次のフレームで再び描かれます。
+- アイテムは`{ key, build({ three, assets, width, height }) }`で、`{ scene, camera, update?, resize?, render?, dispose? }`を返します。`update(dt, now)`は動いているものがあれば真を返し、ビューは上限（毎秒30回まで）が許す次のフレームで再び描かれます。シーンに`render(gl)`があれば、レンダラーが行う1回の`gl.render(scene, camera)`の代わりに、その関数でビューを描きます。これは、パスに分けて描くシーン（天空、遠い天体、深度を消去してから近い天体）のためのものです。描画のたびと、そのビューの静止画を作るときに、`update`のあとで呼ばれ、`gl.autoClear`と`gl.clearDepth()`（どちらも`GLRenderer`では省略可能）を使い、`autoClear`は元に戻します。[共有シーン](scene.md)は、この方法でつくられています。
 
 ホストには（CSSの）大きさが必要です。`position: static`の場合は`position: relative`にされます。キャンバスはそのパディングボックスを埋めます。見えているライブのビューを同時に複数持つことは、サポートしません。それがこの部品の趣旨です。必要なパッケージは、唯一のキャンバスに描き、各ホスト自身の2Dキャンバスにコピーします。
 
