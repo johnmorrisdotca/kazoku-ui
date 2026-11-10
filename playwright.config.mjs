@@ -9,7 +9,7 @@ const desk = { viewport: { width: 1280, height: 900 } };
 // Every page is drawn in software (SwiftShader for WebGL, the CPU for the page's own pictures), never on the machine's graphics card: a test run once panicked a Mac's graphics driver. The package's own list, built before the tests run.
 const gl = { launchOptions: { args: [...SOFTWARE_GL_ARGS] } };
 // WebKit has no software switch, so off CI it skips the pages that draw WebGL; CI (a hosted runner, no graphics card) plays them.
-const webglPages = process.env.CI ? undefined : /renderer\.demo/;
+const webglPages = process.env.CI ? undefined : /(renderer|scene)\.demo/;
 
 export default defineConfig({
   testDir: "e2e",

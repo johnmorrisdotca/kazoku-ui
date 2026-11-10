@@ -1,0 +1,266 @@
+import { expect, test } from "@playwright/test";
+import { canvasSize, COUNT_SCRIPT, drainGpu, gpuObjects, readCounts, withinPixelBudget } from "../dist/testing/index.js";
+
+// The shared scene on demo/scene.html (the freeze test of the scene composer): four stand-in layers (stars, an Earth-sized sphere, a sphere at the Moon's distance, a satellite 400 km up),
+// one camera, one clock, one WebGL context. It asserts what the family's freeze rule asks of a 3D page: one context, nothing drawn or asked for at rest, at most 30 frames a second, the GPU
+// objects flat over many changes of focus, the canvas within budget, one clock for every layer, the depth slices, and no request at rest.
+const demo = (page) => page.evaluate(() => window.kazokuDemo.renderer.stats);
+const ready = async (page, query = "") => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  await page.addInitScript(COUNT_SCRIPT);
+  await page.goto(`/scene.html${query}`);
+  await page.waitForFunction(() => window.kazokuDemo?.view?.live === true, null, { timeout: 60_000 });
+  return errors;
+};
+/** Wait until the frame already asked for has run (no more are asked for) and the GPU has caught up. */
+const settle = async (page) => {
+  await expect.poll(async () => { const { frames } = await demo(page); return frames.requests - frames.frames; }, { timeout: 30_000 }).toBe(0);
+  await drainGpu(page);
+};
+const focusOn = async (page, id) => {
+  await page.locator(`[data-focus="${id}"]`).click();
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.focus)).toBe(id);
+};
+
+test("a plain link opens running, from now, at the focused body's speed, and the readout moves", async ({ page }) => {
+  const errors = await ready(page);
+  const open = await page.evaluate(() => ({ running: window.kazokuDemo.clock.running, speed: window.kazokuDemo.clock.speed, touched: window.kazokuDemo.clock.touched, time: window.kazokuDemo.clock.time, now: Date.now() }));
+  expect(open.running).toBe(true);
+  expect(open.speed).toBe(3600);
+  expect(open.touched).toBe(false);
+  expect(Math.abs(open.time - open.now)).toBeLessThan(60_000);
+  const first = await page.locator('[data-testid="date"]').textContent();
+  await expect.poll(() => page.locator('[data-testid="date"]').textContent(), { timeout: 5000 }).not.toBe(first);
+  await expect(page.locator('[data-testid="bar"] button[data-act="play"]')).toHaveText("Pause");
+  expect(errors).toEqual([]);
+});
+
+test("the opening speed follows the body in focus until the reader sets a speed", async ({ page }) => {
+  await ready(page);
+  await focusOn(page, "moon");
+  expect(await page.evaluate(() => window.kazokuDemo.clock.speed)).toBe(86_400);
+  await focusOn(page, "satellite");
+  expect(await page.evaluate(() => window.kazokuDemo.clock.speed)).toBe(60);
+  await page.locator('[data-testid="bar"] kazoku-speed-buttons button[data-v="604800"]').click();
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.clock.touched)).toBe(true);
+  await focusOn(page, "earth");
+  expect(await page.evaluate(() => window.kazokuDemo.clock.speed)).toBe(604_800);
+});
+
+test("a link that names a time, a speed or a pause is obeyed", async ({ page }) => {
+  await ready(page, "?time=2026-11-10T12:00:00Z&speed=60&play=off");
+  const state = await page.evaluate(() => ({ time: window.kazokuDemo.clock.time, speed: window.kazokuDemo.clock.speed, running: window.kazokuDemo.clock.running }));
+  expect(state).toEqual({ time: Date.UTC(2026, 10, 10, 12), speed: 60, running: false });
+  await expect(page.locator('[data-testid="date"]')).toContainText("2026-11-10 12:00:00 UTC");
+  await focusOn(page, "moon");
+  expect(await page.evaluate(() => window.kazokuDemo.clock.speed)).toBe(60);
+});
+
+test("a reader who asked for reduced motion gets a still view with Play ready", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await ready(page);
+  expect(await page.evaluate(() => ({ running: window.kazokuDemo.clock.running, speed: window.kazokuDemo.clock.speed }))).toEqual({ running: false, speed: 3600 });
+  await settle(page);
+  const before = await readCounts(page);
+  await page.waitForTimeout(1500);
+  const after = await readCounts(page);
+  expect(after.draws - before.draws).toBe(0);
+  expect(after.rafRequests - before.rafRequests).toBe(0);
+  const play = page.locator('[data-testid="bar"] button[data-act="play"]');
+  await expect(play).toBeEnabled();
+  await play.click();
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.clock.running)).toBe(true);
+  await expect.poll(async () => (await readCounts(page)).draws, { timeout: 30_000 }).toBeGreaterThan(after.draws);
+  await play.click();
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.clock.running)).toBe(false);
+  await settle(page);
+});
+
+test("one context after the four layers load and after every change of focus", async ({ page }) => {
+  await ready(page);
+  expect((await readCounts(page)).contexts).toBe(1);
+  for (const id of ["moon", "satellite", "earth", "moon", "earth"]) {
+    await focusOn(page, id);
+    expect((await readCounts(page)).contexts).toBe(1);
+  }
+  expect((await demo(page)).contexts).toBe(1);
+});
+
+test("paused, nothing is drawn and no frame is asked for; running, at most 30 a second", async ({ page }) => {
+  test.setTimeout(120_000);
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+  const paused = await readCounts(page);
+  const stats = await demo(page);
+  await page.waitForTimeout(2000);
+  const later = await readCounts(page);
+  expect(later.draws - paused.draws).toBe(0);
+  expect(later.rafRequests - paused.rafRequests).toBe(0);
+  expect((await demo(page)).draws - stats.draws).toBe(0);
+  await page.evaluate(() => window.kazokuDemo.clock.play());
+  // A slow software frame holds the clock back: wait until it is drawing, then time a window by the page's own clock.
+  const first = await demo(page);
+  await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 30_000 }).toBeGreaterThan(3);
+  const from = await page.evaluate((n) => ({ at: window.performance.now(), draws: n }), (await demo(page)).draws);
+  await page.waitForTimeout(3000);
+  const to = await page.evaluate(() => window.performance.now());
+  const draws = (await demo(page)).draws - from.draws;
+  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * ((to - from.at) / 1000)) + 1);
+  expect(draws).toBeGreaterThan(0);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+  expect((await demo(page)).frames.requests - (await demo(page)).frames.frames).toBe(0);
+  await drainGpu(page);
+});
+
+test("a hidden tab, or a page out of sight, asks for no frame", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => { document.body.style.paddingBottom = "4000px"; });
+  await page.evaluate(() => window.scrollTo(0, 3800));
+  await page.waitForTimeout(600);
+  const away = await readCounts(page);
+  const draws = (await demo(page)).draws;
+  await page.waitForTimeout(1200);
+  expect((await readCounts(page)).rafRequests).toBe(away.rafRequests);
+  expect((await demo(page)).draws).toBe(draws);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(async () => (await demo(page)).draws, { timeout: 30_000 }).toBeGreaterThan(draws);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+});
+
+test("one clock: after a set, every layer is told the same moment in the same draw", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+  const told = await page.evaluate(async () => {
+    const { layers, clock, scene } = window.kazokuDemo;
+    const heard = new Map(layers.map((layer) => [layer.id, []]));
+    for (const layer of layers) {
+      const update = layer.update.bind(layer);
+      layer.update = (frame) => { heard.get(layer.id).push(frame.ms); return update(frame); };
+    }
+    const at = Date.UTC(2031, 2, 5, 7, 8, 9);
+    clock.set(at);
+    await new Promise((resolve) => { const check = () => (scene.frame?.ms === at ? resolve() : setTimeout(check, 50)); check(); });
+    return { at, heard: [...heard].map(([id, list]) => [id, list.at(-1)]) };
+  });
+  expect(told.heard.map(([, ms]) => ms)).toEqual([told.at, told.at, told.at, told.at]);
+  expect(told.heard.map(([id]) => id).sort()).toEqual(["earth", "moon", "satellite", "stars"]);
+  await settle(page);
+});
+
+test("the GPU objects are flat over twenty changes of focus and the context count stays one", async ({ page }) => {
+  test.setTimeout(180_000);
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  for (const id of ["moon", "satellite", "earth"]) await focusOn(page, id);
+  await settle(page);
+  const a = await readCounts(page);
+  const stats = await demo(page);
+  for (let step = 0; step < 20; step += 1) await focusOn(page, ["moon", "satellite", "earth"][step % 3]);
+  await settle(page);
+  const b = await readCounts(page);
+  expect(b.contexts).toBe(1);
+  expect(gpuObjects(b)).toBe(gpuObjects(a));
+  const after = await demo(page);
+  expect(after.assets.entries).toBe(stats.assets.entries);
+  expect(after.stills.count).toBe(stats.stills.count);
+});
+
+test("every body is whole inside its depth slice, at the Earth, at the Moon and at the satellite", async ({ page }) => {
+  test.setTimeout(120_000);
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  for (const id of ["earth", "moon", "satellite"]) {
+    await focusOn(page, id);
+    await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.frame?.focusKm !== undefined)).toBe(true);
+    const report = await page.evaluate((focus) => {
+      const { scene } = window.kazokuDemo;
+      const frame = scene.frame;
+      const cam = frame.camera.positionKm;
+      const out = [];
+      for (const body of scene.bodies) {
+        const p = frame.positionsKm.get(body.id);
+        const d = Math.hypot(p[0] - cam[0], p[1] - cam[1], p[2] - cam[2]);
+        const slice = scene.stats.slices.find((s) => s.ids.includes(body.id));
+        out.push({ id: body.id, held: slice !== undefined && slice.nearKm <= Math.max(d - body.radiusKm, 0) + 1e-9 && slice.farKm >= d + body.radiusKm, ok: slice !== undefined && slice.nearKm > 0 });
+      }
+      return { focus, out, slices: scene.stats.slices.length };
+    }, id);
+    for (const body of report.out) expect(body, `${id}: ${body.id}`).toMatchObject({ held: true, ok: true });
+    expect(report.slices).toBeGreaterThan(0);
+  }
+  await settle(page);
+});
+
+test("from 400 km above the Earth, the satellite and the Earth draw without flicker: two frames at rest are the same picture", async ({ page }) => {
+  test.setTimeout(120_000);
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  // The camera at 400 km above the Earth's surface, looking at the Earth with the Moon beyond; and, close to the satellite, the satellite over the Earth.
+  await page.evaluate(() => window.kazokuDemo.scene.camera.set({ focus: "earth", distanceKm: window.kazokuDemo.EARTH_KM + 400, tilt: 0, yaw: 0 }));
+  await settle(page);
+  const stage = page.locator('[data-testid="stage"]');
+  const one = await stage.screenshot();
+  await page.evaluate(() => window.kazokuDemo.view.invalidate());
+  await settle(page);
+  const two = await stage.screenshot();
+  expect(Buffer.compare(one, two)).toBe(0);
+  await focusOn(page, "satellite");
+  await page.evaluate(() => window.kazokuDemo.scene.camera.set({ distanceKm: 0.3, tilt: 20, yaw: 40 }));
+  await settle(page);
+  const near = await stage.screenshot();
+  await page.evaluate(() => window.kazokuDemo.view.invalidate());
+  await settle(page);
+  expect(Buffer.compare(near, await stage.screenshot())).toBe(0);
+  const slices = await page.evaluate(() => window.kazokuDemo.scene.stats.slices.map((s) => s.ids));
+  expect(slices.length).toBe(2);
+  expect(slices[1]).toEqual(["satellite"]);
+  expect(slices[0]).toEqual(expect.arrayContaining(["earth", "moon"]));
+});
+
+test("the canvas stays within budget at a desk's 1440 by 900 at ratio 2, and a phone's 390 by 844 at ratio 3", async ({ browser }) => {
+  for (const [width, height, ratio, touch] of [[1440, 900, 2, false], [390, 844, 3, true]]) {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: ratio, hasTouch: touch });
+    const page = await context.newPage();
+    await ready(page);
+    await settle(page);
+    const size = await canvasSize(page);
+    expect(size.count).toBe(1);
+    expect(withinPixelBudget(size)).toBe(true);
+    expect((await readCounts(page)).contexts).toBe(1);
+    await context.close();
+  }
+});
+
+test("no request is made at rest, and the page's credit line names every layer's own sources", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+  const asked = [];
+  page.on("request", (request) => asked.push(request.url()));
+  await page.waitForTimeout(1500);
+  expect(asked).toEqual([]);
+  const credits = (await page.locator("kazoku-page-credits").getAttribute("credits")) ?? "";
+  for (const text of await page.evaluate(() => window.kazokuDemo.scene.credits().map((c) => c.text))) expect(credits).toContain(text);
+  expect((await page.evaluate(() => window.kazokuDemo.scene.credits().length))).toBe(3);
+});
+
+test("the shared view controls turn and zoom the scene about the body in focus, and the camera never goes inside it", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => window.kazokuDemo.clock.pause());
+  await settle(page);
+  const before = await page.evaluate(() => window.kazokuDemo.scene.camera.state);
+  await page.evaluate(() => window.kazokuDemo.controls.set({ yaw: 40, tilt: 10, zoom: 2 }));
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.yaw)).toBe(-40);
+  const turned = await page.evaluate(() => window.kazokuDemo.scene.camera.state);
+  expect(turned.tilt).toBe(10);
+  expect(turned.distanceKm).toBeCloseTo(before.distanceKm / 2, 3);
+  await page.evaluate(() => window.kazokuDemo.controls.set({ zoom: 400 }));
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.distanceKm)).toBeGreaterThan(await page.evaluate(() => window.kazokuDemo.EARTH_KM));
+  await settle(page);
+});

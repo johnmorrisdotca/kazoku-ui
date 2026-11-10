@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: shared scene</title>
+  <meta name="description" content="One scene, one camera and one clock for the layers of many packages, on one WebGL context: the Earth's size, the Moon's distance, a satellite and the stars, with the date and the speed." />
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    main { max-width: 1000px; }
+    .stage3d { position: relative; height: min(520px, 62vh); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #05060b; touch-action: pan-y; }
+    .stage3d:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .stage3d img { opacity: 1; }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 0; }
+    .bar .name { font-weight: 600; }
+    .bar output { font: 0.95rem/1.4 ui-monospace, "SF Mono", Menlo, monospace; }
+    .stats { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 16px; color: var(--muted); font: 0.8rem/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+    @media (max-width: 640px) { .stage3d { height: min(340px, 44vh); } .intro { display: block; font-size: 0.85rem; } }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">shared scene</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="shared scene" what-ja="共有シーン" description="One scene, one camera and one clock for the layers of many packages, on one WebGL context: the Earth's size, the Moon's distance, a satellite and the stars, with the date and the speed." description-ja="多くのパッケージのレイヤーを、1つのWebGLコンテキストで、1つのシーン、1つのカメラ、1つの時計にまとめます。地球の大きさの球、月の距離にある球、人工衛星、星を、日時と速さを変えながら見られます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="renderer.html">Shared 3D renderer</a> · <a href="replay.html">Replay bar</a> · <a href="index.html">The view controls</a></p>
+  <p class="intro" data-say="intro">One scene, one camera and one clock from four layers.</p>
+  <div class="stage3d" id="host" tabindex="0" role="group" aria-roledescription="3D view" data-testid="stage"></div>
+  <kazoku-view-controls id="controls" zoom-max="400" data-testid="controls"></kazoku-view-controls>
+  <div class="bar" role="group" aria-label="Look at">
+    <span class="name" data-say="focus">Look at</span>
+    <span class="seg">
+      <button type="button" class="pill" data-focus="earth" aria-pressed="false" data-testid="focus-earth" data-say="earth">Earth</button>
+      <button type="button" class="pill" data-focus="moon" aria-pressed="false" data-testid="focus-moon" data-say="moon">Moon</button>
+      <button type="button" class="pill" data-focus="satellite" aria-pressed="false" data-testid="focus-satellite" data-say="satellite">Satellite</button>
+    </span>
+  </div>
+  <div class="bar">
+    <kazoku-replay-bar id="bar" user-play steps="60 3600 86400 604800" data-testid="bar"></kazoku-replay-bar>
+  </div>
+  <div class="bar">
+    <span class="name" data-say="date">Date and time (UTC)</span>
+    <output id="date" data-testid="date" aria-live="off"></output>
+    <output id="clock-line" data-testid="clock-line" aria-live="off"></output>
+  </div>
+  <ul class="stats" id="stats" data-testid="stats" aria-label="Renderer numbers"></ul>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="scene.js"></script>
+</body>
+</html>
