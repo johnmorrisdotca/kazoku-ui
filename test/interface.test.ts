@@ -181,6 +181,7 @@ test("the layers panel lists outside sources only, and the terms are never hidde
   assert.equal(licenceText(CREDITS[0]!.source, WORDS.en), "Public domain");
   assert.equal(creditsText(CREDITS, "en", WORDS.en), "Yale (Public domain); Survey X (CC BY-NC 3.0 IGO (non-commercial, share-alike)).");
   assert.equal(creditsText([...CREDITS].reverse(), "ja", WORDS.ja).startsWith("イェール"), true, "the package's own data comes first");
+  assert.equal(creditsText(CREDITS, "ja", WORDS.ja), "イェール（Public domain）；サーベイX（CC BY-NC 3.0 IGO（非営利のみ，同一条件で共有））。".replace("，", "、"));
   assert.equal(creditsText([], "en", WORDS.en), "");
 });
 

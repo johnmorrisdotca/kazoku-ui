@@ -42,6 +42,10 @@ export function licenceText(info: DoorSourceInfo, words: { nonCommercial: string
  */
 export function creditsText(credits: readonly DoorCredit[], language: Language, words: { nonCommercial: string; shareAlike: string }): string {
   const ordered = [...credits.filter((credit) => credit.own), ...credits.filter((credit) => !credit.own)];
-  const parts = ordered.map((credit) => `${credit.source.credit[language] || credit.source.credit.en} (${licenceText(credit.source, words)})`);
-  return parts.length === 0 ? "" : `${parts.join("; ")}.`;
+  const ja = language === "ja";
+  const parts = ordered.map((credit) => {
+    const text = credit.source.credit[language] || credit.source.credit.en;
+    return ja ? `${text}（${licenceText(credit.source, words).replace(", ", "、").replace(" (", "（").replace(/\)$/, "）")}）` : `${text} (${licenceText(credit.source, words)})`;
+  });
+  return parts.length === 0 ? "" : ja ? `${parts.join("；")}。` : `${parts.join("; ")}.`;
 }
