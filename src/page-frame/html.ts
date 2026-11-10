@@ -74,3 +74,46 @@ export function pageCreditsHtml(credits: PageCredits | undefined, options: PageC
   const link = options.href === undefined ? "" : ` <a href="${escapeHtml(options.href)}">${escapeHtml(words.credits)}</a>`;
   return `<kazoku-page-credits${attrs}><p>${escapeHtml(line)}${link}</p></kazoku-page-credits>`;
 }
+
+/** How the footer is made. */
+export interface PageFooterOptions {
+  /** `view` (the default): one quiet line; `page`: the reading page's footer. */
+  variant?: "view" | "page";
+  /** The page of data and credits. */
+  href?: string;
+  /** The package's name, for "Drawn with …", and where it links. */
+  package?: string;
+  packageHref?: string;
+  /** How to cite, and the sheets to print. Left out, there is no link. */
+  citeHref?: string;
+  sheetsHref?: string;
+  /** A link home; `index.html` by default. */
+  home?: string;
+  /** The language of the words written inside the tag. Default `en`. */
+  language?: Language;
+  /** Your own words, over the family's. */
+  words?: Partial<PageFrameWords>;
+}
+
+/**
+ * `<kazoku-page-footer>` as a string, for a build: the links, with the same words inside as the no-script fallback.
+ *
+ * @example
+ * pageFooterHtml({ variant: "page", package: "Hoshi Stars", href: "credits.html", citeHref: "cite.html", sheetsHref: "sheets.html" });
+ */
+export function pageFooterHtml(options: PageFooterOptions = {}): string {
+  const language = options.language ?? "en";
+  const words = wordsFor(language, options.words);
+  const home = options.home ?? "index.html";
+  const link = (to: string | undefined, text: string): string => (to === undefined || to === "" ? "" : `<a href="${escapeHtml(to)}">${escapeHtml(text)}</a>`);
+  const attrs = attribute("variant", options.variant === "page" ? "page" : undefined) + attribute("href", options.href) + attribute("package", options.package) + attribute("package-href", options.packageHref) + attribute("cite-href", options.citeHref) + attribute("sheets-href", options.sheetsHref) + attribute("home", home);
+  if (options.variant !== "page") return `<kazoku-page-footer${attrs}><p>${escapeHtml(words.positions)}${options.href === undefined ? "" : ` · ${link(options.href, words.credits)}`}</p></kazoku-page-footer>`;
+  const items = [
+    options.package === undefined ? "" : `<li>${escapeHtml(words.drawnWith)} ${link(options.packageHref, options.package) || escapeHtml(options.package)}</li>`,
+    options.href === undefined ? "" : `<li>${escapeHtml(words.sourcesLead)} ${link(options.href, words.credits)}</li>`,
+    options.citeHref === undefined ? "" : `<li>${link(options.citeHref, words.cite)}</li>`,
+    options.sheetsHref === undefined ? "" : `<li>${link(options.sheetsHref, words.sheetsToPrint)}</li>`,
+    `<li>${link(home, words.home)}</li>`,
+  ];
+  return `<kazoku-page-footer${attrs}><footer><ul>${items.join("")}</ul></footer></kazoku-page-footer>`;
+}
