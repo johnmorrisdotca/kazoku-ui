@@ -3484,7 +3484,7 @@ const CREDITS_TAG = "kazoku-page-credits";
 
 ### creditsText
 
-*function*. A credit line from a view's `credits()`: each source's credit with its licence, the package's own first, joined with semicolons and ending in a full stop. An empty list is an empty string.
+*function*. A credit line from a view's `credits()`: each source's credit with its licence, the package's own first, joined with semicolons and ending in a full stop (in Japanese the licence goes in one pair of `（）` and the sources are joined with `／`, with no full stop). An empty list is an empty string.
 
 ```ts
 function creditsText(credits: readonly DoorCredit[], language: Language, words: {
@@ -3519,13 +3519,13 @@ const languageOf: (lang: string | null | undefined) => Language;
 
 ### licenceText
 
-*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws.
+*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws. In Japanese the terms follow the
 
 ```ts
 function licenceText(info: DoorSourceInfo, words: {
     nonCommercial: string;
     shareAlike: string;
-}): string;
+}, language?: Language): string;
 ```
 
 ### pageCreditsHtml
@@ -4117,13 +4117,13 @@ const languageOf: (lang: string | null | undefined) => Language;
 
 ### licenceText
 
-*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws.
+*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws. In Japanese the terms follow the
 
 ```ts
 function licenceText(info: DoorSourceInfo, words: {
     nonCommercial: string;
     shareAlike: string;
-}): string;
+}, language?: Language): string;
 ```
 
 ### lookName

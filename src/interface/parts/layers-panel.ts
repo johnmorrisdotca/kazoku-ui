@@ -124,7 +124,7 @@ export class LayersPanelElement extends InterfacePart {
       setText(item.querySelector("[data-t]") as Element, say(source.info.name, language));
       (item.querySelector("input") as HTMLInputElement).checked = source.enabled;
       const note = item.querySelector(".src") as HTMLElement;
-      const link = h(doc, "a", { href: source.info.licence.url }, [licenceText(source.info, this.words)]);
+      const link = h(doc, "a", { href: source.info.licence.url }, [licenceText(source.info, this.words, language)]);
       note.replaceChildren(`${say(source.info.credit, language)} `, link);
     });
     setAttr(this.#box, "aria-label", this.getAttribute("label") ?? this.words.layersTitle);

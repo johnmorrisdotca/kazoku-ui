@@ -29,14 +29,20 @@ export interface DoorCredit {
   used: number;
 }
 
-/** The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws. */
-export function licenceText(info: DoorSourceInfo, words: { nonCommercial: string; shareAlike: string }): string {
+/**
+ * The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws. In Japanese the terms follow the
+ * name in full-width parentheses: "CC BY-NC 3.0 IGO（非営利のみ、同一条件で共有）".
+ * @example
+ * licenceText(info, WORDS.en); // "CC BY-NC 3.0 IGO (non-commercial)"
+ */
+export function licenceText(info: DoorSourceInfo, words: { nonCommercial: string; shareAlike: string }, language: Language = "en"): string {
   const flags = [info.licence.nonCommercial === true ? words.nonCommercial : "", info.licence.shareAlike === true ? words.shareAlike : ""].filter((flag) => flag !== "");
-  return flags.length > 0 ? `${info.licence.name} (${flags.join(", ")})` : info.licence.name;
+  if (flags.length === 0) return info.licence.name;
+  return language === "ja" ? `${info.licence.name}（${flags.join("、")}）` : `${info.licence.name} (${flags.join(", ")})`;
 }
 
 /**
- * A credit line from a view's `credits()`: each source's credit with its licence, the package's own first, joined with semicolons and ending in a full stop. An empty list is an empty string.
+ * A credit line from a view's `credits()`: each source's credit with its licence, the package's own first, joined with semicolons and ending in a full stop (in Japanese the licence goes in one pair of （） and the sources are joined with ／, with no full stop). An empty list is an empty string.
  * @example
  * creditsText(view.credits(), "en", WORDS.en); // "Yale Bright Star Catalogue, public domain (Public domain); UCAC4 … (CC0 1.0)."
  */
@@ -45,7 +51,11 @@ export function creditsText(credits: readonly DoorCredit[], language: Language, 
   const ja = language === "ja";
   const parts = ordered.map((credit) => {
     const text = credit.source.credit[language] || credit.source.credit.en;
-    return ja ? `${text}（${licenceText(credit.source, words).replace(", ", "、").replace(" (", "（").replace(/\)$/, "）")}）` : `${text} (${licenceText(credit.source, words)})`;
+    if (!ja) return `${text} (${licenceText(credit.source, words)})`;
+    // Japanese: one pair of full-width parentheses, the licence name and its terms in a flat list after "、".
+    const { licence } = credit.source;
+    const terms = [licence.name, licence.nonCommercial === true ? words.nonCommercial : "", licence.shareAlike === true ? words.shareAlike : ""].filter((term) => term !== "");
+    return `${text}（${terms.join("、")}）`;
   });
-  return parts.length === 0 ? "" : ja ? `${parts.join("；")}。` : `${parts.join("; ")}.`;
+  return parts.length === 0 ? "" : ja ? parts.join("／") : `${parts.join("; ")}.`;
 }
