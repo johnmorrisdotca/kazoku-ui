@@ -7,6 +7,11 @@
   <title>Kazoku UI: view controls</title>
   <meta name="description" content="The family's shared view controls: turn, tip, zoom and pan any 3D or zoomable view, with touch, keys and choices kept in the address." />
   <link rel="stylesheet" href="demo.css" />
+  <style>
+    /* The page frame's header line (a row of the top bar) takes room the view and its controls had: the view gives it back, so the controls still fit the first screen. */
+    .scene { height: 310px; }
+    @media (max-width: 640px) { .scene { height: min(220px, 26vh); } }
+  </style>
 </head>
 <body>
 <main>
