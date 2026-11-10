@@ -294,7 +294,7 @@ test("what is drawn is really there: hiding the Earth, the stars or the satellit
   const noStars = await shot();
   await hide("stars");
   expect(Buffer.compare(all, noStars)).not.toBe(0);
-  // The picture is not one flat colour: the Earth's lit side is far from the dark sky.
+  // The picture is not one flat colour: the Earth's lit blue side, and a dark sky round it.
   const spread = await page.evaluate(async (data) => {
     const image = new Image();
     image.src = `data:image/png;base64,${data}`;
@@ -309,12 +309,13 @@ test("what is drawn is really there: hiding the Earth, the stars or the satellit
     let dark = 0;
     for (let i = 0; i < pixels.length; i += 4) {
       const sum = pixels[i] + pixels[i + 1] + pixels[i + 2];
-      if (sum > 240) bright += 1;
+      // The Earth is blue where it is lit; the sky is near black.
+      if (pixels[i + 2] > 80 && pixels[i + 2] > pixels[i] + 30) bright += 1;
       else if (sum < 60) dark += 1;
     }
     return { bright, dark, total: pixels.length / 4 };
   }, all.toString("base64"));
-  expect(spread.bright).toBeGreaterThan(spread.total * 0.02);
+  expect(spread.bright).toBeGreaterThan(spread.total * 0.05);
   expect(spread.dark).toBeGreaterThan(spread.total * 0.1);
   await focusOn(page, "satellite");
   await page.evaluate(() => window.kazokuDemo.scene.camera.set({ distanceKm: 0.3, tilt: 20, yaw: 40 }));
