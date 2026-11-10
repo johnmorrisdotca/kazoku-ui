@@ -104,6 +104,8 @@ test("turning draws once a frame, asks for one frame at a time, and stops when t
   const later = await readCounts(page);
   expect(later.draws - paused.draws).toBe(0);
   expect(later.rafRequests - paused.rafRequests).toBe(0);
+  // Seconds of software drawing leave the GPU behind the page: this test pays for it, not the next one.
+  await drainGpu(page);
 });
 
 test("a turning view is drawn at most 30 times a second, whatever the screen's rate", async ({ page }) => {
@@ -145,6 +147,8 @@ test("memory is steady over fifty changes of focus: the GPU objects, the cache a
   expect(b.stats.stills.count).toBe(a.stats.stills.count);
   expect(b.stats.stills.bytes).toBe(a.stats.stills.bytes);
   if (browserName === "chromium") expect(b.heap - a.heap).toBeLessThan(3 * 1024 * 1024);
+  // Eighty changes of focus drew a great deal in software: settle the GPU before the next test's clock starts.
+  await drainGpu(page);
 });
 
 test("a second view of the same shape takes the shared geometry from the cache", async ({ page }) => {
@@ -199,6 +203,7 @@ test("a lost context shows the still, a restored one draws again, and it is stil
   await page.evaluate(() => window.kazokuDemo.renderer.focused.invalidate());
   await expect.poll(async () => (await demo(page)).draws).toBeGreaterThan(before);
   expect((await readCounts(page)).contexts).toBe(count);
+  await drainGpu(page);
 });
 
 test("out of sight no frame is asked for, and after a while the context is let go; back in sight it is made again", async ({ page }) => {
@@ -220,6 +225,7 @@ test("out of sight no frame is asked for, and after a while the context is let g
   await expect.poll(() => live(page, 0)).toBe(true);
   expect((await demo(page)).contexts).toBe(2);
   expect(await page.evaluate(() => document.querySelectorAll("canvas").length)).toBe(1);
+  await drainGpu(page);
 });
 
 test("the stills stay within their byte budget, and a view whose still was let go makes it again", async ({ page }) => {
@@ -256,6 +262,7 @@ test("a click on a view takes the renderer, and the view controls then move that
   const settled = (await demo(page)).draws;
   await page.waitForTimeout(500);
   expect((await demo(page)).draws).toBe(settled);
+  await drainGpu(page);
 });
 
 test("three.js is not fetched until a view first goes live, and then only once", async ({ page }) => {
