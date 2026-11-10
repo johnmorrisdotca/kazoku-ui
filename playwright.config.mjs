@@ -1,12 +1,13 @@
 // The demo's own tests: a real browser. `pnpm test:demo` builds the demo and runs them against scripts/dev.mjs.
 // This package's ports are 8400 to 8499: the demo on 8400, tests on 8401 unless TEST_PORT names another, the picture script on 8402.
 import { defineConfig, devices } from "@playwright/test";
+import { SOFTWARE_GL_ARGS } from "./dist/testing/index.js";
 
 const port = Number(process.env.TEST_PORT ?? 8401);
 const phone = { viewport: { width: 390, height: 844 }, hasTouch: true };
 const desk = { viewport: { width: 1280, height: 900 } };
-// Every WebGL page is drawn in software (SwiftShader), never on the machine's graphics card: a test run once panicked a Mac's graphics driver. Same arguments as SOFTWARE_GL_ARGS in src/testing.
-const gl = { launchOptions: { args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] } };
+// Every page is drawn in software (SwiftShader for WebGL, the CPU for the page's own pictures), never on the machine's graphics card: a test run once panicked a Mac's graphics driver. The package's own list, built before the tests run.
+const gl = { launchOptions: { args: [...SOFTWARE_GL_ARGS] } };
 // WebKit has no software switch, so off CI it skips the pages that draw WebGL; CI (a hosted runner, no graphics card) plays them.
 const webglPages = process.env.CI ? undefined : /renderer\.demo/;
 

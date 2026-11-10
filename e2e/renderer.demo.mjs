@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { canvasSize, COUNT_SCRIPT, gpuObjects, readCounts, withinPixelBudget } from "../dist/testing/index.js";
+import { canvasSize, COUNT_SCRIPT, drainGpu, gpuObjects, readCounts, withinPixelBudget } from "../dist/testing/index.js";
 
 // The shared 3D renderer on demo/renderer.html: thirty views, one WebGL context. The budgets every 3D package asserts: contexts = 1, draws and frames at rest = 0,
 // the GPU objects flat over a run of changes, and the canvas within budget at 5K.
@@ -122,6 +122,8 @@ test("a turning view is drawn at most 30 times a second, whatever the screen's r
   expect(draws).toBeLessThanOrEqual(Math.ceil(30 * seconds) + 1);
   expect(draws).toBeGreaterThan(0);
   await page.evaluate(() => window.kazokuDemo.controls.pause());
+  // Three seconds of drawing leave the software GPU behind the page; pay for it here, not in the next test's clock.
+  await drainGpu(page);
 });
 
 test("memory is steady over fifty changes of focus: the GPU objects, the cache and the heap are flat", async ({ page, browserName }) => {
