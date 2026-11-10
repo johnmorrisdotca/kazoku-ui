@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene"];
 ```
 
 ### Part
@@ -5250,6 +5250,602 @@ import { defineInterface } from '@johnmorrisdotca/kazoku-ui/interface/define';
 function defineInterface(registry?: CustomElementRegistry): boolean;
 ```
 
+## `@johnmorrisdotca/kazoku-ui/clock`
+
+7 values and 6 types.
+
+```js
+import { browserSource, CLOCK_KEYS, clockAddress, createClockSlot, createFamilyClock, prefersReducedMotion, readClockAddress } from '@johnmorrisdotca/kazoku-ui/clock';
+```
+
+### browserSource
+
+*function*. The browser's clocks.
+
+```ts
+function browserSource(): ClockSource;
+```
+
+### CLOCK_KEYS
+
+*constant*. The address keys for the moment, the speed and playing.
+
+```ts
+const CLOCK_KEYS: {
+    readonly time: "time";
+    readonly speed: "speed";
+    readonly play: "play";
+};
+```
+
+### clockAddress
+
+*function*. The address keys that say where a clock is, for `applyParams` or an address writer: the moment as a date and time, the speed, and `on` or `off`.
+
+```ts
+function clockAddress(clock: Pick<FamilyClock, "time" | "speed" | "running">): Record<string, string>;
+```
+
+### createClockSlot
+
+*function*. The holder of a view's clock. A view asks `slot.clock` at each draw, asks to be drawn again when `onChange` fires, and a page that wants one clock for many views calls `attach` on each.
+
+```ts
+function createClockSlot(options?: FamilyClockOptions): ClockSlot;
+```
+
+### createFamilyClock
+
+*function*. The family's clock. It advances by the time that really passed between two looks, never by a frame's step: at 86,400 times real time it moves a day for every real second on any machine,
+
+```ts
+function createFamilyClock(options?: FamilyClockOptions): FamilyClock;
+```
+
+### prefersReducedMotion
+
+*function*. Whether the reader asked their system for reduced motion. False where there is no `matchMedia` (a server, a test).
+
+```ts
+function prefersReducedMotion(): boolean;
+```
+
+### readClockAddress
+
+*function*. What an address says about the clock, as the options `createFamilyClock` takes. `time` is `now`, a number of milliseconds since 1970, or a date and time (`2026-11-10T12:00:00Z`);
+
+```ts
+function readClockAddress(search: string | URLSearchParams): FamilyClockOptions;
+```
+
+### ClockChange
+
+*interface*. What a listener is told.
+
+```ts
+interface ClockChange {
+    /** The moment, in milliseconds since 1970. */
+    time: number;
+    speed: number;
+    running: boolean;
+    reason: ClockReason;
+}
+```
+
+### ClockReason
+
+*type*. Why a clock told its listeners.
+
+```ts
+type ClockReason = "tick" | "set" | "speed" | "play" | "pause";
+```
+
+### ClockSlot
+
+*interface*. What `createClockSlot` returns.
+
+```ts
+interface ClockSlot {
+    /** The clock to read the moment from: the outside clock while one is attached, else the view's own. */
+    readonly clock: FamilyClock;
+    /** True while an outside clock is attached. */
+    readonly attached: boolean;
+    /** Follow an outside clock. The view's own clock is let go; its listeners now hear the outside one. */
+    attach(outside: FamilyClock): void;
+    /** Let go of the outside clock and make an own clock that starts from the moment, the speed and the pause the outside one had. Returns it. Nothing happens when none is attached. */
+    detach(): FamilyClock;
+    /** Hear changes of whichever clock is in use, one subscription for the life of the slot. Returns the way to stop. */
+    onChange(listener: (change: ClockChange) => void): () => void;
+    /** Stop hearing the clock in use. */
+    dispose(): void;
+}
+```
+
+### ClockSource
+
+*interface*. A clock's sources of time: the page's monotonic clock (`performance.now()`) and the wall clock (`Date.now()`), both in milliseconds.
+
+```ts
+interface ClockSource {
+    /** The page's monotonic clock, from which the time that has passed is taken. */
+    now(): number;
+    /** The wall clock, for a clock that follows the real time (`"now"` at speed 1). */
+    wall(): number;
+    /** True while the tab is hidden: a hidden tab sends no `"tick"`. Left out, the document's `visibilityState` is read when there is one. */
+    hidden?(): boolean;
+}
+```
+
+### FamilyClock
+
+*interface*. The clock `createFamilyClock` returns.
+
+```ts
+interface FamilyClock {
+    /** The moment as of the last look, in milliseconds since 1970 (UTC, as JavaScript counts). */
+    readonly time: number;
+    /** Game seconds for each real second: 1 is real time, negative runs backwards. Kept while paused. */
+    readonly speed: number;
+    /** True while the moment moves: not paused, and the speed is not 0. */
+    readonly running: boolean;
+    /** True once the reader (or a link) has chosen the speed: from then on `openAt` leaves it alone. */
+    readonly touched: boolean;
+    /** Bring the moment up to the page's clock at `now` and return it: the time that really passed since the last look, at the speed it ran at, however few frames were drawn. A paused clock keeps its moment. */
+    advance(now?: number): number;
+    /** Set the moment: milliseconds since 1970, or `"now"` to follow the wall clock. Starts the count again from there. */
+    set(time: number | "now", now?: number): void;
+    /** The reader chooses the speed. The time up to this moment is worked out at the old speed first. From now on `openAt` leaves the speed alone. */
+    setSpeed(speed: number, now?: number): void;
+    /** Run from the moment held. A speed of 0 comes back to the speed the clock opened at (1 if it had none). */
+    play(now?: number): void;
+    /** Hold the moment; the speed is kept. */
+    pause(now?: number): void;
+    /**
+     * The speed a body first shows its motion at: the speed that the body in focus asks for. It is taken only while the reader has not touched the speed, so moving the focus from the Earth to Mars
+     * changes the pace of a clock nobody has set, and never of one somebody has. Returns whether it was taken. It does not start or stop the clock.
+     */
+    openAt(speed: number, now?: number): boolean;
+    /** Hear every change: a tick at most 4 a second (none while paused or in a hidden tab), and each `set`, speed change, play and pause at once. Returns the way to stop. */
+    onChange(listener: (change: ClockChange) => void): () => void;
+}
+```
+
+### FamilyClockOptions
+
+*interface*. What `createFamilyClock` starts from. Every part is optional: with none, the clock starts at the real time, running, at speed 1.
+
+```ts
+interface FamilyClockOptions {
+    /** The moment to start from, in milliseconds since 1970, or `"now"` (the default) to follow the wall clock. A link that names a time is obeyed. */
+    start?: number | "now";
+    /** The speed the reader or a link chose. Left out, the clock opens at `openingSpeed` and the speed is still the reader's to choose. */
+    speed?: number;
+    /** The speed the body in focus opens at, in game seconds for each real second (1). */
+    openingSpeed?: number;
+    /** Start paused (a link that names a pause). Left out, the clock runs, unless `reducedMotion` says to wait. */
+    paused?: boolean;
+    /** The reader asked for reduced motion: open paused with Play ready (the speed is the opening speed, kept for Play). Left out, the browser's `prefers-reduced-motion` is read. A link's `paused` wins. */
+    reducedMotion?: boolean;
+    /** The page's clocks; the browser's by default (a test passes its own, such as one that gives five frames a second). */
+    source?: ClockSource;
+    /** Most often a `"tick"` is sent, in milliseconds (250, which is 4 a second). */
+    tickMs?: number;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/scene`
+
+12 values and 18 types.
+
+```js
+import { AU_KM, composeScene, fitDistanceKm, lengthKm, lowPrecisionSun, orbitOffsetKm, placeInFrame, planSlices, SKY_FAR, SKY_NEAR, SKY_RADIUS, subKm } from '@johnmorrisdotca/kazoku-ui/scene';
+```
+
+### AU_KM
+
+*constant*. The astronomical unit in kilometres.
+
+```ts
+const AU_KM = 149597870.7;
+```
+
+### composeScene
+
+*function*. One scene, one camera and one clock from many packages' layers, on the shared renderer's one WebGL context (one context for the page, not one for each package).
+
+```ts
+function composeScene(three: SceneThree, options: ComposeOptions): ComposedScene;
+```
+
+### fitDistanceKm
+
+*function*. How far from a body's centre a camera must be for the whole body to fill the view across, in kilometres (a little beyond, so it does not touch the edge).
+
+```ts
+function fitDistanceKm(radiusKm: number, fovDeg: number, margin?: number): number;
+```
+
+### lengthKm
+
+*constant*. The length of an offset.
+
+```ts
+const lengthKm: (a: Vec3Km) => number;
+```
+
+### lowPrecisionSun
+
+*function*. Where the Sun is, geocentric, in the SPX frame, in kilometres: the Astronomical Almanac's low-precision formula (about 0.01 degrees from 1950 to 2050). A host with wakusei-planets' `frameAt`
+
+```ts
+function lowPrecisionSun(ms: number): Vec3Km;
+```
+
+### orbitOffsetKm
+
+*function*. Where the camera is, as an offset from what it looks at: `distanceKm` away, `yaw` degrees round the north axis (0 looks from +z), `tilt` degrees above the equator.
+
+```ts
+function orbitOffsetKm(distanceKm: number, yawDeg: number, tiltDeg: number): Vec3Km;
+```
+
+### placeInFrame
+
+*function*. Put an object where a body is, relative to the frame's floating origin: `position = (place - focus) / unit`, `scale = sizeKm / unit`. The one line each layer writes, so none of them
+
+```ts
+function placeInFrame(object: Object3DLike, placeKm: Vec3Km, frame: Pick<SceneFrame, "focusKm" | "unitKm">, sizeKm?: number): Vec3Km;
+```
+
+### planSlices
+
+*function*. Two depth slices, not a logarithmic depth buffer (which a custom shader does not follow without editing). The bodies are dealt into a near slice (those whose nearest surface is within `ratio`
+
+```ts
+function planSlices(bodies: readonly SliceBody[], options?: SliceOptions): DepthSlice[];
+```
+
+### SKY_FAR
+
+*constant*
+
+```ts
+const SKY_FAR = 1000;
+```
+
+### SKY_NEAR
+
+*constant*. The sky camera's near and far planes.
+
+```ts
+const SKY_NEAR = 1;
+```
+
+### SKY_RADIUS
+
+*constant*. Where a layer's sky sits, in scene units from the origin (the host's sky camera sees 1 to 1000).
+
+```ts
+const SKY_RADIUS = 100;
+```
+
+### subKm
+
+*constant*. `a - b`.
+
+```ts
+const subKm: (a: Vec3Km, b: Vec3Km) => Vec3Km;
+```
+
+### CameraLike
+
+*interface*. What of a three `PerspectiveCamera` the host uses.
+
+```ts
+interface CameraLike {
+    fov: number;
+    aspect: number;
+    near: number;
+    far: number;
+    position: {
+        set(x: number, y: number, z: number): unknown;
+    };
+    up: {
+        set(x: number, y: number, z: number): unknown;
+    };
+    quaternion: {
+        copy(other: unknown): unknown;
+    };
+    lookAt(x: number, y: number, z: number): void;
+    updateProjectionMatrix(): void;
+}
+```
+
+### ComposedScene
+
+*interface*. An item for the shared renderer, with the camera, the clock and the layers a page drives it with.
+
+```ts
+interface ComposedScene extends Item3D {
+    readonly clock: FamilyClock;
+    readonly layers: readonly SceneLayer[];
+    /** Every layer's bodies. */
+    readonly bodies: readonly SceneBody[];
+    readonly camera: SceneCamera;
+    /** The last frame every layer was told, if one was drawn. */
+    readonly frame: SceneFrame | undefined;
+    readonly stats: SceneStats;
+    /** Draw again when the clock is set, played, paused or its speed changes, and when the camera moves. Give it the renderer's `View`. Returns the way to stop. */
+    bind(view: {
+        invalidate(): void;
+    }): () => void;
+    /** The layers' credits, each once. */
+    credits(): readonly Credit[];
+    /** Let go of every layer. The renderer lets go of the scenes it built; the layers are the page's to dispose, once, here. */
+    dispose(): void;
+}
+```
+
+### ComposeOptions
+
+*interface*. What `composeScene` is made from.
+
+```ts
+interface ComposeOptions {
+    /** The layers, in the order they are added: each package's `create…Layer`. */
+    layers: readonly SceneLayer[];
+    /** The one clock. Every layer reads its moment from here. */
+    clock: FamilyClock;
+    /** The body in focus at first (the first body of the first layer). */
+    focus?: string;
+    /** Where the camera starts (the distance that fits the focused body, yaw 0, tilt 15, a field of view of 40 degrees). */
+    camera?: Partial<Omit<SceneCameraState, "focus">>;
+    /** Where the Sun is at a moment, in the SPX frame, in kilometres: wakusei-planets' `frameAt` times the astronomical unit. `lowPrecisionSun` when left out. */
+    sun?: (ms: number) => Vec3Km;
+    /** Kilometres to a scene unit: a number, or a function of the focused body (its radius by default, so the focused body is about a unit across and the camera a few units away). */
+    unitKm?: number | ((focus: SceneBody) => number);
+    /** See `planSlices` (1000). */
+    ratio?: number;
+    /** See `planSlices` (0.00001 km). */
+    minNearKm?: number;
+    /** What the renderer shares a still by. */
+    key?: string;
+}
+```
+
+### Credit
+
+*interface*. One credit for the page's credit line: what data or work the layer draws on.
+
+```ts
+interface Credit {
+    /** The credit, in English. */
+    text: string;
+    /** The same in Japanese, when there is one. */
+    textJa?: string;
+    /** Where to read more. */
+    href?: string;
+}
+```
+
+### DepthSlice
+
+*interface*. A range of the camera's depth that some bodies are drawn in, with the depth buffer cleared before it.
+
+```ts
+interface DepthSlice {
+    ids: readonly string[];
+    /** The near and far planes of this pass, in kilometres. */
+    nearKm: number;
+    farKm: number;
+}
+```
+
+### Object3DLike
+
+*interface*. What of a three `Object3D` the host touches.
+
+```ts
+interface Object3DLike {
+    visible: boolean;
+    parent: unknown;
+    position: {
+        set(x: number, y: number, z: number): unknown;
+    };
+    scale: {
+        setScalar(scale: number): unknown;
+    };
+}
+```
+
+### SceneBody
+
+*interface*. One body a layer draws: a star, a planet, a rocket.
+
+```ts
+interface SceneBody {
+    /** A name that is the layer's own and unique on the page (`"earth"`, `"moon"`, `"mars"`). */
+    readonly id: string;
+    /** The body's own axes, +y its north pole, with everything of the body inside it (its lights too). The layer places and turns it in `update`; the host adds it to the scene and switches `visible` for each depth slice. */
+    readonly root: Object3DLike;
+    /** The body's bounding radius in kilometres, atmosphere included: the host slices depth with it and finds the nearest surface. */
+    readonly radiusKm: number;
+    /** The speed, in game seconds for each real second, at which this body's motion first shows. The clock opens at it while this body is in focus, until the reader sets a speed. */
+    readonly openingSpeed: number;
+    /** Where the body's centre is at the moment `ms` (milliseconds since 1970), in the SPX frame, in kilometres. Pure: the host asks it once a frame for the focus and the depth slices. */
+    placeKm(ms: number): Vec3Km;
+}
+```
+
+### SceneCamera
+
+*interface*. The camera of a composed scene, kept outside any one built scene so it survives the renderer's rebuilds (a still, a view that lets go and comes back).
+
+```ts
+interface SceneCamera {
+    /** A copy of where the camera is. */
+    readonly state: Readonly<SceneCameraState>;
+    /** Change any of it. The bound view is drawn again; nothing is drawn if nothing changed. */
+    set(change: Partial<SceneCameraState>): void;
+    /** Put another body in focus: the origin moves to it, the camera takes the distance that fits it unless `change` says another, and the clock opens at that body's opening speed if the reader has not set one. */
+    focusOn(id: string, change?: Partial<Omit<SceneCameraState, "focus">>): void;
+    /** Turn, tip and zoom from the view controls' state (`event.detail` of `kazoku-viewchange`). Zoom 1 fits the focused body in the view; the camera never goes inside it. */
+    look(look: SceneLook): void;
+    /** The distance at which the body fills the view (the focused body's by default), in kilometres. */
+    fitKm(id?: string): number;
+    /** Hear every change of the camera. Returns the way to stop. */
+    onChange(listener: (state: Readonly<SceneCameraState>) => void): () => void;
+}
+```
+
+### SceneCameraState
+
+*interface*. Where the camera is: orbiting the centre of the focused body.
+
+```ts
+interface SceneCameraState {
+    /** The id of the body in focus: the scene's origin is held on its centre. */
+    focus: string;
+    /** From the body's centre to the camera, in kilometres. */
+    distanceKm: number;
+    /** Degrees round the north axis. */
+    yaw: number;
+    /** Degrees above the equator. */
+    tilt: number;
+    /** The vertical field of view, in degrees. */
+    fovDeg: number;
+}
+```
+
+### SceneFrame
+
+*interface*. What the host tells every layer each frame.
+
+```ts
+interface SceneFrame {
+    /** The clock's moment, in milliseconds since 1970: the same number for every layer in one draw. */
+    ms: number;
+    /** The point the scene's origin is held on, in kilometres: the focused body's centre. Layers set `position = (place - focusKm) / unitKm`. */
+    focusKm: Vec3Km;
+    /** Kilometres to a scene unit this frame. A layer sets `scale` to a size in kilometres over this. */
+    unitKm: number;
+    /** Where the Sun is, in kilometres, for whoever needs light. */
+    sunKm: Vec3Km;
+    /** Where every body's centre is at `ms`, by id (the host asked each body's `placeKm` once). */
+    positionsKm: ReadonlyMap<string, Vec3Km>;
+    /** The camera. `heightPx` is the view's height in device pixels, for a marker a few pixels across. */
+    camera: {
+        positionKm: Vec3Km;
+        fovDeg: number;
+        heightPx: number;
+    };
+    pixelRatio: number;
+}
+```
+
+### SceneLayer
+
+*interface*. What a package gives a host: its bodies, an optional sky, and how to move them to a frame.
+
+```ts
+interface SceneLayer {
+    readonly id: string;
+    readonly bodies: readonly SceneBody[];
+    /** Drawn at infinity, first, with no depth (the stars): points at `SKY_RADIUS` scene units from the origin. The host draws it with a camera at the origin that turns with the view and never moves. */
+    readonly sky?: Object3DLike;
+    /** Place and turn the bodies for this frame. Return true while something still moves on its own (a clock-driven layer returns false: the host redraws while the clock runs). */
+    update(frame: SceneFrame): boolean;
+    /** What the layer draws on, for the page's credit line. */
+    credits(): readonly Credit[];
+    dispose(): void;
+}
+```
+
+### SceneLike
+
+*interface*. What of a three `Scene` the host uses.
+
+```ts
+interface SceneLike {
+    add(object: Object3DLike): unknown;
+    remove(object: Object3DLike): unknown;
+}
+```
+
+### SceneLook
+
+*interface*. What the view controls (or a test) say about the look: `yaw`, `tilt` and `zoom` as `<kazoku-view-controls>` reports them.
+
+```ts
+interface SceneLook {
+    /** Degrees the body is turned about its north axis, as the view controls count them: a drag to the right turns the near face to the right, so the camera goes round the other way. */
+    yaw?: number;
+    tilt?: number;
+    /** 1 fits the focused body in the view; 2 is twice as close. */
+    zoom?: number;
+}
+```
+
+### SceneStats
+
+*interface*. What the composed scene counted, for a test or a page's numbers.
+
+```ts
+interface SceneStats {
+    /** Frames computed and told to the layers. */
+    frames: number;
+    /** Passes drawn: the sky, then each slice. */
+    passes: number;
+    /** The depth slices of the last frame, far first. */
+    slices: readonly DepthSlice[];
+}
+```
+
+### SceneThree
+
+*interface*. What of the `three` module the host uses.
+
+```ts
+interface SceneThree {
+    Scene: new () => SceneLike;
+    PerspectiveCamera: new (fov: number, aspect: number, near: number, far: number) => CameraLike;
+}
+```
+
+### SliceBody
+
+*interface*. One body as the depth planner sees it.
+
+```ts
+interface SliceBody {
+    id: string;
+    /** From the camera to the body's centre, in kilometres. */
+    distanceKm: number;
+    radiusKm: number;
+}
+```
+
+### SliceOptions
+
+*interface*. What `planSlices` is held to.
+
+```ts
+interface SliceOptions {
+    /** A body belongs to the near slice when its nearest surface is within this many times the nearest surface of all (1000). */
+    ratio?: number;
+    /** The nearest a near plane may be, in kilometres (0.00001, a centimetre). */
+    minNearKm?: number;
+}
+```
+
+### Vec3Km
+
+*type*. A place or an offset in the SPX frame, in kilometres, as float64 numbers (never float32 scene units): J2000 equatorial, x to the vernal equinox, y to the celestial north pole, z = minus the equatorial y.
+
+```ts
+type Vec3Km = readonly [number, number, number];
+```
+
 ## `@johnmorrisdotca/kazoku-ui/print`
 
 28 values and 23 types.
@@ -6024,6 +6620,10 @@ interface GLRenderer {
     setPixelRatio(ratio: number): void;
     setSize(width: number, height: number, updateStyle?: boolean): void;
     render(scene: unknown, camera: unknown): void;
+    /** Whether `render` clears the canvas first (three's `autoClear`, true). A scene that draws its own passes (`Scene3D.render`) turns it off after the first and puts it back. */
+    autoClear?: boolean;
+    /** Clear the depth buffer only, so a later pass draws over an earlier one whatever its depth. */
+    clearDepth?(): void;
     dispose(): void;
     forceContextLoss(): void;
 }
@@ -6109,6 +6709,11 @@ interface RendererStats {
 interface Scene3D {
     scene: unknown;
     camera: unknown;
+    /**
+     * Draw the view yourself, in as many passes as it takes (a sky, then far bodies, then near ones with the depth cleared between). Left out, the renderer draws `scene` with `camera` in one pass.
+     * It is called for each draw of the live view and for the view's still, after `update`; use `gl.autoClear` and `gl.clearDepth()` between passes and put `autoClear` back.
+     */
+    render?(gl: GLRenderer): void;
     /** Called before each draw while the view is live. Return true while something is moving; the view is then drawn again next frame, else it rests. */
     update?(dt: number, now: number): boolean | void;
     /** The view's size in CSS pixels changed (set the camera's aspect). */
