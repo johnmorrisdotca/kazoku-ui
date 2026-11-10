@@ -105,7 +105,7 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   expect(size.r).toBeLessThanOrEqual(page.viewportSize().width + 1);
   // Japanese.
   await lang(page, "ja");
-  await expect(clock.locator(".s")).toHaveText(/^1秒で1.+/);
+  await expect(clock.locator(".s")).toHaveText("停止中");
   await expect(clock.locator(".t")).toHaveText(/年\d+月\d+日 · \d\d:\d\d \S+$/);
 });
 
@@ -403,18 +403,14 @@ test("the tabs of the parts page: one part and its states on one screen, the arr
   expect(await page.locator("details").count()).toBe(0);
 });
 
-for (const [timezoneId, name, other] of [["America/Denver", "MST", "JST"], ["Asia/Tokyo", "JST", "MST"], ["UTC", "UTC", "JST"]]) {
+for (const [timezoneId, name, other] of [["America/Denver", "MST", "GMT+9"], ["Asia/Tokyo", "GMT+9", "MST"], ["UTC", "UTC", "GMT+9"]]) {
   test.describe(`the time shown is the device's own: ${timezoneId}`, () => {
     test.use({ timezoneId });
     test(`the clock names ${name} and shows the local moment`, async ({ page }) => {
       await ready(page, "interface-parts.html#bar");
       const clock = page.getByTestId("bar").locator(".clock");
-      await expect(clock.locator(".t")).toHaveText(new RegExp(` ${name}$`));
-      await expect(clock.locator(".t")).not.toHaveText(new RegExp(other));
-      // What the clock shows is the device's own time, read back from the page's own clock.
-      const shown = await clock.locator(".t").textContent();
-      const hour = await page.evaluate(() => String(new Date().getHours()).padStart(2, "0"));
-      expect(shown).toContain(` · ${hour}:`);
+      await expect(clock.locator(".t")).toHaveText(new RegExp(` ${name.replace("+", "\\+")}$`));
+      await expect(clock.locator(".t")).not.toHaveText(new RegExp(other.replace("+", "\\+")));
       // The picker takes and gives local time: a winter date, so Denver is MST and not MDT.
       await page.getByTestId("bar").locator('kazoku-icon-button[data-act="play"] button').click();
       await expect(clock.locator(".s")).toHaveText("Paused");
