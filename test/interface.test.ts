@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { cardProblems, formatValue, type ObjectCardData } from "../src/interface/card.ts";
-import { canStep, formatMoment, fromInputValue, speedWords, SPEED_LADDER, stepSpeed, toInputValue } from "../src/interface/clock.ts";
+import { canStep, formatMoment, fromInputValue, speedWords, SPEED_LADDER, stepSpeed, toInputValue, zoneName } from "../src/interface/clock.ts";
 import { createStandInClock } from "../src/interface/clock-adapter.ts";
 import { CONTROL_ORDER, nextLook, parseControls, parseLooks } from "../src/interface/controls.ts";
 import { ICON_NAMES, ICONS, iconSvg } from "../src/interface/icons.ts";
@@ -79,6 +79,9 @@ test("the moment reads the way the design shows it, and goes to and from the pic
   assert.equal(formatMoment(ms, "en", "utc"), "10 Nov 2026 · 21:14");
   assert.equal(formatMoment(ms, "ja", "utc"), "2026年11月10日 · 21:14");
   assert.equal(formatMoment(Number.NaN, "en", "utc"), "—");
+  assert.equal(formatMoment(ms, "en", "utc", true), "10 Nov 2026 · 21:14 UTC");
+  assert.equal(zoneName(ms, "ja", "utc"), "UTC");
+  assert.match(zoneName(ms, "en"), /^[A-Z]{2,5}$|^GMT[+-−]\d/, "the device's own zone is named");
   assert.equal(toInputValue(ms, "utc"), "2026-11-10T21:14");
   assert.equal(fromInputValue("2026-11-10T21:14", "utc"), ms);
   assert.equal(fromInputValue("2026-11-10T21:14", "local"), new Date(2026, 10, 10, 21, 14).getTime());

@@ -3808,10 +3808,10 @@ interface PageTexts {
 
 ## `@johnmorrisdotca/kazoku-ui/page-frame/element`
 
-4 values and 0 types.
+6 values and 0 types.
 
 ```js
-import { CREDITS_TAG, PageCreditsElement, PageHeaderElement, TAG } from '@johnmorrisdotca/kazoku-ui/page-frame/element';
+import { CREDITS_TAG, FOOTER_TAG, PageCreditsElement, PageFooterElement, PageHeaderElement, TAG } from '@johnmorrisdotca/kazoku-ui/page-frame/element';
 ```
 
 ### CREDITS_TAG
@@ -3820,6 +3820,14 @@ import { CREDITS_TAG, PageCreditsElement, PageHeaderElement, TAG } from '@johnmo
 
 ```ts
 const CREDITS_TAG = "kazoku-page-credits";
+```
+
+### FOOTER_TAG
+
+*constant*
+
+```ts
+const FOOTER_TAG = "kazoku-page-footer";
 ```
 
 ### PageCreditsElement
@@ -3833,6 +3841,26 @@ class PageCreditsElement extends HTMLElement {
     constructor();
     /** Your own words over the family's, for example `{ credits: "Sources" }`. */
     set words(words: Partial<PageFrameWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(): void;
+}
+```
+
+### PageFooterElement
+
+*class*. Attributes: `variant` (`view`, the default: the quiet line of a view; or `page`: the reading page's footer), `note` and `note-ja` (the view line's first words, "Positions computed for the time shown" by default),
+
+```ts
+class PageFooterElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Your own words over the family's, for example `{ cite: "Cite this page" }`. */
+    set words(words: Partial<PageFrameWords>);
+    /** What the view drew from: its `credits()`. */
+    get sources(): readonly DoorCredit[];
+    set sources(next: readonly DoorCredit[]);
     connectedCallback(): void;
     disconnectedCallback(): void;
     attributeChangedCallback(): void;
@@ -3885,10 +3913,10 @@ function definePageFrame(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/interface`
 
-52 values and 26 types.
+53 values and 26 types.
 
 ```js
-import { canStep, cardProblems, COLOURS, contrastRatio, CONTROL_ORDER, cultureSegments, FONTS, formatMoment, formatValue, fromInputValue, hasValue, ICON_NAMES, ICON_STROKE, ICONS, iconSvg, installTokens, isIconName, isScaleStep, kui, LANGUAGE_SEGMENTS, languageOf, licenceText, lookName, LOOKS, luminance, nextLook, parseControls, parseLooks, parseScaleSteps, parseSegments, RADII, READABLE_PAIRS, readingProblems, say, SCALE_STEPS, scaleName, SIZES, sourcesFromCredits, SPEED_LADDER, speedWords, stepSpeed, TAG, TAGS, TIME_CONTROLS, toInputValue, TOKEN_PROPERTIES, tokensCss, trailText, unreadablePairs, VIEW_CONTROLS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/interface';
+import { canStep, cardProblems, COLOURS, contrastRatio, CONTROL_ORDER, cultureSegments, FONTS, formatMoment, formatValue, fromInputValue, hasValue, ICON_NAMES, ICON_STROKE, ICONS, iconSvg, installTokens, isIconName, isScaleStep, kui, LANGUAGE_SEGMENTS, languageOf, licenceText, lookName, LOOKS, luminance, nextLook, parseControls, parseLooks, parseScaleSteps, parseSegments, RADII, READABLE_PAIRS, readingProblems, say, SCALE_STEPS, scaleName, SIZES, sourcesFromCredits, SPEED_LADDER, speedWords, stepSpeed, TAG, TAGS, TIME_CONTROLS, toInputValue, TOKEN_PROPERTIES, tokensCss, trailText, unreadablePairs, VIEW_CONTROLS, WORDS, wordsFor, zoneName } from '@johnmorrisdotca/kazoku-ui/interface';
 ```
 
 ### canStep
@@ -3980,7 +4008,7 @@ const FONTS: {
 *function*. The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026`年`11`月`10`日` · 21:14". A moment that is not a date reads "—".
 
 ```ts
-function formatMoment(ms: number, language: Language, zone?: "utc" | "local"): string;
+function formatMoment(ms: number, language: Language, zone?: "utc" | "local", withZone?: boolean): string;
 ```
 
 ### formatValue
@@ -4370,6 +4398,14 @@ const WORDS: Record<Language, InterfaceWords>;
 
 ```ts
 const wordsFor: (language: Language, overrides?: Partial<InterfaceWords>) => InterfaceWords;
+```
+
+### zoneName
+
+*function*. The short name of the time zone a moment is shown in: "UTC", or the device's own ("MST", "JST", "GMT+1"), which the browser names for that moment (so summer time is right).
+
+```ts
+function zoneName(ms: number, language: Language, zone?: "utc" | "local"): string;
 ```
 
 ### BarClock

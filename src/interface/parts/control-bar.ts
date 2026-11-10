@@ -23,7 +23,7 @@ const STYLES = `${UI_BASE}
 :host { position: fixed; left: 50%; bottom: 16px; z-index: 8; display: block; transform: translateX(-50%); }
 ${PLACEMENT}
 .bar { display: flex; align-items: center; gap: 2px; padding: 6px; }
-.clock { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 176px; height: ${SIZES.touch}px; padding: 0 12px; border: 0; border-radius: var(--kui-radius-control, ${RADII.control}px); background: transparent; color: ${kui("text")}; font-family: ${MONO}; font-variant-numeric: tabular-nums; text-align: center; }
+.clock { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 200px; height: ${SIZES.touch}px; padding: 0 12px; border: 0; border-radius: var(--kui-radius-control, ${RADII.control}px); background: transparent; color: ${kui("text")}; font-family: ${MONO}; font-variant-numeric: tabular-nums; text-align: center; }
 .clock:hover, .clock[aria-expanded="true"] { background: ${kui("line")}; }
 .t { font-size: 13px; line-height: 1.3; white-space: nowrap; }
 .s { color: ${kui("sun")}; font-size: 11px; line-height: 1.3; white-space: nowrap; }
@@ -47,7 +47,7 @@ ${PHONE} {
  * Give it the family clock in the `clock` property (a `BarClock`: a moment, a speed, play and pause). It drives that clock and shows it; with no clock it still tells the page what was pressed.
  *
  * Attributes: `controls` (the ones this view has, for example `play clock layers`; all nine by default, always in the design's order, so a view that cannot do one just leaves it out), `looks` (`line realistic painted`,
- * the ones this view has), `look` (the one now), `layers-open` (the Layers button is on), `flight` (Free flight is on), `place-on` (Your place is on: the view shows the sky from where the reader is), `timezone` (`utc`, or the reader's own zone by default), `placement` (`fixed`, `absolute`, `static`), `lang`.
+ * the ones this view has), `look` (the one now), `layers-open` (the Layers button is on), `flight` (Free flight is on), `place-on` (Your place is on: the view shows the sky from where the reader is), `timezone` (the time shown is the device's own, with the zone named, "10 Nov 2026 · 21:14 MST"; `utc` shows UTC instead), `placement` (`fixed`, `absolute`, `static`), `lang`.
  * Every press also fires `kazoku-control` with `{ action, value }`. Reduced motion is the clock's to honour (it opens paused with Play ready); the bar never starts anything by itself.
  * Parts: `bar`, `clock`, `picker`.
  *
@@ -259,7 +259,7 @@ export class ControlBarElement extends InterfacePart {
         setAttr(button, "label", `${words.look}: ${lookName(this.look, words)}`);
       }
     }
-    const moment = clock === undefined ? "—" : formatMoment(clock.time, language, this.#zone());
+    const moment = clock === undefined ? "—" : formatMoment(clock.time, language, this.#zone(), true).trim();
     const speed = clock === undefined ? "" : speedWords(clock.speed, language, clock.running, words);
     setText(this.#clockButton.children[0] as Element, moment);
     setText(this.#clockButton.children[1] as Element, speed);

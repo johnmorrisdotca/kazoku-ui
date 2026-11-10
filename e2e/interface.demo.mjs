@@ -61,7 +61,7 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   expect(await bar.locator(".clock").evaluate((el) => el.nextElementSibling.localName)).toBe("kazoku-icon-button");
   expect(await bar.locator(".divider").count()).toBe(phone(page) ? 1 : 1);
   // The clock: the moment, then the speed in plain words, both in mono.
-  await expect(bar.locator(".clock .t")).toHaveText(/^\d{1,2} [A-Z][a-z]{2} \d{4} · \d\d:\d\d$/);
+  await expect(bar.locator(".clock .t")).toHaveText(/^\d{1,2} [A-Z][a-z]{2} \d{4} · \d\d:\d\d [A-Z]{2,5}$/);
   await expect(bar.locator(".clock .s")).toHaveText("1 hour each second");
   expect(await bar.locator(".clock .t").evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/Plex Mono/);
   // A view that cannot do one leaves it out and the rest keep their order.
@@ -96,7 +96,7 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   await clock.click();
   await bar.locator('input[type="datetime-local"]').fill("2030-03-04T05:06");
   await bar.locator("[data-set]").click();
-  await expect(clock.locator(".t")).toHaveText(/^4 Mar 2030 · 05:06$/);
+  await expect(clock.locator(".t")).toHaveText(/^4 Mar 2030 · 05:06 [A-Z]{2,5}$/);
   await bar.locator('kazoku-icon-button[data-act="now"] button').click();
   await expect(clock.locator(".t")).not.toHaveText(/2030/);
   // No overflow of the bar itself.
@@ -105,7 +105,7 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   // Japanese.
   await lang(page, "ja");
   await expect(clock.locator(".s")).toHaveText(/^1秒で1.+/);
-  await expect(clock.locator(".t")).toHaveText(/年\d+月\d+日 · \d\d:\d\d$/);
+  await expect(clock.locator(".t")).toHaveText(/年\d+月\d+日 · \d\d:\d\d \S+$/);
 });
 
 test("control bar on a phone: full width, 116 px, the clock on one line over a row of buttons", async ({ page }) => {
@@ -401,3 +401,26 @@ test("the tabs of the parts page: one part and its states on one screen, the arr
   await expect(page.locator('[role="tabpanel"]:not([hidden])')).toHaveCount(1);
   expect(await page.locator("details").count()).toBe(0);
 });
+
+for (const [timezoneId, name, other] of [["America/Denver", "MST", "JST"], ["Asia/Tokyo", "JST", "MST"], ["UTC", "UTC", "JST"]]) {
+  test.describe(`the time shown is the device's own: ${timezoneId}`, () => {
+    test.use({ timezoneId });
+    test(`the clock names ${name} and shows the local moment`, async ({ page }) => {
+      await ready(page, "interface-parts.html#bar");
+      const clock = page.getByTestId("bar").locator(".clock");
+      await expect(clock.locator(".t")).toHaveText(new RegExp(` ${name}$`));
+      await expect(clock.locator(".t")).not.toHaveText(new RegExp(other));
+      // What the clock shows is the device's own time, read back from the page's own clock.
+      const shown = await clock.locator(".t").textContent();
+      const hour = await page.evaluate(() => String(new Date().getHours()).padStart(2, "0"));
+      expect(shown).toContain(` · ${hour}:`);
+      // The picker takes and gives local time: a winter date, so Denver is MST and not MDT.
+      await clock.click();
+      await page.getByTestId("bar").locator('input[type="datetime-local"]').fill("2030-01-04T05:06");
+      await page.getByTestId("bar").locator("[data-set]").click();
+      await expect(clock.locator(".t")).toHaveText(`4 Jan 2030 · 05:06 ${name === "UTC" ? "UTC" : name}`);
+      await lang(page, "ja");
+      await expect(clock.locator(".t")).toHaveText(new RegExp(`^2030年1月4日 · 05:06 .+`));
+    });
+  });
+}

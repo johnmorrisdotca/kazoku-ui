@@ -107,15 +107,33 @@ const two = (n: number): string => String(n).padStart(2, "0");
 
 /**
  * The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026年11月10日 · 21:14". A moment that is not a date reads "—".
- * @param zone `utc`, or `local` for the reader's own zone.
+ * @param zone `local` (the default) for the device's own time zone, or `utc`.
+ * @param withZone Name the zone after the time: "10 Nov 2026 · 21:14 MST", "UTC".
  * @example
  * formatMoment(Date.UTC(2026, 10, 10, 21, 14), "en", "utc"); // "10 Nov 2026 · 21:14"
+ * formatMoment(Date.UTC(2026, 10, 10, 21, 14), "en", "utc", true); // "10 Nov 2026 · 21:14 UTC"
  */
-export function formatMoment(ms: number, language: Language, zone: "utc" | "local" = "local"): string {
+export function formatMoment(ms: number, language: Language, zone: "utc" | "local" = "local", withZone = false): string {
   if (!Number.isFinite(ms) || Number.isNaN(new Date(ms).getTime())) return "—";
   const p = partsOf(ms, zone);
   const date = language === "ja" ? `${p.year}年${p.month + 1}月${p.day}日` : `${p.day} ${MONTHS[p.month]} ${p.year}`;
-  return `${date} · ${two(p.hour)}:${two(p.minute)}`;
+  const name = withZone ? ` ${zoneName(ms, language, zone)}` : "";
+  return `${date} · ${two(p.hour)}:${two(p.minute)}${name}`;
+}
+
+/**
+ * The short name of the time zone a moment is shown in: "UTC", or the device's own ("MST", "JST", "GMT+1"), which the browser names for that moment (so summer time is right).
+ * @example
+ * zoneName(Date.UTC(2026, 10, 10, 21, 14), "en", "utc"); // "UTC"
+ */
+export function zoneName(ms: number, language: Language, zone: "utc" | "local" = "local"): string {
+  if (zone === "utc") return "UTC";
+  try {
+    const part = new Intl.DateTimeFormat(language === "ja" ? "ja-JP" : "en-US", { timeZoneName: "short" }).formatToParts(new Date(ms)).find((one) => one.type === "timeZoneName");
+    return part?.value ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /** The value a `<input type="datetime-local">` takes for a moment: "2026-11-10T21:14". */

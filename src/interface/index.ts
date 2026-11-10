@@ -15,7 +15,7 @@ export const TAG = TAGS.controlBar;
 export { COLOURS, contrastRatio, FONTS, installTokens, kui, luminance, RADII, READABLE_PAIRS, SIZES, TOKEN_PROPERTIES, tokensCss, unreadablePairs, type ColourName } from "./tokens.ts";
 export { ICON_NAMES, ICON_STROKE, ICONS, iconSvg, isIconName, type IconName } from "./icons.ts";
 export { languageOf, WORDS, wordsFor, type InterfaceWords, type Language } from "./words.ts";
-export { canStep, formatMoment, fromInputValue, SPEED_LADDER, speedWords, stepSpeed, toInputValue, type BarClock, type BarClockChange } from "./clock.ts";
+export { canStep, formatMoment, fromInputValue, zoneName, SPEED_LADDER, speedWords, stepSpeed, toInputValue, type BarClock, type BarClockChange } from "./clock.ts";
 export { CONTROL_ORDER, LOOKS, lookName, nextLook, parseControls, parseLooks, TIME_CONTROLS, VIEW_CONTROLS, type ControlName, type Look } from "./controls.ts";
 export { isScaleStep, parseScaleSteps, SCALE_STEPS, scaleName, type ScaleStep } from "./scale.ts";
 export { cultureSegments, LANGUAGE_SEGMENTS, parseSegments, type Segment } from "./segments.ts";
