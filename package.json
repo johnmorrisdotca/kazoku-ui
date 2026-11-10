@@ -56,7 +56,11 @@
     "segmented-switch",
     "scale-switch",
     "tokens",
-    "design-tokens"
+    "design-tokens",
+    "clock",
+    "scene",
+    "floating-origin",
+    "depth-slices"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -264,6 +268,16 @@
       "import": "./dist/interface/define.js",
       "default": "./dist/interface/define.js"
     },
+    "./clock": {
+      "types": "./dist/clock/index.d.ts",
+      "import": "./dist/clock/index.js",
+      "default": "./dist/clock/index.js"
+    },
+    "./scene": {
+      "types": "./dist/scene/index.d.ts",
+      "import": "./dist/scene/index.js",
+      "default": "./dist/scene/index.js"
+    },
     "./print": {
       "types": "./dist/print/index.d.ts",
       "import": "./dist/print/index.js",
@@ -314,7 +328,7 @@
     "site": "pnpm build && node scripts/site.mjs",
     "test:demo": "pnpm site && playwright test",
     "test:demo:one": "pnpm site && playwright test",
-    "test:freeze": "pnpm site && playwright test e2e/renderer.demo.mjs --project=chromium-desk",
+    "test:freeze": "pnpm site && playwright test e2e/renderer.demo.mjs e2e/scene.demo.mjs --project=chromium-desk",
     "screenshots": "pnpm site && node scripts/screenshots.mjs",
     "docs:api": "pnpm build && node scripts/docs.mjs api",
     "docs:check": "pnpm build && node scripts/docs.mjs check",

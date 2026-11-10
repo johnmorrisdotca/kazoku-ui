@@ -14,6 +14,10 @@ export interface GLRenderer {
   setPixelRatio(ratio: number): void;
   setSize(width: number, height: number, updateStyle?: boolean): void;
   render(scene: unknown, camera: unknown): void;
+  /** Whether `render` clears the canvas first (three's `autoClear`, true). A scene that draws its own passes (`Scene3D.render`) turns it off after the first and puts it back. */
+  autoClear?: boolean;
+  /** Clear the depth buffer only, so a later pass draws over an earlier one whatever its depth. */
+  clearDepth?(): void;
   dispose(): void;
   forceContextLoss(): void;
 }
@@ -27,6 +31,11 @@ export interface ThreeLike {
 export interface Scene3D {
   scene: unknown;
   camera: unknown;
+  /**
+   * Draw the view yourself, in as many passes as it takes (a sky, then far bodies, then near ones with the depth cleared between). Left out, the renderer draws `scene` with `camera` in one pass.
+   * It is called for each draw of the live view and for the view's still, after `update`; use `gl.autoClear` and `gl.clearDepth()` between passes and put `autoClear` back.
+   */
+  render?(gl: GLRenderer): void;
   /** Called before each draw while the view is live. Return true while something is moving; the view is then drawn again next frame, else it rests. */
   update?(dt: number, now: number): boolean | void;
   /** The view's size in CSS pixels changed (set the camera's aspect). */
@@ -447,7 +456,8 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
       scene.resize?.(width, height);
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
-      renderer.render(scene.scene, scene.camera);
+      if (scene.render === undefined) renderer.render(scene.scene, scene.camera);
+      else scene.render(renderer);
       const blob = new Promise<Blob | null>((resolve) => element.toBlob(resolve, "image/png"));
       sized = "";
       if (focused?.live) {
@@ -499,7 +509,8 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
             const scene = v.scene;
             if (scene === undefined || gl === undefined || lost) return;
             const moving = scene.update?.(dt, now) === true;
-            gl.render(scene.scene, scene.camera);
+            if (scene.render === undefined) gl.render(scene.scene, scene.camera);
+            else scene.render(gl);
             counts.draws += 1;
             if (!v.seen) {
               v.seen = true;

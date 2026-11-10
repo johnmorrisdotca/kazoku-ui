@@ -128,6 +128,24 @@ const PARTS = [
   assert.deepEqual(pure.unreadablePairs(), []);
   assert.ok(pure.tokensCss().includes("--kui-sun: #F2B84B"));`,
   },
+  {
+    name: "clock", pure: ["createFamilyClock", "createClockSlot", "readClockAddress", "clockAddress", "prefersReducedMotion", "browserSource", "CLOCK_KEYS"],
+    run: `let wall = 0;
+  let page = 0;
+  const clock = pure.createFamilyClock({ start: 1000, speed: 10, source: { now: () => page, wall: () => wall } });
+  page = 500;
+  assert.equal(clock.advance(), 6000);
+  clock.pause();
+  page = 900;
+  assert.equal(clock.advance(), 6000);
+  assert.deepEqual(pure.readClockAddress("?speed=60&play=off"), { speed: 60, paused: true });`,
+  },
+  {
+    name: "scene", pure: ["composeScene", "planSlices", "placeInFrame", "orbitOffsetKm", "fitDistanceKm", "lowPrecisionSun", "subKm", "lengthKm", "AU_KM", "SKY_RADIUS", "SKY_NEAR", "SKY_FAR"],
+    run: `const slices = pure.planSlices([{ id: "rocket", distanceKm: 0.05, radiusKm: 0.01 }, { id: "earth", distanceKm: 6778, radiusKm: 6378 }]);
+  assert.deepEqual(slices.map((slice) => slice.ids), [["earth"], ["rocket"]]);
+  assert.ok(Math.abs(pure.lengthKm(pure.lowPrecisionSun(Date.UTC(2000, 0, 1, 12))) - pure.AU_KM) < 0.02 * pure.AU_KM);`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
@@ -199,5 +217,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js", "page-frame/words.js", "page-frame/text.js", "page-frame/meta.js", "page-frame/html.js", "page-frame/check.js", "page-frame/link.js", "page-frame/styles.js", "page-frame/index.js", "page-frame/element.js", "page-frame/define.js"];
+const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js", "page-frame/words.js", "page-frame/text.js", "page-frame/meta.js", "page-frame/html.js", "page-frame/check.js", "page-frame/link.js", "page-frame/styles.js", "page-frame/index.js", "page-frame/element.js", "page-frame/define.js", "clock/clock.js", "clock/slot.js", "clock/address.js", "clock/index.js", "scene/types.js", "scene/frame.js", "scene/compose.js", "scene/index.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);
