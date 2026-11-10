@@ -246,6 +246,8 @@ export interface TileStoreOptions {
   budgetBytes?: number;
   /** The most loads in flight for one source. Default `MAX_IN_FLIGHT`. */
   maxInFlight?: number;
+  /** The most tiles held, all sources together, as well as the byte budget. Default: no limit. */
+  maxTiles?: number;
   /** Called when a tile has arrived, failed or been refused, so the view can redraw. */
   onChange?: () => void;
 }
@@ -303,7 +305,7 @@ const joinKey = (id: string, key: string): string => `${id}\u0000${key}`;
 /**
  * A tile store for a view: loads the tiles of every source by key and keeps them under one budget of bytes (default 48 MB, all sources together).
  * - At most `maxInFlight` loads (6) run at once for a source, and a load starts only because the keys changed: at rest the store sends nothing, and a tile that failed waits for the next change.
- * - The least recently used tile goes first when room is needed, and never a tile the view needs now. If a new tile does not fit even so, it is refused and counted: the held bytes never pass the budget.
+ * - The least recently used tile goes first when room is needed, and never a tile the view needs now. If a new tile does not fit even so, it is refused and counted: the held bytes never pass the budget (nor the count, if `maxTiles` is set).
  * - A tile that throws, comes back empty or reports a size that is not a finite number is counted in `failed` and never held, so it is never drawn.
  * - `drop(sourceId)` aborts the source's loads and frees its tiles.
  * @param options Budget, loads in flight, and a callback for a redraw.
@@ -315,6 +317,7 @@ const joinKey = (id: string, key: string): string => `${id}\u0000${key}`;
 export function createTileStore<Tile>(options: TileStoreOptions = {}): TileStore<Tile> {
   const budget = options.budgetBytes ?? TILE_BUDGET_BYTES;
   const maxInFlight = Math.max(1, Math.floor(options.maxInFlight ?? MAX_IN_FLIGHT));
+  const maxTiles = Math.max(1, options.maxTiles ?? Infinity);
   const held = new Map<string, Held<Tile>>(); // oldest first: a tile used again is moved to the end
   const accounts = new Map<string, Account<Tile>>();
   const counts = { heldBytes: 0, requested: 0, failed: 0, refused: 0, evicted: 0 };
@@ -338,18 +341,26 @@ export function createTileStore<Tile>(options: TileStoreOptions = {}): TileStore
     counts.heldBytes -= one.bytes;
   };
 
-  /** Keeps `tile` if it fits, letting go of the least recently used tiles nobody needs. */
+  /** Keeps `tile` if it fits (in bytes and in count), letting go of the least recently used tiles nobody needs. */
   function keep(full: string, tile: Tile, bytes: number): boolean {
-    let room = budget - counts.heldBytes;
-    for (const [old, one] of held) if (!needed(old)) room += one.bytes;
-    if (bytes > room) return false;
-    for (const [old] of held) {
-      if (counts.heldBytes + bytes <= budget) break;
-      if (needed(old)) continue;
+    const victims: string[] = [];
+    let freed = 0;
+    let count = held.size;
+    const fits = (): boolean => counts.heldBytes - freed + bytes <= budget && count + 1 <= maxTiles;
+    if (!fits()) {
+      for (const [old, one] of held) {
+        if (needed(old)) continue;
+        victims.push(old);
+        freed += one.bytes;
+        count -= 1;
+        if (fits()) break;
+      }
+    }
+    if (!fits()) return false;
+    for (const old of victims) {
       release(old);
       counts.evicted += 1;
     }
-    if (counts.heldBytes + bytes > budget) return false;
     held.set(full, { tile, bytes });
     counts.heldBytes += bytes;
     return true;

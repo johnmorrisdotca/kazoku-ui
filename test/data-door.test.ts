@@ -290,6 +290,21 @@ test("more tiles needed than the budget fits: the view keeps what it holds, the 
   assert.equal(stats.evicted, 0, "a tile the view needs is never let go");
 });
 
+test("maxTiles caps the count as well as the bytes, and never lets go of a tile the view needs", async () => {
+  const { source, settle } = fakeTiles("t", 1);
+  const store = createTileStore<{ key: string }>({ maxTiles: 2 });
+  store.want(source, ["a", "b", "c"]);
+  for (const key of ["a", "b", "c"]) settle(key);
+  await store.idle();
+  assert.deepEqual([store.stats().held, store.stats().refused, store.stats().evicted], [2, 1, 0]);
+  store.want(source, ["c", "d"]);
+  settle("c");
+  settle("d");
+  await store.idle();
+  assert.deepEqual([store.stats().held, store.stats().evicted], [2, 2], "a and b, which nobody needs, went to make room");
+  assert.ok(store.get("t", "c") && store.get("t", "d"));
+});
+
 test("a tile bigger than the whole budget is refused", async () => {
   const { source, settle } = fakeTiles("t", 100);
   const store = createTileStore<{ key: string }>({ budgetBytes: 50 });
