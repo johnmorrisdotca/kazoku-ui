@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -9,7 +10,7 @@ interface Result {
   missing: { item: string; say: string }[];
   exempt: { item: string; reason: string }[];
 }
-const standard = (await import(new URL("../templates/check-standard.mjs", import.meta.url).href)) as { standardOf(root: string): Result; ITEMS: Record<string, string>; USAGE: Record<string, unknown> };
+const standard = (await import(new URL("../templates/check-standard.mjs", import.meta.url).href)) as { standardOf(root: string): Result; ITEMS: Record<string, string>; USAGE: Record<string, unknown>; DATA_DOOR_SHA256: string };
 
 const HOME = "https://johnmorrisdotca.github.io/sample-pkg/";
 const README = `# Sample
@@ -84,6 +85,7 @@ test("each item, taken away, is named, and only it", () => {
     "ja-guides": (files) => (files["docs/guides/ja/getting-started.md"] = null),
     "usage-tested": (files) => (files["examples/a.html"] = null),
     "usage-in-ci": (files) => (files[".github/workflows/ci.yml"] = "- run: pnpm check"),
+    "data-door": (files) => (files["src/data-door.ts"] = readFileSync(new URL("../templates/data-door.ts", import.meta.url), "utf8") + "\n// changed"),
     "script-tag": (files) => (files["README.md"] = README.replace(/jsdelivr/g, "cdn")),
     esm: (files) => (files["README.md"] = README.replace(/import \{ sample \} from "@johnmorrisdotca\/sample-pkg";/, "")),
     bundlers: (files) => (files["README.md"] = README.replace("Vite, webpack, ", "")),
@@ -96,6 +98,20 @@ test("each item, taken away, is named, and only it", () => {
   };
   assert.deepEqual(Object.keys(breaks).sort(), Object.keys(standard.ITEMS).sort(), "a test for every item of the list");
   for (const [item, change] of Object.entries(breaks)) assert.deepEqual(missing(change), [item], item);
+});
+
+test("the data door: a copy of the template passes, no copy is not asked for, a changed copy is named, and the recorded hash is the template's", () => {
+  const template = readFileSync(new URL("../templates/data-door.ts", import.meta.url), "utf8");
+  assert.equal(standard.DATA_DOOR_SHA256, createHash("sha256").update(template.replace(/\r\n/g, "\n")).digest("hex"), "templates/check-standard.mjs records the hash of templates/data-door.ts: update DATA_DOOR_SHA256 when the template changes");
+  assert.deepEqual(missing((files) => (files["src/data-door.ts"] = template)), []);
+  assert.deepEqual(missing((files) => (files["src/data-door.ts"] = template.replace(/\n/g, "\r\n"))), [], "line ends do not matter");
+  assert.deepEqual(missing((files) => (files["src/data-door.ts"] = "export const mine = 1;")), ["data-door"]);
+  const root = make((files) => (files["src/data-door.ts"] = "export {};"));
+  try {
+    assert.match(standard.standardOf(root).missing[0]?.say ?? "", /differs from kazoku-ui's templates\/data-door\.ts/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("an item that cannot apply is exempt when package.json says why, and not when it does not", () => {

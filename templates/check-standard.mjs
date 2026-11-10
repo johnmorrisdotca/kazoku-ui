@@ -11,6 +11,7 @@
 // The items: demo, pages, homepage, embed, embed-panel, page-frame, family-files, docs-site, ja-guides, usage-tested, usage-in-ci, and the README's (or a guide's) usage for script-tag,
 // esm, bundlers, react, vue, svelte, angular, iframe and typescript.
 import console from "node:console";
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import process from "node:process";
@@ -20,6 +21,12 @@ import { fileURLToPath } from "node:url";
 export const STANDARD_VERSION = "2026-11-10";
 
 const OWNER = "johnmorrisdotca";
+
+/**
+ * The SHA-256 of kazoku-ui's templates/data-door.ts (the data door of MODULES-831), line ends as "\n". A package that has src/data-door.ts must hold exactly that file; a kazoku-ui test keeps this
+ * line equal to the template, so changing the template means changing this line, and then every package's copy of both files.
+ */
+export const DATA_DOOR_SHA256 = "60d34a3b2d7861941f60b2845b76205ed8c6242f5a491ffa38d6712cc2114423";
 
 /** The usage every package's README (or a guide it links) shows, each as the words a reader would find it by. */
 export const USAGE = {
@@ -47,6 +54,7 @@ export const ITEMS = {
   "ja-guides": "a Japanese twin in docs/guides/ja/ for every guide, one language to a page",
   "usage-tested": "every example run by a test: a test:usage script in package.json and an examples/ folder",
   "usage-in-ci": "that test run in CI (.github/workflows/ci.yml names test:usage)",
+  "data-door": "src/data-door.ts, when the package has one, is kazoku-ui's templates/data-door.ts unchanged (a package without it takes outside data in no way yet)",
   ...Object.fromEntries(Object.entries(USAGE).map(([id, one]) => [id, `the README or a guide shows ${one.label}`])),
 };
 
@@ -115,6 +123,9 @@ export function standardOf(root = ".") {
   need("usage-tested", typeof scripts["test:usage"] === "string" && existsSync(at(root, "examples")), 'add an examples/ folder and a "test:usage" script that runs every example (see chikyu-earth\'s scripts/check-usage.ts)');
   const ci = at(root, ".github", "workflows", "ci.yml");
   need("usage-in-ci", existsSync(ci) && /test:usage/.test(read(ci)), "run pnpm test:usage in .github/workflows/ci.yml");
+
+  const door = at(root, "src", "data-door.ts");
+  need("data-door", !existsSync(door) || createHash("sha256").update(read(door)).digest("hex") === DATA_DOOR_SHA256, "src/data-door.ts differs from kazoku-ui's templates/data-door.ts: copy the template again, unchanged (the data door is the same file in every package)");
 
   const words = [readme, ...guides.map((name) => read(at(root, "docs", "guides", name)))].join("\n");
   for (const [item, one] of Object.entries(USAGE)) need(item, one.find.test(words), `show ${one.label} in the README or a guide, as a copy-paste example that a test runs`);

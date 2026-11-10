@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noEmit": true, "rootDir": ".", "types": ["node"] },
-  "include": ["src", "test"],
+  "include": ["src", "test", "templates/data-door.ts"],
   "exclude": []
 }
