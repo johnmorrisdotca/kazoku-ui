@@ -106,12 +106,27 @@ const PARTS = [
   assert.ok(pure.wideCss().includes('[data-wide="on"] .kazoku-stage'));`,
   },
   {
-    name: "page-frame", tag: "kazoku-page-header", cls: "PageHeaderElement", define: "definePageFrame", also: [{ tag: "kazoku-page-credits", cls: "PageCreditsElement" }],
-    pure: ["pageTitle", "pickText", "escapeHtml", "pageHeadHtml", "applyPageMeta", "watchPageMeta", "pageHeaderHtml", "pageCreditsHtml", "pageProblems", "samePage", "WORDS", "wordsFor", "languageOf", "TAG", "CREDITS_TAG"],
+    name: "page-frame", tag: "kazoku-page-header", cls: "PageHeaderElement", define: "definePageFrame", also: [{ tag: "kazoku-page-credits", cls: "PageCreditsElement" }, { tag: "kazoku-page-footer", cls: "PageFooterElement" }],
+    pure: ["pageTitle", "pickText", "escapeHtml", "pageHeadHtml", "applyPageMeta", "watchPageMeta", "pageHeaderHtml", "pageCreditsHtml", "pageFooterHtml", "creditsText", "pageProblems", "samePage", "WORDS", "wordsFor", "languageOf", "TAG", "CREDITS_TAG", "FOOTER_TAG"],
     run: `assert.equal(pure.pageTitle({ name: "Hoshi Stars", what: "The 88 constellations" }), "Hoshi Stars: The 88 constellations");
   assert.ok(pure.pageHeadHtml({ en: { name: "A", what: "B", description: "C & D" } }).includes('content="C &amp; D"'));
   assert.equal(pure.samePage("index.html", "https://example.org/demo/?lang=ja"), true);
   assert.deepEqual(pure.pageProblems("<!doctype html><title>T: x</title><meta name=\\"description\\" content=\\"A sentence that says what the page is.\\">" + pure.pageHeaderHtml({ en: { name: "T", what: "x", description: "d" } }) + pure.pageCreditsHtml({ en: "Our own data." })), []);`,
+  },
+  {
+    name: "interface", tag: "kazoku-control-bar", cls: "ControlBarElement", define: "defineInterface",
+    also: [
+      { tag: "kazoku-icon-button", cls: "IconButtonElement" }, { tag: "kazoku-button", cls: "ButtonElement" }, { tag: "kazoku-segmented-switch", cls: "SegmentedSwitchElement" },
+      { tag: "kazoku-scale-switch", cls: "ScaleSwitchElement" }, { tag: "kazoku-object-card", cls: "ObjectCardElement" }, { tag: "kazoku-layers-panel", cls: "LayersPanelElement" },
+      { tag: "kazoku-top-bar", cls: "TopBarElement" }, { tag: "kazoku-reading-page", cls: "ReadingPageElement" },
+    ],
+    pure: ["TAGS", "COLOURS", "FONTS", "RADII", "SIZES", "tokensCss", "installTokens", "contrastRatio", "unreadablePairs", "ICONS", "iconSvg", "WORDS", "wordsFor", "languageOf", "speedWords", "stepSpeed", "formatMoment", "SPEED_LADDER", "CONTROL_ORDER", "parseControls", "SCALE_STEPS", "parseScaleSteps", "parseSegments", "cardProblems", "formatValue", "sourcesFromCredits", "trailText", "readingProblems", "TAG"],
+    run: `assert.deepEqual(pure.CONTROL_ORDER.slice(0, 3), ["slower", "play", "faster"]);
+  assert.deepEqual(pure.parseScaleSteps("stars solar"), ["solar", "stars"]);
+  assert.equal(pure.speedWords(3600, "en", true, pure.WORDS.en), "1 hour each second");
+  assert.equal(pure.formatMoment(Date.UTC(2026, 10, 10, 21, 14), "en", "utc"), "10 Nov 2026 · 21:14");
+  assert.deepEqual(pure.unreadablePairs(), []);
+  assert.ok(pure.tokensCss().includes("--kui-sun: #F2B84B"));`,
   },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));

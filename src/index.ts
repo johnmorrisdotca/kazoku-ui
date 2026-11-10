@@ -1,4 +1,4 @@
 // Kazoku UI 家族: the family's shared interface parts, each its own subpath so a page loads only what it uses.
 /** The subpaths of the parts, in the order they were added. */
-export const PARTS = ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame"] as const;
+export const PARTS = ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface"] as const;
 export type Part = (typeof PARTS)[number];
