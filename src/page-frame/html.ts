@@ -1,0 +1,76 @@
+// The header and the credit line as HTML a build writes into the page, so the built file holds the words (and a link to home) before any script runs. The element
+// takes over when its script loads and says the same things again in the reader's language; what is written inside the tag is what shows until then, or without script.
+import { escapeHtml, pickText, type PageTexts } from "./text.ts";
+import { wordsFor, type Language, type PageFrameWords } from "./words.ts";
+
+/** What the page says in each language about its credits: the line itself. English is required. */
+export interface PageCredits {
+  en: string;
+  ja?: string;
+}
+
+/** Where the links go and how the header is made. */
+export interface PageHeaderOptions {
+  /** The demo's home page, as an address the page can use. Default `index.html`. */
+  home?: string;
+  /** The printable sheets, when the package has them. Left out, the header has no Sheets link. */
+  sheets?: string;
+  /** The language of the words written inside the tag. Default `en`; the element changes it with the reader's. */
+  language?: Language;
+  /** Also set the document's title and description from these words when the language changes (the element's `meta` attribute). */
+  meta?: boolean;
+  /** Your own words for Home and the sheets link, over the family's. */
+  words?: Partial<PageFrameWords>;
+}
+
+const attribute = (name: string, value: string | undefined): string => (value === undefined || value === "" ? "" : ` ${name}="${escapeHtml(value)}"`);
+
+/**
+ * `<kazoku-page-header>` as a string, for a build: the package's name, what this page shows, the page's description (kept for `meta`), and the links, with the same words
+ * inside as the no-script fallback. Needs no DOM.
+ *
+ * @example
+ * pageHeaderHtml(
+ *   { en: { name: "Hoshi Stars", what: "The 88 constellations", description: "…" }, ja: { name: "星 Hoshi Stars", what: "88の星座", description: "…" } },
+ *   { sheets: "kids.html" },
+ * );
+ */
+export function pageHeaderHtml(texts: PageTexts, options: PageHeaderOptions = {}): string {
+  const language = options.language ?? "en";
+  const home = options.home ?? "index.html";
+  const words = wordsFor(language, options.words);
+  const text = pickText(texts, language);
+  const attrs =
+    attribute("name", texts.en.name) + attribute("what", texts.en.what) + attribute("description", texts.en.description) +
+    (texts.ja === undefined ? "" : attribute("name-ja", texts.ja.name) + attribute("what-ja", texts.ja.what) + attribute("description-ja", texts.ja.description)) +
+    attribute("home", home) + attribute("sheets", options.sheets) + (options.meta === true ? " meta" : "");
+  const links = `<a href="${escapeHtml(home)}">${escapeHtml(words.home)}</a>${options.sheets === undefined ? "" : ` <a href="${escapeHtml(options.sheets)}">${escapeHtml(words.sheets)}</a>`}`;
+  return `<kazoku-page-header${attrs}><p><strong>${escapeHtml(text.name)}</strong>${escapeHtml(words.colon)}${escapeHtml(text.what)}</p><p>${links}</p></kazoku-page-header>`;
+}
+
+/** How the credit line is made. */
+export interface PageCreditsOptions {
+  /** A link to the NOTICE or credits page ("Data and credits"). With a line of credits too, the link follows it. */
+  href?: string;
+  /** The small form for a page that sits inside someone else's site: the credit line only. */
+  embed?: boolean;
+  /** The language of the words written inside the tag. Default `en`. */
+  language?: Language;
+  /** Your own words, over the family's. */
+  words?: Partial<PageFrameWords>;
+}
+
+/**
+ * `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both.
+ *
+ * @example
+ * pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue (public domain).", ja: "星：イェール輝星表（パブリックドメイン）。" }, { href: "NOTICE.html" });
+ */
+export function pageCreditsHtml(credits: PageCredits | undefined, options: PageCreditsOptions = {}): string {
+  const language = options.language ?? "en";
+  const words = wordsFor(language, options.words);
+  const line = credits === undefined ? "" : (credits[language] ?? credits.en);
+  const attrs = (credits === undefined ? "" : attribute("credits", credits.en) + attribute("credits-ja", credits.ja)) + attribute("href", options.href) + (options.embed === true ? " embed" : "");
+  const link = options.href === undefined ? "" : ` <a href="${escapeHtml(options.href)}">${escapeHtml(words.credits)}</a>`;
+  return `<kazoku-page-credits${attrs}><p>${escapeHtml(line)}${link}</p></kazoku-page-credits>`;
+}

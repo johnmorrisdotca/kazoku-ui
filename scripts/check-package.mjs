@@ -105,6 +105,14 @@ const PARTS = [
   assert.equal(pure.readWide({ search: "?wide=on" }), true);
   assert.ok(pure.wideCss().includes('[data-wide="on"] .kazoku-stage'));`,
   },
+  {
+    name: "page-frame", tag: "kazoku-page-header", cls: "PageHeaderElement", define: "definePageFrame", also: [{ tag: "kazoku-page-credits", cls: "PageCreditsElement" }],
+    pure: ["pageTitle", "pickText", "escapeHtml", "pageHeadHtml", "applyPageMeta", "watchPageMeta", "pageHeaderHtml", "pageCreditsHtml", "pageProblems", "samePage", "WORDS", "wordsFor", "languageOf", "TAG", "CREDITS_TAG"],
+    run: `assert.equal(pure.pageTitle({ name: "Hoshi Stars", what: "The 88 constellations" }), "Hoshi Stars: The 88 constellations");
+  assert.ok(pure.pageHeadHtml({ en: { name: "A", what: "B", description: "C & D" } }).includes('content="C &amp; D"'));
+  assert.equal(pure.samePage("index.html", "https://example.org/demo/?lang=ja"), true);
+  assert.deepEqual(pure.pageProblems("<!doctype html><title>T: x</title><meta name=\\"description\\" content=\\"A sentence that says what the page is.\\">" + pure.pageHeaderHtml({ en: { name: "T", what: "x", description: "d" } }) + pure.pageCreditsHtml({ en: "Our own data." })), []);`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
@@ -166,8 +174,9 @@ ${PARTS.filter((part) => part.tag).map((part) => `
   assert.equal(element.TAG, "${part.tag}");
   const define = await import("${pkg.name}/${part.name}/define");
   assert.equal(taken.get("${part.tag}"), element.${part.cls}, "importing define registers ${part.tag}");
+  ${(part.also ?? []).map((one) => `assert.equal(taken.get("${one.tag}"), element.${one.cls}, "importing define registers ${one.tag}");`).join("\n  ")}
   assert.equal(define.${part.define}(), false, "a second call leaves the tag alone");
-  const other = new Map([["${part.tag}", class {}]]);
+  const other = new Map([["${part.tag}", class {}], ${(part.also ?? []).map((one) => `["${one.tag}", class {}]`).join(", ")}]);
   assert.equal(define.${part.define}({ get: (n) => other.get(n), define: () => { throw new Error("must not define a taken tag"); } }), false);
 }`).join("")}
 console.log("ok   every entry imports, each tag is defined once and a taken tag is left alone");
@@ -175,5 +184,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js"];
+const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js", "page-frame/words.js", "page-frame/text.js", "page-frame/meta.js", "page-frame/html.js", "page-frame/check.js", "page-frame/link.js", "page-frame/styles.js", "page-frame/index.js", "page-frame/element.js", "page-frame/define.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);
