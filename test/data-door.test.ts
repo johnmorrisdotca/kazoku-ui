@@ -238,6 +238,23 @@ test("a failed tile is tried again only when the view changes, not at rest", asy
   assert.equal(store.get("retry", "a"), 1, "the change sent it again");
 });
 
+test("want with again tries what is missing once more with the same keys, and never twice at once", async () => {
+  let fail = true;
+  let calls = 0;
+  const store = createTileStore<number>();
+  const source: TileSource<null, null, number> = { kind: "tiles", info: info("again"), need: () => ["a", "b"], load: (key) => (calls++, key === "a" && fail ? Promise.reject(new Error("x")) : Promise.resolve(1)), bytes: () => 1 };
+  store.want(source, ["a", "b"]);
+  await store.idle();
+  assert.deepEqual([calls, store.stats().held, store.stats().failed], [2, 1, 1]);
+  fail = false;
+  store.want(source, ["a", "b"]);
+  assert.equal(calls, 2, "without again, nothing is sent");
+  store.want(source, ["a", "b"], true);
+  store.want(source, ["a", "b"], true);
+  await store.idle();
+  assert.deepEqual([calls, store.stats().held], [3, 2], "only the missing one, once");
+});
+
 test("the byte budget holds: held bytes are never over it, the oldest unneeded tile goes first, a needed tile is never let go", async () => {
   const { source, settle } = fakeTiles("t", 10);
   const store = createTileStore<{ key: string }>({ budgetBytes: 50 });

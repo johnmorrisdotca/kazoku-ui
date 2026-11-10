@@ -273,8 +273,9 @@ export interface TileStore<Tile> {
   /**
    * Tells the store which tiles `source` needs now, and returns the ones it holds. When the keys are the same as the last call it does nothing, so a view that asks again at rest sends nothing;
    * when they changed, the missing ones load (a tile that failed is tried again only now), the loads of tiles no longer needed are aborted, and the held ones are marked used.
+   * `again: true` is for a caller that means "try what is missing once more" with the same keys: it starts the missing tiles that are not already loading or waiting, and nothing else changes.
    */
-  want(source: TileLoader<Tile>, keys: readonly string[]): ReadonlyMap<string, Tile>;
+  want(source: TileLoader<Tile>, keys: readonly string[], again?: boolean): ReadonlyMap<string, Tile>;
   /** One held tile, or `undefined`. */
   get(sourceId: string, key: string): Tile | undefined;
   /** Forgets a source: aborts its loads, frees its tiles. The source is switched off. */
@@ -397,7 +398,7 @@ export function createTileStore<Tile>(options: TileStoreOptions = {}): TileStore
   }
 
   return {
-    want(source, keys) {
+    want(source, keys, again = false) {
       const id = source.info.id;
       const list = [...new Set(keys)];
       let account = accounts.get(id);
@@ -407,7 +408,7 @@ export function createTileStore<Tile>(options: TileStoreOptions = {}): TileStore
       }
       account.source = source;
       const signature = [...list].sort().join("\n");
-      if (signature !== account.signature) {
+      if (signature !== account.signature || again) {
         account.signature = signature;
         account.wanted = new Set(list);
         for (const [key, controller] of account.loading) {
