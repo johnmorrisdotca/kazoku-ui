@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface"];
 ```
 
 ### Part
@@ -3457,10 +3457,10 @@ function defineWideToggle(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/page-frame`
 
-15 values and 8 types.
+19 values and 11 types.
 
 ```js
-import { applyPageMeta, CREDITS_TAG, escapeHtml, languageOf, pageCreditsHtml, pageHeaderHtml, pageHeadHtml, pageProblems, pageTitle, pickText, samePage, TAG, watchPageMeta, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/page-frame';
+import { applyPageMeta, CREDITS_TAG, creditsText, escapeHtml, FOOTER_TAG, languageOf, licenceText, pageCreditsHtml, pageFooterHtml, pageHeaderHtml, pageHeadHtml, pageProblems, pageTitle, pickText, samePage, TAG, watchPageMeta, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/page-frame';
 ```
 
 ### applyPageMeta
@@ -3482,12 +3482,31 @@ function applyPageMeta(doc: Document, texts: PageTexts, language: Language): {
 const CREDITS_TAG = "kazoku-page-credits";
 ```
 
+### creditsText
+
+*function*. A credit line from a view's `credits()`: each source's credit with its licence, the package's own first, joined with semicolons and ending in a full stop. An empty list is an empty string.
+
+```ts
+function creditsText(credits: readonly DoorCredit[], language: Language, words: {
+    nonCommercial: string;
+    shareAlike: string;
+}): string;
+```
+
 ### escapeHtml
 
 *constant*. Text as it is written into HTML, between tags or inside a double-quoted attribute.
 
 ```ts
 const escapeHtml: (text: string) => string;
+```
+
+### FOOTER_TAG
+
+*constant*
+
+```ts
+const FOOTER_TAG = "kazoku-page-footer";
 ```
 
 ### languageOf
@@ -3498,12 +3517,31 @@ const escapeHtml: (text: string) => string;
 const languageOf: (lang: string | null | undefined) => Language;
 ```
 
+### licenceText
+
+*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws.
+
+```ts
+function licenceText(info: DoorSourceInfo, words: {
+    nonCommercial: string;
+    shareAlike: string;
+}): string;
+```
+
 ### pageCreditsHtml
 
 *function*. `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both.
 
 ```ts
 function pageCreditsHtml(credits: PageCredits | undefined, options?: PageCreditsOptions): string;
+```
+
+### pageFooterHtml
+
+*function*. `<kazoku-page-footer>` as a string, for a build: the links, with the same words inside as the no-script fallback.
+
+```ts
+function pageFooterHtml(options?: PageFooterOptions): string;
 ```
 
 ### pageHeaderHtml
@@ -3586,6 +3624,39 @@ const WORDS: Record<Language, PageFrameWords>;
 const wordsFor: (language: Language, overrides?: Partial<PageFrameWords>) => PageFrameWords;
 ```
 
+### DoorCredit
+
+*interface*. What a view's `credits()` returns for each source that drew something in the last frame.
+
+```ts
+interface DoorCredit {
+    source: DoorSourceInfo;
+    /** True for the package's own data: bundled, never switched off from the layers panel. */
+    own: boolean;
+    /** Marks or tiles drawn from it. */
+    used: number;
+}
+```
+
+### DoorSourceInfo
+
+*interface*. The data door's description of a source: its name, its credit line, its licence and its page.
+
+```ts
+interface DoorSourceInfo {
+    id: string;
+    name: Bilingual;
+    credit: Bilingual;
+    licence: {
+        name: string;
+        url: string;
+        nonCommercial?: boolean;
+        shareAlike?: boolean;
+    };
+    url: string;
+}
+```
+
 ### Language
 
 *type*
@@ -3633,6 +3704,31 @@ interface PageCreditsOptions {
 }
 ```
 
+### PageFooterOptions
+
+*interface*. How the footer is made.
+
+```ts
+interface PageFooterOptions {
+    /** `view` (the default): one quiet line; `page`: the reading page's footer. */
+    variant?: "view" | "page";
+    /** The page of data and credits. */
+    href?: string;
+    /** The package's name, for "Drawn with …", and where it links. */
+    package?: string;
+    packageHref?: string;
+    /** How to cite, and the sheets to print. Left out, there is no link. */
+    citeHref?: string;
+    sheetsHref?: string;
+    /** A link home; `index.html` by default. */
+    home?: string;
+    /** The language of the words written inside the tag. Default `en`. */
+    language?: Language;
+    /** Your own words, over the family's. */
+    words?: Partial<PageFrameWords>;
+}
+```
+
 ### PageFrameWords
 
 *interface*
@@ -3649,6 +3745,19 @@ interface PageFrameWords {
     site: string;
     /** What stands between the package's name and what the page shows: a colon. */
     colon: string;
+    /** The footer line of a view: what is true of the positions drawn. */
+    positions: string;
+    /** The footer's "Drawn with <package>". */
+    drawnWith: string;
+    /** The footer's lead-in to the link to every source. */
+    sourcesLead: string;
+    /** The footer's link to how to cite the page. */
+    cite: string;
+    /** The footer's link to the printable sheets. */
+    sheetsToPrint: string;
+    /** The terms a credit line names, after a licence. */
+    nonCommercial: string;
+    shareAlike: string;
 }
 ```
 
@@ -3768,10 +3877,1314 @@ import { definePageFrame } from '@johnmorrisdotca/kazoku-ui/page-frame/define';
 
 ### definePageFrame
 
-*function*. Registers both tags on `registry`; true if it registered at least one.
+*function*. Registers the three tags on `registry`; true if it registered at least one.
 
 ```ts
 function definePageFrame(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/interface`
+
+52 values and 26 types.
+
+```js
+import { canStep, cardProblems, COLOURS, contrastRatio, CONTROL_ORDER, cultureSegments, FONTS, formatMoment, formatValue, fromInputValue, hasValue, ICON_NAMES, ICON_STROKE, ICONS, iconSvg, installTokens, isIconName, isScaleStep, kui, LANGUAGE_SEGMENTS, languageOf, licenceText, lookName, LOOKS, luminance, nextLook, parseControls, parseLooks, parseScaleSteps, parseSegments, RADII, READABLE_PAIRS, readingProblems, say, SCALE_STEPS, scaleName, SIZES, sourcesFromCredits, SPEED_LADDER, speedWords, stepSpeed, TAG, TAGS, TIME_CONTROLS, toInputValue, TOKEN_PROPERTIES, tokensCss, trailText, unreadablePairs, VIEW_CONTROLS, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/interface';
+```
+
+### canStep
+
+*function*. Whether Faster or Slower still has a step to go to from `speed`.
+
+```ts
+function canStep(speed: number, direction: 1 | -1, ladder?: readonly number[]): boolean;
+```
+
+### cardProblems
+
+*function*. What is wrong with a card, in words, for a test or a page's own check: a number with no source, a number that is computed and shows nothing, a card with no name or no stats, a second action with no first.
+
+```ts
+function cardProblems(data: ObjectCardData): string[];
+```
+
+### COLOURS
+
+*constant*. The colours, as the design gives them. Text and icons on every ground below pass 4.5:1 (a test holds that).
+
+```ts
+const COLOURS: {
+    /** Behind a 3D or sky view. */
+    readonly space: "#070A10";
+    /** Behind a reading page. */
+    readonly page: "#0B0E14";
+    /** Bars, cards, panels and fields. */
+    readonly panel: "#121722";
+    /** 1 px borders, dividers, and the fill of an active or pressed control. */
+    readonly line: "#232B3A";
+    /** The border of an outlined button, and orbit lines. */
+    readonly "line-strong": "#3A4860";
+    /** Main text and icons. */
+    readonly text: "#E8ECF2";
+    /** Reading paragraphs, and labels on a view. */
+    readonly "text-soft": "#C9D2E0";
+    /** Labels, secondary lines, inactive items. */
+    readonly "text-quiet": "#9AA6B8";
+    /** The one action colour: the filled button, the active marker, the speed readout, checked boxes. */
+    readonly sun: "#F2B84B";
+    /** Text on `sun`. */
+    readonly "on-sun": "#141413";
+    /** Links. */
+    readonly sky: "#8EC2FF";
+    /** A link on hover. */
+    readonly "sky-hover": "#B9D9FF";
+};
+```
+
+### contrastRatio
+
+*function*. The contrast ratio of two `#rrggbb` colours, 1 to 21, as WCAG 2 reckons it.
+
+```ts
+function contrastRatio(a: string, b: string): number;
+```
+
+### CONTROL_ORDER
+
+*constant*. The controls in the design's order: slower, play or pause, faster, the clock, back to now, a divider, your place, layers, look, free flight.
+
+```ts
+const CONTROL_ORDER: readonly ["slower", "play", "faster", "clock", "now", "place", "layers", "look", "flight"];
+```
+
+### cultureSegments
+
+*function*. The sky culture switch, in the reader's language.
+
+```ts
+function cultureSegments(words: Pick<InterfaceWords, "western" | "japanese" | "chinese">): Segment[];
+```
+
+### FONTS
+
+*constant*. The type: Plex Sans for words, Plex Sans JP behind it for Japanese, Plex Mono for every number, date, time and unit. The system faces are the fallback while a font loads.
+
+```ts
+const FONTS: {
+    readonly sans: "\"IBM Plex Sans\", \"IBM Plex Sans JP\", system-ui, -apple-system, \"Hiragino Sans\", \"Noto Sans JP\", \"Segoe UI\", sans-serif";
+    readonly mono: "\"IBM Plex Mono\", ui-monospace, SFMono-Regular, Menlo, Consolas, \"Noto Sans Mono CJK JP\", monospace";
+};
+```
+
+### formatMoment
+
+*function*. The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026`年`11`月`10`日` · 21:14". A moment that is not a date reads "—".
+
+```ts
+function formatMoment(ms: number, language: Language, zone?: "utc" | "local"): string;
+```
+
+### formatValue
+
+*function*. A number as the card writes it: up to six significant figures with thousands separated, and powers of ten for the very large and the very small ("1.898e27"). Text is returned as it is;
+
+```ts
+function formatValue(value: string | number | null | undefined): string;
+```
+
+### fromInputValue
+
+*function*. The moment a `datetime-local` value names, or `NaN` when it names none.
+
+```ts
+function fromInputValue(text: string, zone?: "utc" | "local"): number;
+```
+
+### hasValue
+
+*constant*. Whether a stat has a value to show.
+
+```ts
+const hasValue: (stat: CardStat) => boolean;
+```
+
+### ICON_NAMES
+
+*constant*. The names of the built-in icons.
+
+```ts
+const ICON_NAMES: readonly ["slower", "play", "pause", "faster", "now", "place", "layers", "look", "flight", "close", "search", "menu"];
+```
+
+### ICON_STROKE
+
+*constant*. The stroke width of every icon, in the 24-unit grid.
+
+```ts
+const ICON_STROKE = 1.75;
+```
+
+### ICONS
+
+*constant*. The path data of each icon.
+
+```ts
+const ICONS: Readonly<Record<IconName, readonly string[]>>;
+```
+
+### iconSvg
+
+*function*. An icon as SVG markup, for a page written as plain HTML: `iconSvg("play")`. It is hidden from a screen reader; the button carries the name.
+
+```ts
+function iconSvg(name: IconName): string;
+```
+
+### installTokens
+
+*function*. Puts the tokens on a document's `:root`, once, as an adopted stylesheet where the browser has one (no inline style, so a strict Content-Security-Policy allows it),
+
+```ts
+function installTokens(doc?: Document, nonce?: string): void;
+```
+
+### isIconName
+
+*constant*. Whether a string is the name of a built-in icon.
+
+```ts
+const isIconName: (name: string | null | undefined) => name is IconName;
+```
+
+### isScaleStep
+
+*constant*. Whether a string is one of the steps.
+
+```ts
+const isScaleStep: (value: string | null | undefined) => value is ScaleStep;
+```
+
+### kui
+
+*constant*. The value of a token as the CSS reads it, with the design's own value as the fallback: `kui("panel")` is `var(--kui-panel, #121722)`.
+
+```ts
+const kui: (name: ColourName) => string;
+```
+
+### LANGUAGE_SEGMENTS
+
+*constant*. The language switch: each language in its own name, never translated.
+
+```ts
+const LANGUAGE_SEGMENTS: readonly Segment[];
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### licenceText
+
+*function*. The terms of a source in words: its licence name, with "non-commercial" or "share-alike" when it says so, so a page cannot hide the terms of the data it draws.
+
+```ts
+function licenceText(info: DoorSourceInfo, words: {
+    nonCommercial: string;
+    shareAlike: string;
+}): string;
+```
+
+### lookName
+
+*constant*. The look's name in the words' language.
+
+```ts
+const lookName: (look: Look, words: Pick<InterfaceWords, "lookLine" | "lookRealistic" | "lookPainted">) => string;
+```
+
+### LOOKS
+
+*constant*. The ways a view can be drawn, which the Look button goes through: lines, realistic, painted.
+
+```ts
+const LOOKS: readonly ["line", "realistic", "painted"];
+```
+
+### luminance
+
+*function*. The relative luminance of a `#rrggbb` colour, as WCAG 2 reckons it.
+
+```ts
+function luminance(hex: string): number;
+```
+
+### nextLook
+
+*function*. The look after `current` in `looks`, going round.
+
+```ts
+function nextLook(current: string | null | undefined, looks?: readonly Look[]): Look;
+```
+
+### parseControls
+
+*function*. The controls a view offers, from a list such as `play clock layers`: only the nine names, each once, always in the design's order. A missing list is all nine.
+
+```ts
+function parseControls(text: string | null | undefined): ControlName[];
+```
+
+### parseLooks
+
+*function*. The looks a view offers, from a list such as `realistic painted`, in the design's order; all three when it is empty.
+
+```ts
+function parseLooks(text: string | null | undefined): Look[];
+```
+
+### parseScaleSteps
+
+*function*. The steps a view offers, from a list such as `surface solar stars`: only the five names, each once, always in the design's order whatever order the list is in. An empty or missing list is all five.
+
+```ts
+function parseScaleSteps(text: string | null | undefined): ScaleStep[];
+```
+
+### parseSegments
+
+*function*. The segments in an `options` attribute: `western:Western|japanese:Japanese`. A segment with no colon is its own value and label. Empty values and repeats are left out.
+
+```ts
+function parseSegments(text: string | null | undefined): Segment[];
+```
+
+### RADII
+
+*constant*. The radii, in px: controls, panels and cards, and the top corners of a phone sheet.
+
+```ts
+const RADII: {
+    readonly control: 8;
+    readonly panel: 12;
+    readonly sheet: 16;
+};
+```
+
+### READABLE_PAIRS
+
+*constant*. The pairs of text or icon colour and ground the design promises at 4.5:1 or better: `[foreground, ground]`.
+
+```ts
+const READABLE_PAIRS: readonly (readonly [ColourName, ColourName])[];
+```
+
+### readingProblems
+
+*function*. What is wrong with a reading page's data, in words: a number with no source, a "Right now" row that is not three tiles or has a blank, no actions, no summary.
+
+```ts
+function readingProblems(data: ReadingPageData): string[];
+```
+
+### say
+
+*constant*. `text` in the language, or its English when the other is empty.
+
+```ts
+const say: (text: string | Bilingual, language: Language) => string;
+```
+
+### SCALE_STEPS
+
+*constant*. The five steps of scale, from the nearest to the farthest.
+
+```ts
+const SCALE_STEPS: readonly ["surface", "moons", "solar", "stars", "galaxy"];
+```
+
+### scaleName
+
+*constant*. What a step is called, in the words' language.
+
+```ts
+const scaleName: (step: ScaleStep, words: Pick<InterfaceWords, ScaleStep>) => string;
+```
+
+### SIZES
+
+*constant*. The sizes, in px, the design names.
+
+```ts
+const SIZES: {
+    /** The least a touch target is, each way. */
+    readonly touch: 44;
+    /** An icon, and on a phone. */
+    readonly icon: 18;
+    readonly iconPhone: 20;
+    /** Label type: capitals, 0.08em apart, `text-quiet`. */
+    readonly label: 11;
+    readonly control: 14;
+    readonly reading: 16;
+    readonly nameDesk: 56;
+    readonly namePhone: 40;
+    readonly nameCard: 26;
+    readonly nameCardPhone: 24;
+    readonly topBar: 64;
+    readonly topBarPhone: 56;
+    readonly controlBarPhone: 116;
+    readonly scaleSwitch: 148;
+    readonly panel: 320;
+    readonly page: 1120;
+};
+```
+
+### sourcesFromCredits
+
+*function*. The outside sources among a view's credits, ready for the panel; the package's own data is left out, since it is not for switching off. `enabled` says which are on (all, by default).
+
+```ts
+function sourcesFromCredits(credits: readonly DoorCredit[], enabled?: (id: string) => boolean): LayerSource[];
+```
+
+### SPEED_LADDER
+
+*constant*. The speeds Slower and Faster step through: real time, a minute, ten minutes, an hour, a day, a week, a month and a year each second.
+
+```ts
+const SPEED_LADDER: readonly number[];
+```
+
+### speedWords
+
+*function*. A speed in plain words: "1 hour each second", "Real time", "Paused", "2 days each second, backwards"; in Japanese "1`秒で`1`時間`".
+
+```ts
+function speedWords(speed: number, language: Language, running: boolean, words: Pick<InterfaceWords, "paused" | "realTime" | "backwards">): string;
+```
+
+### stepSpeed
+
+*function*. The speed one press of Faster (`direction` 1) or Slower (-1) gives: the next step of `ladder` in the direction the clock runs, never past an end. A paused clock at 0 starts from the first step.
+
+```ts
+function stepSpeed(speed: number, direction: 1 | -1, ladder?: readonly number[]): number;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG: "kazoku-control-bar";
+```
+
+### TAGS
+
+*constant*
+
+```ts
+const TAGS: {
+    readonly iconButton: "kazoku-icon-button";
+    readonly controlBar: "kazoku-control-bar";
+    readonly scaleSwitch: "kazoku-scale-switch";
+    readonly objectCard: "kazoku-object-card";
+    readonly layersPanel: "kazoku-layers-panel";
+    readonly segmentedSwitch: "kazoku-segmented-switch";
+    readonly button: "kazoku-button";
+    readonly topBar: "kazoku-top-bar";
+    readonly readingPage: "kazoku-reading-page";
+};
+```
+
+### TIME_CONTROLS
+
+*constant*. The controls on the near side of the divider, and on the far side of it.
+
+```ts
+const TIME_CONTROLS: readonly ControlName[];
+```
+
+### toInputValue
+
+*function*. The value a `<input type="datetime-local">` takes for a moment: "2026-11-10T21:14".
+
+```ts
+function toInputValue(ms: number, zone?: "utc" | "local"): string;
+```
+
+### TOKEN_PROPERTIES
+
+*constant*. Every token as `--kui-<name>: value`, the one list the CSS below and the parts' fallbacks are written from.
+
+```ts
+const TOKEN_PROPERTIES: Readonly<Record<string, string>>;
+```
+
+### tokensCss
+
+*function*. The tokens as one CSS rule, for a `<style>` in the page, a build or `installTokens`.
+
+```ts
+function tokensCss(selector?: string): string;
+```
+
+### trailText
+
+*function*. The trail as plain text, for a title or a test: "Solar system / Jupiter `木星`".
+
+```ts
+function trailText(items: readonly TrailItem[]): string;
+```
+
+### unreadablePairs
+
+*function*. The pairs that fail 4.5:1, from `READABLE_PAIRS`: none, while the design is kept.
+
+```ts
+function unreadablePairs(colours?: Readonly<Record<string, string>>): string[];
+```
+
+### VIEW_CONTROLS
+
+*constant*
+
+```ts
+const VIEW_CONTROLS: readonly ControlName[];
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, InterfaceWords>;
+```
+
+### wordsFor
+
+*constant*. The words in a language, with a page's own over them: `wordsFor("en", { layers: "Show" })`.
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<InterfaceWords>) => InterfaceWords;
+```
+
+### BarClock
+
+*interface*. The clock the control bar drives: a moment (milliseconds since 1970, UTC), a speed (moment seconds each real second; negative runs back; kept while paused) and a running flag.
+
+```ts
+interface BarClock {
+    readonly time: number;
+    readonly speed: number;
+    readonly running: boolean;
+    set(time: number | "now"): void;
+    setSpeed(speed: number): void;
+    play(): void;
+    pause(): void;
+    /** Calls `fn` on every change; returns the function that stops listening. */
+    onChange(fn: (change: BarClockChange) => void): () => void;
+}
+```
+
+### BarClockChange
+
+*interface*. What a clock tells its listeners. `reason` is why: `tick` is the clock moving on by itself, the others are somebody asking.
+
+```ts
+interface BarClockChange {
+    time: number;
+    speed: number;
+    running: boolean;
+    reason: "tick" | "set" | "speed" | "play" | "pause";
+}
+```
+
+### Bilingual
+
+*interface*. A word or name in both languages.
+
+```ts
+interface Bilingual {
+    en: string;
+    ja: string;
+}
+```
+
+### CardAction
+
+*interface*. A button on the card: a link. The first is the filled one ("Open page"), the second outlined.
+
+```ts
+interface CardAction {
+    label: Bilingual;
+    href: string;
+}
+```
+
+### CardStat
+
+*interface*. One number on the card: a label over a value.
+
+```ts
+interface CardStat {
+    id: string;
+    label: Bilingual;
+    /** The value. A number is written for you (`formatValue`); text is shown as given. */
+    value: string | number | null | undefined;
+    /** The unit, shown after the value in the same mono type: "km", "K", "AU". */
+    unit?: string;
+    /** True when the page works it out for the time shown (a distance now, a phase). Such a value is never blank. */
+    computed?: boolean;
+    /** Where the number comes from. Every number has one. */
+    source: SourceLink | undefined;
+}
+```
+
+### ColourName
+
+*type*
+
+```ts
+type ColourName = keyof typeof COLOURS;
+```
+
+### ControlName
+
+*type*
+
+```ts
+type ControlName = (typeof CONTROL_ORDER)[number];
+```
+
+### DoorCredit
+
+*interface*. What a view's `credits()` returns for each source that drew something in the last frame.
+
+```ts
+interface DoorCredit {
+    source: DoorSourceInfo;
+    /** True for the package's own data: bundled, never switched off from the layers panel. */
+    own: boolean;
+    /** Marks or tiles drawn from it. */
+    used: number;
+}
+```
+
+### DoorSourceInfo
+
+*interface*. The data door's description of a source: its name, its credit line, its licence and its page.
+
+```ts
+interface DoorSourceInfo {
+    id: string;
+    name: Bilingual;
+    credit: Bilingual;
+    licence: {
+        name: string;
+        url: string;
+        nonCommercial?: boolean;
+        shareAlike?: boolean;
+    };
+    url: string;
+}
+```
+
+### IconName
+
+*type*
+
+```ts
+type IconName = (typeof ICON_NAMES)[number];
+```
+
+### InterfaceWords
+
+*interface*
+
+```ts
+interface InterfaceWords {
+    slower: string;
+    play: string;
+    pause: string;
+    faster: string;
+    now: string;
+    place: string;
+    layers: string;
+    look: string;
+    flight: string;
+    close: string;
+    search: string;
+    menu: string;
+    lookLine: string;
+    lookRealistic: string;
+    lookPainted: string;
+    controlBar: string;
+    clockButton: string;
+    pickerTitle: string;
+    pickerField: string;
+    pickerSet: string;
+    pickerCancel: string;
+    paused: string;
+    realTime: string;
+    backwards: string;
+    scale: string;
+    surface: string;
+    moons: string;
+    solar: string;
+    stars: string;
+    galaxy: string;
+    card: string;
+    everyNumber: string;
+    everyNumberLink: string;
+    everyNumberTail: string;
+    source: string;
+    noValue: string;
+    computed: string;
+    layersTitle: string;
+    dataSources: string;
+    nonCommercial: string;
+    shareAlike: string;
+    languageGroup: string;
+    cultureGroup: string;
+    western: string;
+    japanese: string;
+    chinese: string;
+    topBar: string;
+    trail: string;
+    searchField: string;
+    home: string;
+    rightNow: string;
+    theNumbers: string;
+    measure: string;
+    value: string;
+    comparison: string;
+    related: string;
+    sourceWord: string;
+    tapNote: string;
+}
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### LayerItem
+
+*interface*. One layer a view offers: Orbits, Names, Moons, Spacecraft, Constellations, Black holes, and whatever else the view has.
+
+```ts
+interface LayerItem {
+    id: string;
+    label: Bilingual;
+    checked: boolean;
+}
+```
+
+### LayerSource
+
+*interface*. One outside data source in the panel, with whether it is switched on.
+
+```ts
+interface LayerSource {
+    info: DoorSourceInfo;
+    enabled: boolean;
+}
+```
+
+### Look
+
+*type*
+
+```ts
+type Look = (typeof LOOKS)[number];
+```
+
+### ObjectCardData
+
+*interface*. Everything the card shows.
+
+```ts
+interface ObjectCardData {
+    /** The label line: the kind, such as "Planet · gas giant". */
+    kind: Bilingual;
+    /** The name, with its Japanese name beside it: "Mars 火星". */
+    name: Bilingual;
+    stats: readonly CardStat[];
+    primary?: CardAction;
+    secondary?: CardAction;
+}
+```
+
+### ReadingGroup
+
+*interface*. A group of related objects under a heading: "Its moons", "Places to land".
+
+```ts
+interface ReadingGroup {
+    title: Bilingual;
+    items: readonly ReadingRelated[];
+}
+```
+
+### ReadingPageData
+
+*interface*. Everything the reading page shows.
+
+```ts
+interface ReadingPageData {
+    picture?: {
+        src: string;
+        alt: Bilingual;
+    };
+    /** Where this page sits: Atlas / Planets / Mars. */
+    breadcrumb?: readonly TrailItem[];
+    kind: Bilingual;
+    name: Bilingual;
+    /** One sentence. */
+    summary: Bilingual;
+    /** The buttons: the first is filled ("See it in the Universe"), the rest outlined. */
+    actions: readonly CardAction[];
+    /** Three tiles. */
+    now: readonly ReadingTile[];
+    numbers: readonly ReadingRow[];
+    related: readonly ReadingGroup[];
+}
+```
+
+### ReadingRelated
+
+*interface*. A link tile to a related object.
+
+```ts
+interface ReadingRelated {
+    label: Bilingual;
+    /** What kind of thing it is, or a short line of numbers in mono: "about 22 km across · orbits in 7 h 39 min". */
+    kind?: Bilingual;
+    /** A small picture, as an address. */
+    picture?: string;
+    href: string;
+}
+```
+
+### ReadingRow
+
+*interface*. One row of "The numbers": the measure, its value, a comparison, and where the number comes from.
+
+```ts
+interface ReadingRow {
+    label: Bilingual;
+    value: string | number | null | undefined;
+    unit?: string;
+    /** What it is compared with: "11 times Earth's radius". */
+    comparison?: Bilingual;
+    source: SourceLink | undefined;
+}
+```
+
+### ReadingTile
+
+*interface*. One of the three "Right now" tiles: a label over a mono value, worked out for the time shown.
+
+```ts
+interface ReadingTile {
+    label: Bilingual;
+    value: string | number | null | undefined;
+    unit?: string;
+    /** A small line under the value: "Light takes 43 minutes to arrive". */
+    note?: Bilingual;
+    /** A link at the foot of the tile: "Show my sky". */
+    link?: CardAction;
+    source: SourceLink | undefined;
+}
+```
+
+### ScaleStep
+
+*type*
+
+```ts
+type ScaleStep = (typeof SCALE_STEPS)[number];
+```
+
+### SectionLink
+
+*interface*. One link in the top bar's sections: a site's Now, Universe, Atlas, with the current one marked.
+
+```ts
+interface SectionLink {
+    label: string;
+    href: string;
+    current?: boolean;
+}
+```
+
+### Segment
+
+*interface*. One segment: the value it stands for and what it says.
+
+```ts
+interface Segment {
+    value: string;
+    label: string;
+}
+```
+
+### SourceLink
+
+*interface*. The place a number comes from.
+
+```ts
+interface SourceLink {
+    /** What the link says, such as "NASA Planetary Fact Sheet". */
+    label: string | Bilingual;
+    href: string;
+}
+```
+
+### TrailItem
+
+*interface*. One step of where you are. A word is shown as it is; a pair is shown side by side, English and Japanese. Every step but the last can be a link.
+
+```ts
+interface TrailItem {
+    label: string | Bilingual;
+    href?: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/interface/element`
+
+27 values and 5 types.
+
+```js
+import { BUTTON_TAG, ButtonElement, CARD_CLOSE_EVENT, CONTROL_BAR_TAG, CONTROL_EVENT, ControlBarElement, filledButtonCount, ICON_BUTTON_TAG, IconButtonElement, InterfacePart, LAYER_EVENT, LAYERS_PANEL_TAG, LayersPanelElement, OBJECT_CARD_TAG, ObjectCardElement, READING_PAGE_TAG, ReadingPageElement, SCALE_EVENT, SCALE_SWITCH_TAG, ScaleSwitchElement, SEGMENT_EVENT, SEGMENTED_SWITCH_TAG, SegmentedSwitchElement, TAG, TOP_BAR_EVENT, TOP_BAR_TAG, TopBarElement } from '@johnmorrisdotca/kazoku-ui/interface/element';
+```
+
+### BUTTON_TAG
+
+*constant*
+
+```ts
+const BUTTON_TAG = "kazoku-button";
+```
+
+### ButtonElement
+
+*class*. A button for the main thing to do (`variant="filled"`, in `sun`; one a screen) or for anything else (outlined, the default).
+
+```ts
+class ButtonElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The real button or link inside. */
+    get control(): HTMLButtonElement | HTMLAnchorElement | undefined;
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### CARD_CLOSE_EVENT
+
+*constant*
+
+```ts
+const CARD_CLOSE_EVENT = "kazoku-cardclose";
+```
+
+### CONTROL_BAR_TAG
+
+*constant*
+
+```ts
+const CONTROL_BAR_TAG = "kazoku-control-bar";
+```
+
+### CONTROL_EVENT
+
+*constant*
+
+```ts
+const CONTROL_EVENT = "kazoku-control";
+```
+
+### ControlBarElement
+
+*class*. Give it the family clock in the `clock` property (a `BarClock`: a moment, a speed, play and pause). It drives that clock and shows it; with no clock it still tells the page what was pressed.
+
+```ts
+class ControlBarElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The clock this bar drives. */
+    get clock(): BarClock | undefined;
+    set clock(next: BarClock | undefined);
+    /** Whether the date and time picker is open. */
+    get pickerOpen(): boolean;
+    /** The look now chosen. */
+    get look(): Look;
+    set look(next: Look);
+    protected styles(): string;
+    protected build(): void;
+    protected listen(): (() => void)[];
+    protected paint(): void;
+}
+```
+
+### filledButtonCount
+
+*function*. How many filled buttons are showing in `scope` (the page, or the nearest `[data-screen]` around a button), in the light DOM. The design allows one a screen.
+
+```ts
+function filledButtonCount(scope: ParentNode): number;
+```
+
+### ICON_BUTTON_TAG
+
+*constant*
+
+```ts
+const ICON_BUTTON_TAG = "kazoku-icon-button";
+```
+
+### IconButtonElement
+
+*class*. An icon you press. It is a real `<button>` with an accessible name, 44 by 44 px.
+
+```ts
+class IconButtonElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The real button inside, for a test or a page that wants to focus it. */
+    get button(): HTMLButtonElement;
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### InterfacePart
+
+*class*
+
+```ts
+abstract class InterfacePart extends HTMLElement {
+    #private;
+    protected readonly root: ShadowRoot;
+    protected ready: boolean;
+    protected words: InterfaceWords;
+    protected language: Language;
+    constructor();
+    /** The CSS of the part. */
+    protected abstract styles(): string;
+    /** Builds the tree, once, when the part first connects. */
+    protected abstract build(): void;
+    /** Brings the tree in line with the attributes, the properties, the language and the words; called again on every change. */
+    protected abstract paint(): void;
+    /** Called after the first paint, for listeners a part needs while it is connected; returns what stops them. */
+    protected listen(): (() => void)[];
+    /** Your own words over the language's, for example `{ close: "Dismiss" }`. */
+    set labels(own: Partial<InterfaceWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(): void;
+    /** Reads the language and the words again, then paints. */
+    protected refresh(): void;
+    /** Says something happened: a bubbling, composed `CustomEvent` with the part's own name. */
+    protected emit<T>(name: string, detail: T): boolean;
+}
+```
+
+### LAYER_EVENT
+
+*constant*
+
+```ts
+const LAYER_EVENT = "kazoku-layerchange";
+```
+
+### LAYERS_PANEL_TAG
+
+*constant*
+
+```ts
+const LAYERS_PANEL_TAG = "kazoku-layers-panel";
+```
+
+### LayersPanelElement
+
+*class*. Give it `layers` (each `{ id, label, checked }`) and, when the data door has outside sources, `sources` (from `sourcesFromCredits`). Each is a real `<input type="checkbox">` with a `<label>`.
+
+```ts
+class LayersPanelElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The view's own layers. */
+    get layers(): readonly LayerItem[];
+    set layers(next: readonly LayerItem[]);
+    /** The outside data sources, and whether each is on. */
+    get sources(): readonly LayerSource[];
+    set sources(next: readonly LayerSource[]);
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### OBJECT_CARD_TAG
+
+*constant*
+
+```ts
+const OBJECT_CARD_TAG = "kazoku-object-card";
+```
+
+### ObjectCardElement
+
+*class*. Give it its data in the `data` property (an `ObjectCardData`: the kind, the name in English and Japanese, the numbers each with a source link, and the two buttons). Setting `data` shows the card.
+
+```ts
+class ObjectCardElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** What the card shows. */
+    get data(): ObjectCardData | undefined;
+    set data(next: ObjectCardData | undefined);
+    /** Redraws the numbers that are computed for the time shown: call it after the clock moves, with the same `data` object changed in place. */
+    refreshValues(): void;
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### READING_PAGE_TAG
+
+*constant*
+
+```ts
+const READING_PAGE_TAG = "kazoku-reading-page";
+```
+
+### ReadingPageElement
+
+*class*. Give it its data in the `data` property (a `ReadingPageData`) and put the page footer in the `footer` slot. `readingProblems(data)` says what is wrong with a page before it is shown.
+
+```ts
+class ReadingPageElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** What the page shows. */
+    get data(): ReadingPageData | undefined;
+    set data(next: ReadingPageData | undefined);
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### SCALE_EVENT
+
+*constant*
+
+```ts
+const SCALE_EVENT = "kazoku-scalechange";
+```
+
+### SCALE_SWITCH_TAG
+
+*constant*
+
+```ts
+const SCALE_SWITCH_TAG = "kazoku-scale-switch";
+```
+
+### ScaleSwitchElement
+
+*class*. Attributes: `value` (the step now: surface, moons, solar, stars or galaxy), `steps` (the ones this view offers, for example `solar stars galaxy`; all five when it is left off; they always keep the
+
+```ts
+class ScaleSwitchElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The step now. Setting it to one this view does not offer is ignored. */
+    get value(): ScaleStep;
+    set value(next: ScaleStep);
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### SEGMENT_EVENT
+
+*constant*
+
+```ts
+const SEGMENT_EVENT = "kazoku-segmentchange";
+```
+
+### SEGMENTED_SWITCH_TAG
+
+*constant*
+
+```ts
+const SEGMENTED_SWITCH_TAG = "kazoku-segmented-switch";
+```
+
+### SegmentedSwitchElement
+
+*class*. Attributes: `kind` (`language`: EN and `日本語`, which also writes the choice as `lang` on the page's <html> unless `no-apply` is there; `culture`: Western, Japanese, Chinese; or leave it off and give
+
+```ts
+class SegmentedSwitchElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The value chosen now; for the language switch, it follows the page's own `lang`. */
+    get value(): string;
+    set value(next: string);
+    /** The segments, when the page gives them as objects over the `options` attribute. */
+    get options(): readonly Segment[];
+    set options(list: readonly Segment[]);
+    protected styles(): string;
+    protected build(): void;
+    protected paint(): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const CONTROL_BAR_TAG = "kazoku-control-bar";
+```
+
+### TOP_BAR_EVENT
+
+*constant*
+
+```ts
+const TOP_BAR_EVENT = "kazoku-topbar";
+```
+
+### TOP_BAR_TAG
+
+*constant*
+
+```ts
+const TOP_BAR_TAG = "kazoku-top-bar";
+```
+
+### TopBarElement
+
+*class*. Attributes: `brand` (the name at the left), `home` (where the brand links; `/` by default), `culture` (the sky culture now, `western`, `japanese` or `chinese`; its presence shows the culture switch, which a sky view has),
+
+```ts
+class TopBarElement extends InterfacePart {
+    #private;
+    static observedAttributes: string[];
+    /** The site's sections as links in the bar (a reading page's Now, Universe, Atlas), the current one marked; a sky view uses the trail instead. */
+    get sections(): readonly SectionLink[];
+    set sections(next: readonly SectionLink[]);
+    /** Where you are. */
+    get trail(): readonly TrailItem[];
+    set trail(next: readonly TrailItem[]);
+    protected styles(): string;
+    protected build(): void;
+    protected listen(): (() => void)[];
+    protected paint(): void;
+}
+```
+
+### ControlDetail
+
+*interface*. What `kazoku-control` carries in `detail`: which control was pressed, and what it now stands for.
+
+```ts
+interface ControlDetail {
+    action: ControlName;
+    /** For `look` the look now chosen; for `layers`, `place` and `flight` whether they are on; for `play` whether the clock is running; for `slower` and `faster` the speed; for `clock` the moment set. */
+    value: string | number | boolean | undefined;
+}
+```
+
+### LayerChangeDetail
+
+*interface*. What `kazoku-layerchange` carries in `detail`.
+
+```ts
+interface LayerChangeDetail {
+    /** `layer` for one of the view's own layers, `source` for an outside data source. */
+    kind: "layer" | "source";
+    id: string;
+    checked: boolean;
+}
+```
+
+### ScaleChangeDetail
+
+*interface*. What `kazoku-scalechange` carries in `detail`.
+
+```ts
+interface ScaleChangeDetail {
+    value: ScaleStep;
+    previous: ScaleStep | undefined;
+    /** `user` (a press) or `set` (the `value` property or attribute). */
+    reason: "user" | "set";
+}
+```
+
+### SegmentChangeDetail
+
+*interface*. What `kazoku-segmentchange` carries in `detail`.
+
+```ts
+interface SegmentChangeDetail {
+    /** The value now chosen. */
+    value: string;
+    /** The one before; `undefined` the first time. */
+    previous: string | undefined;
+    /** `user` (a press) or `set` (the `value` property or attribute). */
+    reason: "user" | "set";
+}
+```
+
+### TopBarDetail
+
+*interface*. What `kazoku-topbar` carries in `detail`.
+
+```ts
+interface TopBarDetail {
+    /** `search` (the field was submitted; `value` is the text), `culture` (the sky culture changed; `value` is it), `language` (the language changed), or `menu` (the menu button; `value` is whether it is open). */
+    action: "search" | "culture" | "language" | "menu";
+    value: string | boolean;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/interface/define`
+
+1 value and 0 types.
+
+```js
+import { defineInterface } from '@johnmorrisdotca/kazoku-ui/interface/define';
+```
+
+### defineInterface
+
+*function*. Registers the nine tags on `registry`, each only if it is free; true if it registered at least one.
+
+```ts
+function defineInterface(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/print`
