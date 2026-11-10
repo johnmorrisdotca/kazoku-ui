@@ -12,6 +12,7 @@ import { type PageText, type PageTexts } from "./text.ts";
 import { languageOf, type Language, type PageFrameWords, wordsFor } from "./words.ts";
 
 export { CREDITS_TAG, TAG };
+export { FOOTER_TAG, PageFooterElement } from "./footer.ts";
 
 /** The reader's language for an element: its own `lang`, else the nearest ancestor's, else the page's. */
 function languageFor(element: HTMLElement): Language {
