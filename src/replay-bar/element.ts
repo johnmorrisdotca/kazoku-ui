@@ -25,10 +25,10 @@ export interface ReplayDetail {
 /**
  * Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
  * `address` (keep play, repeat and the speed in the address), `address-keys` (`play:p,repeat:r`), `speed-key` (the speed's own key, `replay-speed` by default),
- * `lang`, `theme`.
+ * `user-play` (a reader who asked for reduced motion still gets a Play button that works: nothing starts by itself, but their own press is honoured), `lang`, `theme`.
  */
 export class ReplayBarElement extends HTMLElement {
-  static observedAttributes = ["playing", "repeat", "steps", "speed", "lang", "label"];
+  static observedAttributes = ["playing", "repeat", "steps", "speed", "lang", "label", "user-play"];
 
   #root: ShadowRoot;
   #playing = false;
@@ -118,8 +118,13 @@ export class ReplayBarElement extends HTMLElement {
     else this.#paint();
   };
 
+  /** Reduced motion stops anything that starts by itself; with `user-play`, the reader's own press on Play is still honoured. */
+  #mayPlay(reason: "user" | "set"): boolean {
+    return !this.#reduced() || (reason === "user" && this.hasAttribute("user-play"));
+  }
+
   #play(next: boolean, reason: "user" | "set"): void {
-    const on = next && !this.#reduced();
+    const on = next && this.#mayPlay(reason);
     if (on === this.#playing) {
       this.#paint();
       return;
@@ -216,7 +221,7 @@ export class ReplayBarElement extends HTMLElement {
     if (play) {
       play.textContent = this.#playing ? words.pause : words.play;
       play.setAttribute("aria-pressed", String(this.#playing));
-      play.disabled = this.#reduced();
+      play.disabled = this.#reduced() && !this.hasAttribute("user-play");
     }
     if (start) start.textContent = words.start;
     if (repeat) {
