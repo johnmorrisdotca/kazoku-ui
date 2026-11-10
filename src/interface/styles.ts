@@ -30,7 +30,7 @@ a:hover { color: ${kui("sky-hover")}; }
 /** Where a floating part sits: `placement` is `fixed` (to the screen; the default), `absolute` (to the nearest positioned ancestor) or `static` (in the flow). */
 export const PLACEMENT = `
 :host([placement="absolute"]) { position: absolute; }
-:host([placement="static"]) { position: relative; transform: none; }
+:host([placement="static"]) { position: relative; inset: auto; transform: none; }
 `;
 
 export const TOUCH = `${SIZES.touch}px`;

@@ -22,12 +22,12 @@ ${PLACEMENT}
 .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 0 0 14px; }
 .stat { min-width: 0; }
 .stat dt { margin: 0 0 3px; }
-.stat dd { margin: 0; font-family: var(--kui-font-mono, ui-monospace, monospace); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stat dd { margin: 0; font-family: var(--kui-font-mono, ui-monospace, monospace); font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
 .stat dd a { color: ${kui("text")}; text-decoration: underline dotted ${kui("text-quiet")}; text-underline-offset: 4px; }
 .stat dd a:hover { color: ${kui("sky-hover")}; text-decoration-style: solid; }
 .num { white-space: nowrap; }
 .stat dd sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
-.unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 12px; font-weight: 400; }
+.unit { color: ${kui("text-quiet")}; font-size: 12px; font-weight: 400; }
 .note { margin: 0 0 16px; color: ${kui("text-quiet")}; font-size: 12px; }
 .actions { display: flex; gap: 8px; }
 .actions kazoku-button { flex: 1 1 0; min-width: 0; }
@@ -122,7 +122,7 @@ export class ObjectCardElement extends InterfacePart {
       const sourceText = stat.source === undefined ? "" : say(stat.source.label, language);
       const link = stat.source !== undefined ? h(doc, "a", { href: stat.source.href, "aria-label": `${label}: ${text}${stat.unit ? ` ${stat.unit}` : ""}. ${words.source}: ${sourceText}${stat.computed === true ? `. ${words.computed}` : ""}`, title: `${words.source}: ${sourceText}` }) : h(doc, "span", {});
       link.append(h(doc, "span", { class: "num" }, valueNodes(doc, stat.value)));
-      if (stat.unit !== undefined && stat.unit !== "") link.append(h(doc, "span", { class: "unit" }, [stat.unit]));
+      if (stat.unit !== undefined && stat.unit !== "") link.append(" ", h(doc, "span", { class: "unit" }, [stat.unit]));
       value.append(link);
       stats.append(h(doc, "div", { class: "stat", part: "stat" }, [h(doc, "dt", { class: "label" }, [label]), value]));
     }

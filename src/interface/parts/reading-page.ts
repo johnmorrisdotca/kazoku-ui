@@ -37,7 +37,7 @@ h2 { margin: 0 0 16px; color: ${kui("text")}; font-size: 24px; font-weight: 600;
 .big a:hover { color: ${kui("sky-hover")}; }
 .num { white-space: nowrap; }
 .big sup, td.v sup { font-size: 0.7em; line-height: 0; vertical-align: super; }
-.unit { margin-left: 0.25em; color: ${kui("text-quiet")}; font-size: 14px; font-weight: 400; }
+.unit { color: ${kui("text-quiet")}; font-size: 14px; font-weight: 400; }
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th, td { padding: 12px 14px 12px 0; border-bottom: 1px solid ${kui("line")}; text-align: left; vertical-align: top; }
 thead th { color: ${kui("text-quiet")}; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -110,7 +110,7 @@ export class ReadingPageElement extends InterfacePart {
     const text = formatValue(value);
     const where = source === undefined ? "" : say(source.label, language);
     const content: (string | Node)[] = [h(doc, "span", { class: "num" }, valueNodes(doc, value))];
-    if (unit !== undefined && unit !== "") content.push(h(doc, "span", { class: "unit" }, [unit]));
+    if (unit !== undefined && unit !== "") content.push(" ", h(doc, "span", { class: "unit" }, [unit]));
     return source === undefined
       ? h(doc, "span", {}, content)
       : h(doc, "a", { href: source.href, "aria-label": `${label}: ${text}${unit ? ` ${unit}` : ""}. ${this.words.source}: ${where}`, title: `${this.words.source}: ${where}` }, content);
