@@ -4526,10 +4526,10 @@ interface ViewOptions {
 
 ## `@johnmorrisdotca/kazoku-ui/testing`
 
-15 values and 13 types.
+18 values and 14 types.
 
 ```js
-import { acquireBrowserLock, bestShift, browserLockStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+import { acquireBrowserLock, bestShift, browserLockStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, drainGpu, drawCounts, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, untilStill, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
 ```
 
 ### acquireBrowserLock
@@ -4595,6 +4595,22 @@ function clearBrowserLock(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
 const COUNT_SCRIPT: string;
 ```
 
+### drainGpu
+
+*function*. Wait until the graphics processor has finished everything the page asked it to draw, and say how long that took (ms). Software drawing (SwiftShader) is far slower
+
+```ts
+function drainGpu(page: PageLike): Promise<number>;
+```
+
+### drawCounts
+
+*function*. The draw count and the animation-frame request count now, as the pair to hand `untilStill`: nothing is drawn or asked for while both stay the same.
+
+```ts
+function drawCounts(page: PageLike): Promise<readonly [number, number]>;
+```
+
 ### GESTURE_NAMES
 
 *constant*. The names in the order the check runs them.
@@ -4651,10 +4667,18 @@ function readCounts(page: PageLike): Promise<GlCounts>;
 
 ### SOFTWARE_GL_ARGS
 
-*constant*. The launch arguments that make headless Chromium draw WebGL in software (ANGLE on SwiftShader), never on the machine's graphics card. Every package's Playwright
+*constant*. The launch arguments that make headless Chromium draw in software, never on the machine's graphics card: WebGL on ANGLE and SwiftShader, and the page's own
 
 ```ts
 const SOFTWARE_GL_ARGS: readonly string[];
+```
+
+### untilStill
+
+*function*. Wait until what `read` reports has stayed the same for `quietMs`: nothing is drawn or asked for any more. Holding a clock or stopping the controls' turn leaves one
+
+```ts
+function untilStill<P extends PageLike>(page: P, read: (page: P) => Promise<number | readonly number[]>, options?: UntilStillOptions): Promise<void>;
 ```
 
 ### withBrowserLock
@@ -4874,6 +4898,19 @@ type GpuKind = (typeof GPU_KINDS)[number];
 ```ts
 interface PageLike {
     evaluate<R>(fn: () => R): Promise<R>;
+}
+```
+
+### UntilStillOptions
+
+*interface*
+
+```ts
+interface UntilStillOptions {
+    /** How long the reading must stay the same, in ms. Default 1000. */
+    quietMs?: number;
+    /** How long to wait for that before failing, in ms. Default 20000. */
+    timeoutMs?: number;
 }
 ```
 

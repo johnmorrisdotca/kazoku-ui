@@ -151,16 +151,38 @@ const zero = Object.fromEntries(GPU_KINDS.map((kind) => [kind, 0]));
 console.log(gpuObjects({ contexts: 1, draws: 0, rafRequests: 0, rafCallbacks: 0, created: { ...zero, Buffer: 5, Texture: 2 }, deleted: { ...zero, Buffer: 4 } }));
 console.log(withinPixelBudget({ pixels: 5_000_000, side: 4000, count: 1 }), withinPixelBudget({ pixels: 7_000_000, side: 4000, count: 1 }), withinPixelBudget({ pixels: 1_000_000, side: 5000, count: 1 }));
 // Buffer Texture VertexArray Program Framebuffer Renderbuffer
-// --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist
+// --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist --disable-gpu-rasterization
 // 3
 // true false false
 ```
 
-`COUNT_SCRIPT` installs the counters in a page; `readCounts(page)` reads them as `GlCounts`; `canvasSize(page)` is the biggest canvas in device pixels; `gpuObjects(counts)` is created minus deleted, over every kind. `SOFTWARE_GL_ARGS` makes headless Chromium draw WebGL in software (ANGLE on SwiftShader), never on the machine's graphics card.
+`COUNT_SCRIPT` installs the counters in a page; `readCounts(page)` reads them as `GlCounts`; `canvasSize(page)` is the biggest canvas in device pixels; `gpuObjects(counts)` is created minus deleted, over every kind. `SOFTWARE_GL_ARGS` makes headless Chromium draw WebGL in software (ANGLE on SwiftShader), never on the machine's graphics card, and the page's own pictures on the CPU. `drainGpu` and `untilStill` are below.
+
+### Draw in software, and drain the GPU's backlog
+
+`SOFTWARE_GL_ARGS` also carries `--disable-gpu-rasterization`. Without it, Chromium rasterizes a page's own pictures (SVG, text, a map) on the emulated GPU as well as WebGL, and one world-map SVG kept that GPU busy for 5 to 10 seconds, during which the page drew no frame and answered no click. With it those pictures are drawn by the CPU; WebGL is still drawn in software. A project that measures WebGL timing was not changed by it (the realistic Earth's WebGL project saw no difference), but check before you add the flag to one.
+
+`drainGpu(page)` waits until the graphics processor has finished everything the page asked it to draw, and returns how long that took in milliseconds. Software drawing (SwiftShader) is far slower than the 30 frames a second a view asks for, so a test that draws for a few seconds ends with the GPU tens of seconds behind the page (33 seconds after a 14-second run of frame-rate windows in chikyu-earth's CI), and Chromium then makes the next test wait for that backlog while the next test's own clock is running. **Call it at the end of any test that draws for seconds**, so each test pays for its own drawing. It reads one pixel from every WebGL canvas on the page, shadow roots included, and that synchronous read waits for every command before it; `gl.finish()` does not, because Chromium turns it into a flush. It asks each canvas for its WebGL context, so a canvas that has none gets one: call it on a page whose canvases are WebGL.
+
+`untilStill(page, read, { quietMs, timeoutMs })` waits until what `read` returns has stayed the same for `quietMs` (1000 by default) and throws if it is still changing after `timeoutMs` (20000), which is the bug it is there to find. `read` returns a number or a list of numbers, and `drawCounts` is the ready-made one: the draws and the animation-frame requests. Holding a clock or stopping a turn leaves one last frame already queued, and that frame is drawn, rightly; under software drawing it can land more than a second later. A test of "nothing is drawn while held" takes its first reading after `untilStill`, so it measures rest and not that last frame.
+
+```js no-check
+import { COUNT_SCRIPT, drainGpu, drawCounts, readCounts, untilStill } from "@johnmorrisdotca/kazoku-ui/testing";
+
+await page.addInitScript(COUNT_SCRIPT);
+await page.goto(url);
+await page.evaluate(() => view.pause());
+await untilStill(page, drawCounts);                 // the last queued frame has landed
+const held = await readCounts(page);
+await page.waitForTimeout(1000);
+expect((await readCounts(page)).draws).toBe(held.draws);   // nothing drawn while held
+// ... and a test that drew for seconds ends with:
+await drainGpu(page);                                // its backlog is its own, not the next test's
+```
 
 ## The rule: no 3D release without a freeze test
 
-Every package and app with live 3D (WebGL) has both of these, and a release does not go out without them. First, **a freeze test** in its release, a `test:freeze` script that plays the page in headless Chromium and fails on more than one animation frame asked for at a time, a draw when nothing moves or the view is out of sight, WebGL contexts or GPU objects that grow over a run of changes, and a canvas past 6 million pixels or 4096 a side. Second, **tests draw in software, never on the machine's graphics card**: every Chromium project in a Playwright config has `launchOptions: { args: [...SOFTWARE_GL_ARGS] }`. WebKit has no software switch, so off CI its projects skip the pages that draw WebGL. Only one headless browser should run at a time on a developer's machine: [the browser lock](browser-lock.md) makes a second run wait. A package with no WebGL (CSS 3D transforms and SVG are not WebGL) needs neither.
+Every package and app with live 3D (WebGL) has both of these, and a release does not go out without them. First, **a freeze test** in its release, a `test:freeze` script that plays the page in headless Chromium and fails on more than one animation frame asked for at a time, a draw when nothing moves or the view is out of sight, WebGL contexts or GPU objects that grow over a run of changes, and a canvas past 6 million pixels or 4096 a side. Second, **tests draw in software, never on the machine's graphics card**, and a test that draws for seconds ends with `drainGpu`: every Chromium project in a Playwright config has `launchOptions: { args: [...SOFTWARE_GL_ARGS] }`. WebKit has no software switch, so off CI its projects skip the pages that draw WebGL. Only one headless browser should run at a time on a developer's machine: [the browser lock](browser-lock.md) makes a second run wait. A package with no WebGL (CSS 3D transforms and SVG are not WebGL) needs neither.
 
 ## Not in this part
 

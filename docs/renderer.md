@@ -88,6 +88,28 @@ expect(withinPixelBudget(await canvasSize(page))).toBe(true);    // at 5120x2880
 // and at rest: wait, read again, and expect draws and rafRequests not to have moved.
 ```
 
+### Draw in software, and drain the GPU's backlog
+
+`SOFTWARE_GL_ARGS` also carries `--disable-gpu-rasterization`. Without it, Chromium rasterizes a page's own pictures (SVG, text, a map) on the emulated GPU as well as WebGL, and one world-map SVG kept that GPU busy for 5 to 10 seconds, during which the page drew no frame and answered no click. With it those pictures are drawn by the CPU; WebGL is still drawn in software. A project that measures WebGL timing was not changed by it (the realistic Earth's WebGL project saw no difference), but check before you add the flag to one.
+
+`drainGpu(page)` waits until the graphics processor has finished everything the page asked it to draw, and returns how long that took in milliseconds. Software drawing (SwiftShader) is far slower than the 30 frames a second a view asks for, so a test that draws for a few seconds ends with the GPU tens of seconds behind the page (33 seconds after a 14-second run of frame-rate windows in chikyu-earth's CI), and Chromium then makes the next test wait for that backlog while the next test's own clock is running. **Call it at the end of any test that draws for seconds**, so each test pays for its own drawing. It reads one pixel from every WebGL canvas on the page, shadow roots included, and that synchronous read waits for every command before it; `gl.finish()` does not, because Chromium turns it into a flush. It asks each canvas for its WebGL context, so a canvas that has none gets one: call it on a page whose canvases are WebGL.
+
+`untilStill(page, read, { quietMs, timeoutMs })` waits until what `read` returns has stayed the same for `quietMs` (1000 by default) and throws if it is still changing after `timeoutMs` (20000), which is the bug it is there to find. `read` returns a number or a list of numbers, and `drawCounts` is the ready-made one: the draws and the animation-frame requests. Holding a clock or stopping a turn leaves one last frame already queued, and that frame is drawn, rightly; under software drawing it can land more than a second later. A test of "nothing is drawn while held" takes its first reading after `untilStill`, so it measures rest and not that last frame.
+
+```js no-check
+import { COUNT_SCRIPT, drainGpu, drawCounts, readCounts, untilStill } from "@johnmorrisdotca/kazoku-ui/testing";
+
+await page.addInitScript(COUNT_SCRIPT);
+await page.goto(url);
+await page.evaluate(() => view.pause());
+await untilStill(page, drawCounts);                 // the last queued frame has landed
+const held = await readCounts(page);
+await page.waitForTimeout(1000);
+expect((await readCounts(page)).draws).toBe(held.draws);   // nothing drawn while held
+// ... and a test that drew for seconds ends with:
+await drainGpu(page);                                // its backlog is its own, not the next test's
+```
+
 This repository's own check is `e2e/renderer.demo.mjs`, on `demo/renderer.html` (thirty views on one renderer): contexts = 1 over fifty focus changes with at most one canvas in
 the page, 0 draws and 0 frame requests at rest, the GPU objects, the cache and the stills flat (and the JS heap within 3 MB in Chromium) over fifty more, the canvas within
 budget when the focused view fills a 5K screen at ratio 2, no frame while out of sight and the context let go after `releaseMs`, a lost and restored context, the stills
@@ -98,7 +120,7 @@ within their byte budget, one frame request at a time while turning, and no more
 John, 2026-11-02, after a kernel panic in a Mac's graphics driver during a test run: every package and app with live 3D (WebGL) has both of these, and a release does not go out without them.
 
 1. **A freeze test**, in its release: `e2e/freeze.demo.*` and a `test:freeze` script. It plays the page in headless Chromium and fails on: more than one animation frame asked for at a time, a draw when nothing moves or the view is out of sight, WebGL contexts (live ones) or GPU objects (buffers, vertex arrays, textures, programs) that grow over a run of changes, and a canvas past 6 million pixels or 4096 a side on a 5K screen at a ratio of 2. Count live contexts, not contexts ever made (a context let go takes what it held with it). Examples to copy: uchusen-rockets and hako-devices `e2e/freeze.demo.ts`, senshu-jerseys `e2e/freeze.demo.mjs`, and this repo's `e2e/renderer.demo.mjs`. The release workflow runs it before publishing when the repo's `release.yml` passes `freeze-command: pnpm test:freeze` to `reusable-release.yml`.
-2. **Tests draw in software, never on the machine's graphics card.** Every Chromium project in `playwright.config` has `launchOptions: { args: [...SOFTWARE_GL_ARGS] }` (this kit exports it). WebKit has no software switch: off CI its projects `testIgnore` the pages that draw WebGL, and CI plays them. One browser at a time on a developer's machine, closed when finished: a package takes the browser lock (`globalSetup: "@johnmorrisdotca/kazoku-ui/testing/global-setup"` in `playwright.config`, `withBrowserLock` in a script that launches Chromium; see the guide `docs/guides/browser-lock.md`).
+2. **Tests draw in software, never on the machine's graphics card.** Every Chromium project in `playwright.config` has `launchOptions: { args: [...SOFTWARE_GL_ARGS] }` (this kit exports it; it draws WebGL in software and the page's own pictures on the CPU), and a test that draws for seconds ends with `drainGpu`. WebKit has no software switch: off CI its projects `testIgnore` the pages that draw WebGL, and CI plays them. One browser at a time on a developer's machine, closed when finished: a package takes the browser lock (`globalSetup: "@johnmorrisdotca/kazoku-ui/testing/global-setup"` in `playwright.config`, `withBrowserLock` in a script that launches Chromium; see the guide `docs/guides/browser-lock.md`).
 
 A package with no WebGL (CSS 3D transforms and SVG are not WebGL) needs neither.
 

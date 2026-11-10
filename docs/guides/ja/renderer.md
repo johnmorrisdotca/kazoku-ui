@@ -153,16 +153,38 @@ const zero = Object.fromEntries(GPU_KINDS.map((kind) => [kind, 0]));
 console.log(gpuObjects({ contexts: 1, draws: 0, rafRequests: 0, rafCallbacks: 0, created: { ...zero, Buffer: 5, Texture: 2 }, deleted: { ...zero, Buffer: 4 } }));
 console.log(withinPixelBudget({ pixels: 5_000_000, side: 4000, count: 1 }), withinPixelBudget({ pixels: 7_000_000, side: 4000, count: 1 }), withinPixelBudget({ pixels: 1_000_000, side: 5000, count: 1 }));
 // Buffer Texture VertexArray Program Framebuffer Renderbuffer
-// --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist
+// --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist --disable-gpu-rasterization
 // 3
 // true false false
 ```
 
-`COUNT_SCRIPT`はページにカウンターを入れ、`readCounts(page)`はそれを`GlCounts`として読み、`canvasSize(page)`はデバイスピクセルでの最大のキャンバス、`gpuObjects(counts)`はすべての種類での作成数から削除数を引いたものです。`SOFTWARE_GL_ARGS`は、ヘッドレスChromiumにWebGLをソフトウェア（SwiftShader上のANGLE）で描かせ、マシンのグラフィックスカードは決して使わせません。
+`COUNT_SCRIPT`はページにカウンターを入れ、`readCounts(page)`はそれを`GlCounts`として読み、`canvasSize(page)`はデバイスピクセルでの最大のキャンバス、`gpuObjects(counts)`はすべての種類での作成数から削除数を引いたものです。`SOFTWARE_GL_ARGS`は、ヘッドレスChromiumにWebGLをソフトウェア（SwiftShader上のANGLE）で描かせ、マシンのグラフィックスカードは決して使わせず、ページ自身の絵はCPUで描かせます。`drainGpu`と`untilStill`は次のとおりです。
+
+### ソフトウェアで描き、GPUの遅れを待つ
+
+`SOFTWARE_GL_ARGS`には`--disable-gpu-rasterization`も入っています。これがないと、ChromiumはWebGLだけでなく、ページ自身の絵（SVG、文字、地図）もエミュレートされたGPU上でラスタライズします。世界地図のSVG1枚で、そのGPUが5〜10秒ふさがり、その間ページはフレームを描かず、クリックにも答えませんでした。これがあると、そうした絵はCPUが描き、WebGLはこれまでどおりソフトウェアで描きます。WebGLの時間を測るプロジェクトは、これで変わりませんでした（リアルな地球のWebGLのプロジェクトでは差が出ませんでした）が、そうしたプロジェクトに付ける前に確かめてください。
+
+`drainGpu(page)`は、ページが頼んだ描画をグラフィックスプロセッサがすべて終えるまで待ち、かかった時間をミリ秒で返します。ソフトウェア描画（SwiftShader）は、ビューが求める毎秒30フレームよりずっと遅いので、数秒描くテストは、GPUがページより何十秒も遅れたまま終わります（chikyu-earthのCIでは、14秒のフレームレート測定のあと33秒遅れていました）。するとChromiumは、次のテストにその遅れを待たせ、その間は次のテスト自身の時計が進みます。**数秒間描くテストはどれも、最後にこれを呼び**、自分の描画の代金を自分で払ってください。シャドウルートの中も含め、ページ上のすべてのWebGLキャンバスから1ピクセルを読み、この同期した読み取りは、その前のコマンドがすべて終わるまで待ちます。`gl.finish()`は待ちません。Chromiumがそれをフラッシュにするためです。各キャンバスにWebGLコンテキストを求めるので、WebGLを持たないキャンバスには新しく作られます。キャンバスがWebGLであるページで呼んでください。
+
+`untilStill(page, read, { quietMs, timeoutMs })`は、`read`が返す値が`quietMs`（既定は1000）のあいだ変わらなくなるまで待ち、`timeoutMs`（既定は20000）たっても変わり続けるなら、例外を投げます。それこそが、これが見つけるべき不具合です。`read`は数または数のリストを返し、`drawCounts`はすぐ使えるもので、描画回数とアニメーションフレームの要求回数を返します。時計を止める、または回転を止めると、すでにキューに入ったフレームが1つ残り、そのフレームは正しく描かれます。ソフトウェア描画では、それが1秒以上あとに届くことがあります。「止めている間は何も描かれない」というテストは、最初の読み取りを`untilStill`のあとに行い、その最後のフレームではなく、静止状態を測ります。
+
+```js no-check
+import { COUNT_SCRIPT, drainGpu, drawCounts, readCounts, untilStill } from "@johnmorrisdotca/kazoku-ui/testing";
+
+await page.addInitScript(COUNT_SCRIPT);
+await page.goto(url);
+await page.evaluate(() => view.pause());
+await untilStill(page, drawCounts);                 // the last queued frame has landed
+const held = await readCounts(page);
+await page.waitForTimeout(1000);
+expect((await readCounts(page)).draws).toBe(held.draws);   // nothing drawn while held
+// ... and a test that drew for seconds ends with:
+await drainGpu(page);                                // its backlog is its own, not the next test's
+```
 
 ## 決まり：フリーズ検査のない3Dのリリースはしない
 
-ライブの3D（WebGL）を持つすべてのパッケージとアプリは、次の2つを備え、それなしにはリリースしません。1つ目は、リリースに組み込む**フリーズテスト**（`test:freeze`スクリプト）です。ヘッドレスChromiumでページを動かし、次のどれかで失敗します。1度に複数のアニメーションフレームを要求する。何も動いていない、またはビューが見えないのに描画する。変更を重ねるうちにWebGLコンテキストやGPUオブジェクトが増える。600万ピクセルまたは1辺4096を超えるキャンバスがある。2つ目は、**テストはソフトウェアで描き、マシンのグラフィックスカードでは描かない**ことです。PlaywrightのChromiumのプロジェクトはすべて、`launchOptions: { args: [...SOFTWARE_GL_ARGS] }`を使います。WebKitにはソフトウェアへの切り替えがないので、CI以外では、WebGLを描くページをスキップします。開発マシンでヘッドレスブラウザを同時に動かすのは1つだけにします。[ブラウザロック](browser-lock.md)が、2つ目の実行を待たせます。WebGLを使わないパッケージ（CSS 3D変形とSVGはWebGLではありません）は、どちらも要りません。
+ライブの3D（WebGL）を持つすべてのパッケージとアプリは、次の2つを備え、それなしにはリリースしません。1つ目は、リリースに組み込む**フリーズテスト**（`test:freeze`スクリプト）です。ヘッドレスChromiumでページを動かし、次のどれかで失敗します。1度に複数のアニメーションフレームを要求する。何も動いていない、またはビューが見えないのに描画する。変更を重ねるうちにWebGLコンテキストやGPUオブジェクトが増える。600万ピクセルまたは1辺4096を超えるキャンバスがある。2つ目は、**テストはソフトウェアで描き、マシンのグラフィックスカードでは描かない**ことで、数秒間描くテストは最後に`drainGpu`を呼びます。PlaywrightのChromiumのプロジェクトはすべて、`launchOptions: { args: [...SOFTWARE_GL_ARGS] }`を使います。WebKitにはソフトウェアへの切り替えがないので、CI以外では、WebGLを描くページをスキップします。開発マシンでヘッドレスブラウザを同時に動かすのは1つだけにします。[ブラウザロック](browser-lock.md)が、2つ目の実行を待たせます。WebGLを使わないパッケージ（CSS 3D変形とSVGはWebGLではありません）は、どちらも要りません。
 
 ## この部品にないもの
 
