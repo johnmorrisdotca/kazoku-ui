@@ -2,7 +2,7 @@
 title: Print layout
 section: how-to
 order: 21
-description: A printable sheet for any package: A4, US Letter, A3 and Tabloid pages with safe margins, a header, an info box and a footer with a QR code, a poster tiled over pages with cut marks, large type for children, and a Print / save PDF button that needs no PDF library.
+description: "A printable sheet for any package: A4, US Letter, A3 and Tabloid pages with safe margins, a header, an info box and a footer with a QR code, a poster tiled over pages with cut marks, large type for children, and a Print / save PDF button that needs no PDF library."
 ---
 
 The print part builds a printable sheet: pages of exactly the paper's size with home-printer-safe margins, a header (the brand, the package, the title and a "Name:" label with an underline), an info box, a footer (credits, version, date, the address as a QR code and as text, the page number), and a poster cut over several pages with cut marks. It has two type presets, `kid` (large and round) and `normal`. It never draws a package's picture: the page puts its own picture (an SVG is best) into the sheet.

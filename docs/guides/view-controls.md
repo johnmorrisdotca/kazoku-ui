@@ -2,7 +2,7 @@
 title: View controls
 section: how-to
 order: 2
-description: The view-controls element in full: what the reader gets, every attribute, the event it sends, the keys and gestures, the address and what to do with each.
+description: "The view-controls element in full: what the reader gets, every attribute, the event it sends, the keys and gestures, the address and what to do with each."
 ---
 
 `<kazoku-view-controls>` gives any 3D or zoomable view a turn, a tilt, a zoom and a way to move it. It draws no scene of its own. It reports what the reader chose, in one event, and your page applies it to a canvas, WebGL, SVG or CSS 3D.
