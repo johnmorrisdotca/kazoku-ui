@@ -232,6 +232,7 @@ test("the canvas stays within budget at a desk's 1440 by 900 at ratio 2, and a p
     const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: ratio, hasTouch: touch });
     const page = await context.newPage();
     await ready(page);
+    await page.evaluate(() => window.kazokuDemo.clock.pause());
     await settle(page);
     const size = await canvasSize(page);
     expect(size.count).toBe(1);
