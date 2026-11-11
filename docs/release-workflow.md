@@ -24,10 +24,11 @@ Run by hand from main (Actions → Release → Run workflow), or by pushing a `v
 1. Refuses to run from any branch but `main` (or a version tag).
 2. Checks that a pushed tag equals `v` plus `package.json`'s version, and that an existing `v<version>` tag is on this commit.
 3. Asks npm whether `name@version` is already published. If it is, it skips the install, the check and the publish.
-4. With `require-ci-workflow`, refuses a commit whose CI has not succeeded. Then runs the repo's check script, and then its freeze test when it names one (`freeze-command`).
-5. Tags `v<version>` if the tag is missing (this also repairs a version that is on npm but untagged).
-6. `npm publish --access public --provenance --ignore-scripts` by trusted publishing: no token, no secret.
-7. With `github-release: true`, makes a GitHub release with the packed tarball (notes from the repo's `scripts/release-notes.mjs` when it has one, else generated).
+4. When the repo names a freeze test (`freeze-command`) and the version is not on npm, runs it first in a job of its own, in Microsoft's Playwright image at the Playwright version in `pnpm-lock.yaml` (`mcr.microsoft.com/playwright:v<version>-noble`), which has Chromium and its system libraries, so no package mirror is needed. Nothing below runs unless it passes.
+5. With `require-ci-workflow`, refuses a commit whose CI has not succeeded. Then runs the repo's check script.
+6. Tags `v<version>` if the tag is missing (this also repairs a version that is on npm but untagged).
+7. `npm publish --access public --provenance --ignore-scripts` by trusted publishing: no token, no secret.
+8. With `github-release: true`, makes a GitHub release with the packed tarball (notes from the repo's `scripts/release-notes.mjs` when it has one, else generated).
 
 A rerun of a half-done release is safe: each step looks at what is already there.
 
@@ -54,7 +55,7 @@ jobs:
 | `node-version` | `24` | 22.14 or later. |
 | `install-command` | `pnpm install --frozen-lockfile` | |
 | `check-command` | `pnpm check` | Must pass before anything is published. |
-| `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`): run in headless Chromium that draws in software, before anything is published. Every package with WebGL sets it. |
+| `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`): run in headless Chromium that draws in software, in the Playwright image at the lockfile's version, before anything is published. Every package with WebGL sets it. |
 | `require-ci-workflow` | empty | The file name of the repo's CI workflow (`ci.yml`). When set, the release refuses unless that workflow has succeeded on this exact commit (any completed, successful run of it counts, so a green rerun beats an earlier red one), so no package publishes a red commit. It reads the runs through the REST API; that needs no permission on a public repository, and a private one's `release.yml` also grants `actions: read`. Empty checks nothing. |
 | `github-release` | `false` | Also make a GitHub release with the tarball. |
 

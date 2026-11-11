@@ -38,7 +38,54 @@ permissions:
   contents: write
   id-token: write
 jobs:
+  plan:
+    # What the other jobs need first: is this version on npm already, and which Playwright the lockfile has (the freeze job's image is that version).
+    runs-on: ubuntu-latest
+    outputs:
+      on-npm: ${{ steps.plan.outputs.on-npm }}
+      playwright: ${{ steps.plan.outputs.playwright }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: plan
+        env:
+          FREEZE: ${{ inputs.freeze-command }}
+        run: |
+          NAME="$(node -p "require('./package.json').name")"
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then echo "on-npm=yes" >> "$GITHUB_OUTPUT"; else echo "on-npm=no" >> "$GITHUB_OUTPUT"; fi
+          PLAYWRIGHT="$(grep -oE '@playwright/test@[0-9]+\.[0-9]+\.[0-9]+' pnpm-lock.yaml | head -n 1 | sed 's/.*@//' || true)"
+          if [ -n "$FREEZE" ] && [ -z "$PLAYWRIGHT" ]; then
+            echo "::error::A freeze-command is set but pnpm-lock.yaml has no @playwright/test, so there is no Playwright image to run it in."
+            exit 1
+          fi
+          echo "playwright=$PLAYWRIGHT" >> "$GITHUB_OUTPUT"
+  freeze:
+    # The freeze test (packages with live 3D), in Microsoft's Playwright image at the lockfile's version: the browsers and their system libraries are in
+    # it, so a release needs no apt mirror (down on 2026-11-11, KAZOKU-UI-100). Headless Chromium draws in software, as in CI. Nothing is published unless it passes.
+    needs: plan
+    if: inputs.freeze-command != '' && needs.plan.outputs.on-npm == 'no'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.plan.outputs.playwright }}-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+      - name: Install
+        run: ${{ inputs.install-command }}
+      - name: The freeze test
+        run: |
+          # The image has this Playwright's Chromium, so this downloads nothing; it is here in case the image and the lockfile ever differ.
+          pnpm exec playwright install chromium
+          ${{ inputs.freeze-command }}
   release:
+    needs: [plan, freeze]
+    # Runs when the freeze test passed or was not needed (no live 3D, or the version is on npm already), never when it failed.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && (needs.freeze.result == 'success' || needs.freeze.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: Only from main, or from a version tag
@@ -113,11 +160,6 @@ jobs:
       - name: The repo's check
         if: env.ON_NPM == 'no'
         run: ${{ inputs.check-command }}
-      - name: The freeze test (packages with live 3D)
-        if: env.ON_NPM == 'no' && inputs.freeze-command != ''
-        run: |
-          pnpm exec playwright install --with-deps chromium
-          ${{ inputs.freeze-command }}
       - name: Tag the commit, if the tag is missing
         if: env.TAG_EXISTS == 'no'
         run: |
