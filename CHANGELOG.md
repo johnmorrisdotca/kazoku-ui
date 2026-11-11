@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-11-11
+
 - **A chosen pace of 1 is kept when the page starts at another** (KAZOKU-UI-133). The view controls left `pace` out of the address whenever it was 1, so on a page that starts elsewhere (chikyu's line globe opens at 1440, a day a minute) a reader's 1× was written as no pace and came back as the page's start. `formatAddress` takes the page's start pace (`startPace`, 1 by default) and leaves out only that, as it already did for the zoom and the direction; the element's start pace is its `pace` attribute as the page last set it, and a button press, which writes the attribute too, is the reader's choice and not a new start. Unit tests and an e2e.
 
 ## [0.38.0] - 2026-11-11
