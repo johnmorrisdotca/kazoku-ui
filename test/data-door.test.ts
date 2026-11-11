@@ -107,6 +107,20 @@ test("creditLine writes a source once, is empty for none and falls back to Engli
   assert.equal(creditLine([blank], "ja"), "English only（CC0 1.0）");
 });
 
+test("creditLine names a licence in Japanese: the source's own nameJa first, then a phrase the door knows, and an identifier stays", () => {
+  const ucac4 = credit("ucac4", true, { licence: { name: "UCAC4 terms of use", nameJa: "UCAC4の利用条件", url: "https://example.org/u" }, credit: { en: "UCAC4", ja: "UCAC4" } });
+  const told = credit("told", false, { licence: { name: "Published for use with credit", url: "https://example.org/p" }, credit: { en: "A table", ja: "表" } });
+  const cc = credit("cc", false, { licence: { name: "CC BY 4.0", url: "https://example.org/cc" }, credit: { en: "A map", ja: "地図" } });
+  assert.equal(creditLine([ucac4, told, cc], "ja"), "UCAC4（UCAC4の利用条件）／表（出典を示せば利用可）／地図（CC BY 4.0）");
+  assert.equal(creditLine([ucac4, told, cc], "en"), "UCAC4 (UCAC4 terms of use); A table (Published for use with credit); A map (CC BY 4.0).");
+});
+
+test("a licence's Japanese name, when there is one, may not be empty", () => {
+  const withName = (nameJa: string) => ({ kind: "records" as const, info: info("mine", { licence: { name: "Terms", nameJa, url: "https://example.org/t" } }), records: () => [] });
+  assert.throws(() => validateSource(withName("  ")), /Japanese name/);
+  assert.doesNotThrow(() => validateSource(withName("利用条件")));
+});
+
 test("loadRecords freezes the list and counts a record with a NaN, an infinity or a throw", async () => {
   const source = records("mine", [{ ra: 1, dec: 2 }, { ra: Number.NaN, dec: 2 }, { ra: 3, dec: Infinity }, { ra: 4, dec: 5 }, null as never]);
   const read = await loadRecords(source, new AbortController().signal, (star) => [star.ra, star.dec]);

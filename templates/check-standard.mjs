@@ -18,7 +18,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 /** The day this file was last changed, in every repository at once. A test in each repository records the file's hash beside it. */
-export const STANDARD_VERSION = "2026-11-10b";
+export const STANDARD_VERSION = "2026-11-11";
 
 const OWNER = "johnmorrisdotca";
 
@@ -26,7 +26,7 @@ const OWNER = "johnmorrisdotca";
  * The SHA-256 of kazoku-ui's templates/data-door.ts (the data door of MODULES-831), line ends as "\n". A package that has src/data-door.ts must hold exactly that file; a kazoku-ui test keeps this
  * line equal to the template, so changing the template means changing this line, and then every package's copy of both files.
  */
-export const DATA_DOOR_SHA256 = "ae12207f4c1b89670b208baf306ea988df8c5f2213ae791a7044ca8681c31793";
+export const DATA_DOOR_SHA256 = "b90af1f8e0f2ffc59485d5cc98995e54ee21fd98cd5ae027b90efe8c6673d5fa";
 
 /** The usage every package's README (or a guide it links) shows, each as the words a reader would find it by. */
 export const USAGE = {
