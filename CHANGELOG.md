@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The data door names licences in Japanese** (KAZOKU-UI-105, `templates/data-door.ts`; STANDARD_VERSION 2026-11-11 with the template's new hash). A source's licence may carry `nameJa`, its name in Japanese for a Japanese credit line (`UCAC4の利用条件`); an empty one is refused. Left out, the door translates the plain phrases it knows ("Public domain" パブリックドメイン, and now "Published for use with credit" 出典を示せば利用可) and an identifier such as "CC BY 4.0" stays. A package copies the template again, unchanged; hoshi-stars, chikyu-earth and wakusei-planets each have a branch with the copy.
+
 ## [0.37.0] - 2026-11-11
 
 - **The address keeps the last choice** (KAZOKU-UI-113). Two ways a choice could miss the address are closed: the view controls taken off the page (or moved by a layout) within the quarter-second wait dropped the choice still waiting, and now write it as they leave; and a write the page refused (Safari refuses more than a hundred address changes in thirty seconds) was lost, and is now tried once more a second later, then given up with one console warning and no timer left (`createAddressWriter`, and so `createAddressState` and every element that keeps its choice in the address). Unit tests and an e2e that failed first; the speed-button test prints the page's console warnings when its address check fails. Seen once in a full run as `pace=0.5` left in the address; not reproduced in 30 runs alone, so that run's cause is not proven to be either.
