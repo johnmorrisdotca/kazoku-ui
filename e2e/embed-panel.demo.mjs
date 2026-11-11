@@ -278,13 +278,16 @@ test("properties set before the tag is defined still reach the panel", async ({ 
     holder.innerHTML = "<kazoku-embed-panel-later></kazoku-embed-panel-later>";
     const early = holder.firstElementChild;
     early.generate = ({ kind }) => `kind is ${kind}`;
+    early.openHref = "later-embed.html";
+    early.docsHref = "later-docs/";
     const { EmbedPanelElement } = await import("./dist/embed-panel/element.js");
     class Later extends EmbedPanelElement {}
     customElements.define("kazoku-embed-panel-later", Later);
     await new Promise((resolve) => setTimeout(resolve, 100));
-    return early.shadowRoot.querySelector('[part="code"]').textContent;
+    const part = (name) => early.shadowRoot.querySelector(`[part="${name}"]`);
+    return { code: part("code").textContent, open: part("open").getAttribute("href"), docs: part("docs").getAttribute("href") };
   });
-  expect(text).toBe("kind is html");
+  expect(text).toEqual({ code: "kind is html", open: "later-embed.html", docs: "later-docs/" });
 });
 
 test("the panel asks for no frame at rest and never more than one at a time, whatever is pressed", async ({ page }) => {

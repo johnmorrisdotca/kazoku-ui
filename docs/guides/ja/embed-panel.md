@@ -180,7 +180,7 @@ console.log(embedSnippet("iframe", { package: "p", cdn: "c", tag: "x-y", element
 
 ## パッケージのビルダーのページ
 
-多くのパッケージにあるビルダーのページ（`builder.html`の「コード」）は、ファミリーの共有ファイル`scripts/family-template.mjs`の`familyEmbedBuilder`で作ります。その元は kazoku-ui の`templates/family-template.mjs`（FAMILY_TEMPLATE_VERSION 2026-11-11）で、各パッケージにそのままコピーします。ビルダーのページにパネルがあると、ビルダーがパネルを埋めます。ページの作り方ごとのタブ（ビルダーの名前のまま：カスタム要素、iframe、ESモジュール、React 19、Vue、Svelte、Angular、HTML、iframe URL）、初期値と異なる選択だけのコード、コピー、選択つきで埋め込みページを開くボタン、異なる選択だけがコードに入るという注記、それにビルダーの設定の`docsHref`、`credits`、`sizes`です。表示中のタブは、これまでどおりアドレスに残ります（`show=`）。パネルのないビルダーのページは、自分のコードの欄をそのまま使うので、パッケージは準備ができたときに移れます。
+多くのパッケージにあるビルダーのページ（`builder.html`の「コード」）は、ファミリーの共有ファイル`scripts/family-template.mjs`の`familyEmbedBuilder`で作ります。その元は kazoku-ui の`templates/family-template.mjs`（FAMILY_TEMPLATE_VERSION 2026-11-11）で、各パッケージにそのままコピーします。ビルダーのページにパネルがあると、ビルダーがパネルを埋めます。ページの作り方ごとのタブ（ビルダーの名前のまま：カスタム要素、iframe、ESモジュール、React 19、Vue、Svelte、Angular、HTML、iframe URL）、初期値と異なる選択だけのコード、コピー、選択つきで埋め込みページを開くボタン、異なる選択だけがコードに入るという注記、それにビルダーの設定の`docsHref`と`credits`です。パネル自身の絵と大きさは持ちません。ビルダーのプレビューと選択（大きさもそのひとつ）は、パッケージのものだからです。表示中のタブは、これまでどおりアドレスに残ります（`show=`）。パネルのないビルダーのページは、自分のコードの欄をそのまま使うので、パッケージは準備ができたときに移れます。
 
 `builder.html`のコードの欄はパネルになり、ビルダーの2つのボタンはその`actions`スロットに入ります。
 

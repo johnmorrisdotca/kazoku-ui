@@ -445,8 +445,8 @@ function familyLanguage(options) {
  * (kazoku-ui's embed-panel, defined by the page), gets it filled: one tab for each of the maker's formats with
  * the builder's own names, the code of the choices that differ from the defaults, Copy, "Open the embed page"
  * (the maker's embed page with the choices), the note that only differing choices are in the code, and from
- * the config `docsHref`, `credits` (a text, or a function of { maker, settings, lang }) and `sizes` (size
- * buttons; left out, there are none, because a package's size is one of its own choices). The builder's
+ * the config `docsHref` and `credits` (a text, or a function of { maker, settings, lang }). The panel shows no
+ * picture and no size of its own: the builder's preview and its choices (a size among them) are the package's. The builder's
  * "Copy a link to this setup" and "Start again" go in the panel's actions slot. A page without the panel keeps
  * its own code section (#bld-formats, #bld-panel, #bld-code, #bld-copy), so a package moves when it is ready.
  */
@@ -687,6 +687,8 @@ export function familyEmbedBuilder(config) {
     let preview = null;
     let previewKey = "";
     let typing = 0;
+    /** Typed text is waiting for its next key: the code shown is not yet up to date. */
+    let pending = false;
 
     const page = language({ id: config.id, words: WORDS, onChange: () => draw() });
     const say = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), WORDS[page.lang]?.[key] ?? page.word(key) ?? key);
@@ -724,23 +726,31 @@ export function familyEmbedBuilder(config) {
       panel.labels = Object.fromEntries(formats.map((name) => [name, formatList[name].label[page.lang]]));
       panel.setAttribute("lang", page.lang);
       if (panel.kind !== format) panel.kind = format;
-      panel.openHref = api.embedAddress(optionList, settings, maker) ?? "";
-      panel.update();
+      // links as attributes and update only once the tag is defined: the page may define the panel after the builder mounts, and the panel reads all of it when it comes up
+      panel.setAttribute("open-href", api.embedAddress(optionList, settings, maker) ?? "");
+      panel.update?.();
     }
 
+    /** The reader chose a tab in the panel: the builder's format and the address follow. */
+    const panelKind = (event) => {
+      if (event.detail.reason !== "kind" || event.detail.kind === format) return;
+      format = event.detail.kind;
+      keepAddress();
+    };
+    /** A press inside the panel (Copy above all) while typed text still waits for its next key: the code is brought up to date first. */
+    const panelPress = () => {
+      if (pending) changed();
+    };
     if (panel) {
+      // the builder's preview and its own choices (a size among them) are the package's, so the panel shows neither
       panel.toggleAttribute("no-preview", true);
-      if (config.sizes) panel.sizes = config.sizes;
-      else panel.toggleAttribute("no-size", true);
-      if (config.docsHref) panel.docsHref = config.docsHref;
+      panel.toggleAttribute("no-size", true);
+      if (config.docsHref) panel.setAttribute("docs-href", config.docsHref);
       panel.generate = ({ kind }) => codeFor(maker, kind, optionList, settings) ?? "";
       panel.note = () => say("onlyDifferent");
       if (config.credits !== undefined) panel.credits = typeof config.credits === "function" ? () => config.credits({ maker, settings, lang: page.lang }) : config.credits;
-      panel.addEventListener("kazoku-embedchange", (event) => {
-        if (event.detail.reason !== "kind" || event.detail.kind === format) return;
-        format = event.detail.kind;
-        keepAddress();
-      });
+      panel.addEventListener("kazoku-embedchange", panelKind);
+      panel.addEventListener("click", panelPress, true);
     }
 
     function drawCode() {
@@ -798,11 +808,13 @@ export function familyEmbedBuilder(config) {
     /** Something was chosen: the preview, the code and the address follow. Text being typed waits a moment for the next key. */
     function changed(slowly = false) {
       const now = () => {
+        pending = false;
         drawPreview();
         drawCode();
         keepAddress();
       };
       globalThis.clearTimeout(typing);
+      pending = slowly;
       if (slowly) typing = globalThis.setTimeout(now, 200);
       else now();
     }
@@ -1057,7 +1069,17 @@ export function familyEmbedBuilder(config) {
     globalThis.document.documentElement.dataset.ready = "true";
 
     return { get maker() { return maker; }, get settings() { return { ...settings }; },
-      draw, refreshCode, destroy() { globalThis.clearTimeout(typing); preview?.destroy?.(); },
+      draw, refreshCode, destroy() {
+        globalThis.clearTimeout(typing);
+        preview?.destroy?.();
+        if (panel) {
+          panel.removeEventListener("kazoku-embedchange", panelKind);
+          panel.removeEventListener("click", panelPress, true);
+          panel.generate = undefined;
+          panel.note = "";
+          panel.credits = "";
+        }
+      },
     };
 
   }

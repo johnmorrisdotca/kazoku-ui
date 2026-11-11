@@ -8,13 +8,14 @@ import { FAMILY_EMBED_BUILDER_WORDS, FAMILY_SCRIPT, familyEmbedBuilder } from ".
 const BUILDER_MODULE = `export const FAMILY_EMBED_BUILDER_WORDS = ${JSON.stringify(FAMILY_EMBED_BUILDER_WORDS)};\nexport ${familyEmbedBuilder.toString()};\n`;
 const FORMATS = ["element", "iframe", "module", "react", "vue", "svelte", "angular", "html", "url"];
 
-const SCRIPT = `
-import "./dist/embed-panel/define.js";
-import { familyEmbedBuilder, FAMILY_EMBED_BUILDER_WORDS } from "./family-embed-builder.js";
+/** The page's script: the panel defined before the builder mounts, or (`late`) after it. */
+const script = (late = false) => `
+${late ? "" : 'import "./dist/embed-panel/define.js";\n'}import { familyEmbedBuilder, FAMILY_EMBED_BUILDER_WORDS } from "./family-embed-builder.js";
 const words = { en: { ...FAMILY_EMBED_BUILDER_WORDS.en, makerDial: "A dial", makerDialSays: "One dial." }, ja: { ...FAMILY_EMBED_BUILDER_WORDS.ja, makerDial: "ダイヤル", makerDialSays: "ダイヤルがひとつ。" } };
 let mounted;
 const page = globalThis.familyLanguage({ id: "kazoku-ui", words, onChange: () => mounted?.draw() });
-const options = [{ id: "size", kind: "choice", group: "look", names: { dial: "size" }, say: { en: { label: "Size", help: "How big the dial is." }, ja: { label: "大きさ", help: "ダイヤルの大きさです。" } }, default: "medium", choices: ["small", "medium", "large"] }];
+const options = [{ id: "size", kind: "choice", group: "look", names: { dial: "size" }, say: { en: { label: "Size", help: "How big the dial is." }, ja: { label: "大きさ", help: "ダイヤルの大きさです。" } }, default: "medium", choices: ["small", "medium", "large"] },
+  { id: "label", kind: "text", group: "look", names: { dial: "label" }, say: { en: { label: "Label", help: "Words on the dial." }, ja: { label: "ラベル", help: "ダイヤルの文字です。" } } }];
 const builder = familyEmbedBuilder({ id: "kazoku-ui", packageName: "@scope/dial", major: "1", site: "https://example.com/dial/", title: "Dial", options, groups: { look: { en: "Look", ja: "見た目" } },
   makers: { dial: { names: "dial", element: "dial", tag: "x-dial", embed: "embed.html", description: "makerDialSays", formats: ${JSON.stringify(FORMATS)}, width: 320, height: 320 } },
   docsHref: "docs/", credits: "Dial drawn by the test." });
@@ -25,7 +26,7 @@ mounted = builder.mount({ words, language: () => page, initial: { dial: {} }, re
   stage.append(dial);
   return { destroy() { dial.remove(); } };
 } });
-`;
+${late ? 'await import("./dist/embed-panel/define.js");\n' : ""}`;
 
 const PREVIEW_AND_CONTROLS = `
   <section aria-labelledby="bld-preview-title">
@@ -63,14 +64,14 @@ const html = (codeSection) => `<!doctype html><html lang="en"><head><meta charse
 <script>${FAMILY_SCRIPT}</script><script type="module" src="family-embed-builder-page.js"></script></body></html>`;
 
 /** Serve a builder page beside the demo (so ./dist/ is the library) and open it, with a clipboard that records what is copied. */
-async function open(page, codeSection, hash = "") {
+async function open(page, codeSection, hash = "", { late = false } = {}) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   const at = (name) => (url) => url.pathname.endsWith(`/${name}`);
   await page.route(at("family-builder-test.html"), (route) => route.fulfill({ contentType: "text/html", body: html(codeSection) }));
   await page.route(at("family-embed-builder.js"), (route) => route.fulfill({ contentType: "text/javascript", body: BUILDER_MODULE }));
-  await page.route(at("family-embed-builder-page.js"), (route) => route.fulfill({ contentType: "text/javascript", body: SCRIPT }));
+  await page.route(at("family-embed-builder-page.js"), (route) => route.fulfill({ contentType: "text/javascript", body: script(late) }));
   await page.addInitScript(() => {
     window.__copied = [];
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => void window.__copied.push(text) } });
@@ -133,6 +134,27 @@ test("in Japanese the panel's tabs and note are the builder's Japanese words, an
   await page.evaluate(() => document.dispatchEvent(new window.CustomEvent("kazoku-languagechange", { detail: { lang: "en" } })));
   await expect(panel(page).getByRole("tab").first()).toHaveText("Custom element");
   await expect(panel(page).locator("[part=note]")).toHaveText("Only choices that differ from the defaults are included in the code.");
+});
+
+test("a page that defines the panel only after the builder has mounted gets the same panel: tabs, code, links and the note", async ({ page }) => {
+  const errors = await open(page, WITH_PANEL, "", { late: true });
+  await expect(panel(page).getByRole("tab")).toHaveCount(FORMATS.length);
+  await expect(tab(page, "Custom element")).toHaveAttribute("aria-selected", "true");
+  await expect(code(page)).toContainText("<x-dial");
+  await expect(panel(page).locator("[part=docs]")).toHaveAttribute("href", "docs/");
+  await expect(panel(page).locator("[part=open]")).toHaveAttribute("href", "embed.html");
+  await expect(panel(page).locator("[part=note]")).toHaveText("Only choices that differ from the defaults are included in the code.");
+  await page.getByTestId("bld-groups").getByRole("button", { name: "large", exact: true }).click();
+  await expect(code(page)).toContainText('size="large"');
+  expect(errors).toEqual([]);
+});
+
+test("Copy right after typing copies the code with what was typed, not the code from before the last key", async ({ page }) => {
+  await open(page, WITH_PANEL);
+  await page.getByTestId("bld-groups").getByRole("textbox").fill("North");
+  await panel(page).locator("[part=copy]").click();
+  await expect.poll(() => page.evaluate(() => window.__copied.length)).toBe(1);
+  expect((await page.evaluate(() => window.__copied))[0]).toContain('label="North"');
 });
 
 test("a builder page with the old code section keeps it: the tabs, the code and Copy work as before", async ({ page }) => {

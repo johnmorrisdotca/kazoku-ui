@@ -292,7 +292,7 @@ export class EmbedPanelElement extends HTMLElement {
   /** A property set before the tag was defined sits on the element itself and hides the setter: take it off and set it again. */
   #upgrade(): void {
     const self = this as unknown as Record<string, unknown>;
-    for (const name of ["kinds", "sizes", "items", "renderItem", "labels", "words", "generate", "preview", "credits", "note", "kind", "size", "value"]) {
+    for (const name of ["kinds", "sizes", "items", "renderItem", "labels", "words", "generate", "preview", "credits", "note", "kind", "size", "value", "openHref", "docsHref"]) {
       if (Object.prototype.hasOwnProperty.call(this, name)) {
         const value = self[name];
         delete self[name];
