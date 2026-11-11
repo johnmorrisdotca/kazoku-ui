@@ -87,7 +87,7 @@ const HTML = `
 /**
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
- * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice of the Left and Right buttons is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice of the buttons is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice of the Left and Right buttons is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice, from the buttons or from the address the page opened with, is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself moves),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
@@ -243,6 +243,8 @@ export class ViewControlsElement extends HTMLElement {
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
     this.#startPace ??= speedValue(this.getAttribute("pace")) ?? 1;
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
+    // A pace from the address is the reader's choice, as a press is: the attribute says it too (a page reads the choice there), and the page's start stays as it was.
+    if (pace !== undefined) this.#writePace(this.#pace);
     // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
     const first = this.#start === undefined;
     this.#start ??= this.#startDirection();
@@ -546,13 +548,17 @@ export class ViewControlsElement extends HTMLElement {
   #choosePace(pace: number): void {
     this.#pace = pace;
     this.#speed();
-    if (this.getAttribute("pace") !== String(pace)) {
-      this.#writing = true;
-      this.setAttribute("pace", String(pace));
-      this.#writing = false;
-    }
+    this.#writePace(pace);
     this.#show();
     if (this.hasAttribute("address")) this.#save();
+  }
+
+  /** Writes the reader's pace to the `pace` attribute, marked as written here so it is not taken for the page's new start. */
+  #writePace(pace: number): void {
+    if (this.getAttribute("pace") === String(pace)) return;
+    this.#writing = true;
+    this.setAttribute("pace", String(pace));
+    this.#writing = false;
   }
 
   /** How long one turn of the view takes at `pace`, as a button shows it ("30 s", "2 min") and as a screen reader says it, in the bar's language. */

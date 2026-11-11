@@ -241,6 +241,39 @@ test("a page that starts at another pace keeps a chosen 1 in the address, and on
   await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
 });
 
+test("a pace read from the address is written to the pace attribute, and the page's start stays its own", async ({ page }) => {
+  const warnings = warningsOf(page);
+  await ready(page, "?controls=advanced&pace=1");
+  // a page that starts at a day a minute, opened from a link the reader made at 1x
+  const opened = await page.evaluate((tag) => {
+    document.querySelector(tag).remove();
+    const el = document.createElement(tag);
+    for (const [name, value] of [["address", ""], ["controls", "advanced"], ["paces", "0.5 1 2 1440"], ["pace", "1440"]]) el.setAttribute(name, value);
+    document.body.append(el);
+    return { attribute: el.getAttribute("pace"), speed: el.controller.speed };
+  }, BAR);
+  expect(opened).toEqual({ attribute: "1", speed: 12 });
+  await expect(speed(page, 1)).toHaveAttribute("aria-pressed", "true");
+  // 1 is the reader's choice, not the page's start: it stays in the address, and the page's 1440 is what leaves it
+  await speed(page, 2).click();
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=1(&|$)/));
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "1");
+  await speed(page, 1440).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+  // a page opened without a pace in its address keeps the page's own attribute
+  const plain = await page.evaluate((tag) => {
+    history.replaceState(null, "", "?controls=advanced");
+    const el = document.createElement(tag);
+    for (const [name, value] of [["address", ""], ["paces", "0.5 1 2 1440"], ["pace", "1440"]]) el.setAttribute(name, value);
+    document.body.append(el);
+    const out = el.getAttribute("pace");
+    el.remove();
+    return out;
+  }, BAR);
+  expect(plain).toBe("1440");
+});
+
 test("a page that starts the turn to the left keeps Right in the address, and the labels are in Japanese too", async ({ page }) => {
   await ready(page, "?controls=advanced&lang=ja");
   await page.evaluate(() => {
