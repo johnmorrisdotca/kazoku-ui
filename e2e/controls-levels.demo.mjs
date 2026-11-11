@@ -241,6 +241,17 @@ test("a page that starts at another pace keeps a chosen 1 in the address, and on
   await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
 });
 
+test("a pace read from the address is written to the attribute, and the page's start stays the start", async ({ page }) => {
+  const warnings = warningsOf(page);
+  await ready(page, "?controls=advanced&pace=0.5");
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "0.5");
+  await expect(speed(page, 0.5)).toHaveAttribute("aria-pressed", "true");
+  await button(page, "play").click();
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "1");
+});
+
 test("a page that starts the turn to the left keeps Right in the address, and the labels are in Japanese too", async ({ page }) => {
   await ready(page, "?controls=advanced&lang=ja");
   await page.evaluate(() => {

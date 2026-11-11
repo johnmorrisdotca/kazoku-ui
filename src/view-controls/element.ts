@@ -243,6 +243,12 @@ export class ViewControlsElement extends HTMLElement {
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
     this.#startPace ??= speedValue(this.getAttribute("pace")) ?? 1;
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
+    // A pace read from the address is the reader's choice: it goes to the attribute as a button press does, and is not a new start.
+    if (pace !== undefined && this.getAttribute("pace") !== String(this.#pace)) {
+      this.#writing = true;
+      this.setAttribute("pace", String(this.#pace));
+      this.#writing = false;
+    }
     // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
     const first = this.#start === undefined;
     this.#start ??= this.#startDirection();
