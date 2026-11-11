@@ -16,7 +16,8 @@ export interface DoorSourceInfo {
   id: string;
   name: Bilingual;
   credit: Bilingual;
-  licence: { name: string; url: string; nonCommercial?: boolean; shareAlike?: boolean };
+  /** `nameJa` is the name in Japanese for a Japanese line (a source's own terms, `"UCAC4の利用条件"`); left out, a plain phrase is translated and an identifier stays. */
+  licence: { name: string; nameJa?: string; url: string; nonCommercial?: boolean; shareAlike?: boolean };
   url: string;
 }
 
@@ -29,12 +30,13 @@ export interface DoorCredit {
   used: number;
 }
 
-/** Licence names that are plain phrases, not identifiers, and so are translated: "Public domain" is パブリックドメイン. Identifiers such as "CC BY-NC 3.0 IGO" are names and stay as they are. */
-const JA_LICENCE_NAMES: Readonly<Record<string, string>> = { "public domain": "パブリックドメイン" };
+/** Licence names that are plain phrases, not identifiers, and so are translated: "Public domain" is パブリックドメイン. Identifiers such as "CC BY-NC 3.0 IGO" are names and stay as they are. The same table as the data door's template (`templates/data-door.ts`), which a test holds it to. */
+export const JA_LICENCE_NAMES: Readonly<Record<string, string>> = { "public domain": "パブリックドメイン", "published for use with credit": "出典を示せば利用可" };
 
-/** The licence's name in the language: a plain phrase is translated for Japanese, an identifier is not. */
+/** The licence's name in the language: in Japanese the source's own `nameJa` first, then a plain phrase translated; an identifier stays as it is. */
 export function licenceName(info: DoorSourceInfo, language: Language = "en"): string {
-  return language === "ja" ? (JA_LICENCE_NAMES[info.licence.name.trim().toLowerCase()] ?? info.licence.name) : info.licence.name;
+  if (language !== "ja") return info.licence.name;
+  return info.licence.nameJa?.trim() || JA_LICENCE_NAMES[info.licence.name.trim().toLowerCase()] || info.licence.name;
 }
 
 /**

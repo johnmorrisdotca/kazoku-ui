@@ -17,7 +17,7 @@ import { trailText } from "../src/interface/trail.ts";
 import { WORDS, wordsFor } from "../src/interface/words.ts";
 import { pageFooterHtml } from "../src/page-frame/html.ts";
 import { WORDS as FRAME_WORDS } from "../src/page-frame/words.ts";
-import { creditsText } from "../src/shared/door.ts";
+import { creditsText, JA_LICENCE_NAMES } from "../src/shared/door.ts";
 
 test("every word is in both languages, none empty, and every icon has a name", () => {
   assert.deepEqual(Object.keys(WORDS.en).sort(), Object.keys(WORDS.ja).sort());
@@ -186,6 +186,19 @@ test("the layers panel lists outside sources only, and the terms are never hidde
   assert.equal(creditsText([...CREDITS].reverse(), "ja", WORDS.ja).startsWith("イェール"), true, "the package's own data comes first");
   assert.equal(creditsText(CREDITS, "ja", WORDS.ja), "イェール（パブリックドメイン）／サーベイX（CC BY-NC 3.0 IGO、非営利のみ、同一条件で共有）");
   assert.equal(creditsText([], "en", WORDS.en), "");
+});
+
+test("the interface names licences in Japanese as the data door does: a source's own nameJa first, then the door's own table of plain phrases", () => {
+  // the template is copied unchanged into packages and cannot import this one, so the two tables are held to each other here
+  const template = readFileSync(join(import.meta.dirname, "../templates/data-door.ts"), "utf8");
+  const body = /const JA_NAMES[^=]*=\s*\{([^}]*)\}/.exec(template)?.[1] ?? "";
+  assert.deepEqual(JA_LICENCE_NAMES, Object.fromEntries([...body.matchAll(/"([^"]+)":\s*"([^"]+)"/g)].map((m) => [m[1], m[2]])), "the same table as templates/data-door.ts");
+  const own = { ...CREDITS[0]!.source, licence: { name: "UCAC4 terms of use", nameJa: "UCAC4の利用条件", url: "https://example.org/u" } };
+  assert.equal(licenceText(own, WORDS.ja, "ja"), "UCAC4の利用条件", "a source's own Japanese name");
+  assert.equal(licenceText(own, WORDS.en, "en"), "UCAC4 terms of use");
+  const phrase = { ...CREDITS[0]!.source, licence: { name: "Published for use with credit", url: "https://example.org/p" } };
+  assert.equal(licenceText(phrase, WORDS.ja, "ja"), "出典を示せば利用可", "a plain phrase the door knows");
+  assert.equal(creditsText([{ own: false, used: 1, source: own }], "ja", WORDS.ja), "イェール（UCAC4の利用条件）");
 });
 
 test("the trail reads as text", () => {
