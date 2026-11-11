@@ -155,7 +155,7 @@ const EVENT = "kazoku-viewchange";
 *function*. The query string (with its `?`, or empty) that keeps `choices` and every other parameter of `search`. A choice at its starting value is left out, so
 
 ```ts
-function formatAddress(search: string, choices: AddressChoices, keys?: AddressKeys, leaveYaw?: boolean, startZoom?: number): string;
+function formatAddress(search: string, choices: AddressChoices, keys?: AddressKeys, leaveYaw?: boolean, startZoom?: number, startPace?: number): string;
 ```
 
 ### languageOf

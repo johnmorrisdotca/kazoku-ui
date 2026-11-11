@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A chosen pace of 1 is kept when the page starts at another** (KAZOKU-UI-133). The view controls left `pace` out of the address whenever it was 1, so on a page that starts elsewhere (chikyu's line globe opens at 1440, a day a minute) a reader's 1× was written as no pace and came back as the page's start. `formatAddress` takes the page's start pace (`startPace`, 1 by default) and leaves out only that, as it already did for the zoom and the direction; the element's start pace is its `pace` attribute as the page last set it, and a button press, which writes the attribute too, is the reader's choice and not a new start. Unit tests and an e2e.
+
 ## [0.38.0] - 2026-11-11
 
 - **CI's browser jobs need no apt mirror** (KAZOKU-UI-100). The runner's apt mirror stopped answering on 2026-11-11 from about 13:50 UTC ("Temporary failure resolving archive.ubuntu.com"), and every browser job of every package failed in its setup before a test ran. The demo jobs (`ci.yml`) and the docs job (`docs.yml`) now run in Microsoft's Playwright image at the lockfile's Playwright version (`mcr.microsoft.com/playwright:v1.64.1-noble`), which has the browsers and their system libraries. `.github/actions/playwright` looks for the libraries first, the way Playwright checks them (`ldd` on the browsers' files), and runs apt only when one is missing, which in the image is never; it skips the browser cache there, runs without `sudo` (a container's job is root), and warns when a workflow's image and the lockfile name different Playwright versions. Outside the image it works as before. Free: Microsoft's image and GitHub-hosted runners cost nothing on a public repository.

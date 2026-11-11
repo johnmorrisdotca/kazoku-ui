@@ -124,6 +124,8 @@ export class ViewControlsElement extends HTMLElement {
   #tiltWay: Direction = "right";
   #rollWay: Direction = "right";
   #writing = false;
+  /** The pace the page starts at: its `pace` attribute, as the page last set it (a button press writes the attribute too, and is not a start). */
+  #startPace: number | undefined;
   #labels: ViewWords = wordsFor("en");
   #said = "";
   #sayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -239,6 +241,7 @@ export class ViewControlsElement extends HTMLElement {
     }
     c.turnable = !this.hasAttribute("flat");
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
+    this.#startPace ??= this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
     // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
     const first = this.#start === undefined;
@@ -326,6 +329,9 @@ export class ViewControlsElement extends HTMLElement {
     }
     else if (name === "pace" || name === "paces") {
       this.#pace = this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? this.#pace);
+      // The page set its pace: that is the start now (a button press sets the attribute while writing, and is the reader's choice). New paces move the start to the nearest of them.
+      if (name === "pace" && !this.#writing) this.#startPace = this.#pace;
+      else if (name === "paces" && this.#startPace !== undefined) this.#startPace = this.#nearestPace(this.#startPace);
       this.#speed();
       this.#show();
     }
@@ -541,7 +547,11 @@ export class ViewControlsElement extends HTMLElement {
   #choosePace(pace: number): void {
     this.#pace = pace;
     this.#speed();
-    if (this.getAttribute("pace") !== String(pace)) this.setAttribute("pace", String(pace));
+    if (this.getAttribute("pace") !== String(pace)) {
+      this.#writing = true;
+      this.setAttribute("pace", String(pace));
+      this.#writing = false;
+    }
     this.#show();
     if (this.hasAttribute("address")) this.#save();
   }
@@ -837,7 +847,7 @@ export class ViewControlsElement extends HTMLElement {
         axis: this.#axis,
         tiltDirection: this.#tiltWay === "right" ? null : this.#tiltWay,
         rollDirection: this.#rollWay === "right" ? null : this.#rollWay,
-      }, this.#keys, s.turning, this.#ensure().startZoom);
+      }, this.#keys, s.turning, this.#ensure().startZoom, this.#startPace ?? 1);
     });
   }
 }

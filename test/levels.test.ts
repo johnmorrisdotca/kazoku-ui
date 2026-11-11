@@ -33,6 +33,14 @@ test("the pace is kept in the address as its number, and 1 leaves it", () => {
   assert.deepEqual(parseAddress("?turn=4", parseKeys("speed:turn")), { pace: 4 });
 });
 
+test("a page that starts at another pace keeps a chosen 1 in the address, and leaves out only its own start", () => {
+  assert.equal(formatAddress("", { ...plain, pace: 1 }, undefined, false, 1, 1440), "?pace=1");
+  assert.equal(formatAddress("?pace=1", { ...plain, pace: 1440 }, undefined, false, 1, 1440), "");
+  assert.equal(formatAddress("", { ...plain, pace: 2 }, undefined, false, 1, 1440), "?pace=2");
+  assert.equal(formatAddress("", { ...plain, pace: 1 }, undefined, false, 1, 1), "");
+  assert.deepEqual(parseAddress(formatAddress("", { ...plain, pace: 1 }, undefined, false, 1, 1440)), { pace: 1 });
+});
+
 test("the words of 0.12 and 0.13 in an address still mean 0.5, 1 and 2", () => {
   assert.deepEqual(parseAddress("?pace=slow"), { pace: 0.5 });
   assert.deepEqual(parseAddress("?pace=fast"), { pace: 2 });

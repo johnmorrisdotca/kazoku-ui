@@ -81,8 +81,9 @@ export function parseAddress(search: string, keys: AddressKeys = DEFAULT_KEYS, l
 /**
  * The query string (with its `?`, or empty) that keeps `choices` and every other parameter of `search`. A choice at its starting value is left out, so
  * the plain address stays plain. `leaveYaw` keeps the angle out while the view turns by itself (it would change every frame). `startZoom` is the zoom the view opens at (1, Fit, unless the page starts elsewhere).
+ * `startPace` is the pace the page starts at (1 unless the page sets another): only that pace is left out, so a page that starts at 1440 keeps a chosen 1.
  */
-export function formatAddress(search: string, choices: AddressChoices, keys: AddressKeys = DEFAULT_KEYS, leaveYaw = false, startZoom = 1): string {
+export function formatAddress(search: string, choices: AddressChoices, keys: AddressKeys = DEFAULT_KEYS, leaveYaw = false, startZoom = 1, startPace = 1): string {
   const params = new URLSearchParams(search);
   const set = (key: string, value: string | undefined): void => {
     if (value === undefined) params.delete(key);
@@ -96,9 +97,9 @@ export function formatAddress(search: string, choices: AddressChoices, keys: Add
   set(keys.zoom, Math.abs(choices.zoom - startZoom) < 0.005 ? undefined : String(rounded(choices.zoom, 2)));
   // An old link may still carry `drag=turn`: it means nothing now, so it leaves the address the next time the address is written.
   set(keys.drag ?? "drag", undefined);
-  // The pace key is touched only when the caller has a pace; the start (1) leaves it off the address.
+  // The pace key is touched only when the caller has a pace; the page's start pace leaves it off the address.
   const paceKey = keys.speed ?? "pace";
-  if (choices.pace !== undefined) set(paceKey, choices.pace === 1 ? undefined : String(rounded(choices.pace, 3)));
+  if (choices.pace !== undefined) set(paceKey, Math.abs(choices.pace - startPace) < 0.0005 ? undefined : String(rounded(choices.pace, 3)));
   if (choices.direction !== undefined) set(keys.direction ?? "direction", choices.direction === null ? undefined : choices.direction);
   if (choices.axis !== undefined) set(keys.axis ?? "axis", choices.axis === null || choices.axis === "angle" ? undefined : choices.axis);
   if (choices.tiltDirection !== undefined) set(keys.tiltDirection ?? "tiltDirection", choices.tiltDirection === null || choices.tiltDirection === "right" ? undefined : choices.tiltDirection);

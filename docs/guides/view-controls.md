@@ -97,7 +97,7 @@ Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, til
 
 ## The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=0.125`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
+Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=0.125`; the page's own start pace leaves the address: 1, unless the page's `pace` attribute starts elsewhere, and then a chosen 1 is kept as `pace=1`) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";

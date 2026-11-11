@@ -194,6 +194,36 @@ test("an address that says left comes up turning left, and a negative speed star
   expect(await made([])).toEqual({ speed: 12, left: "false" });
 });
 
+test("a page that starts at another pace keeps a chosen 1 in the address, and only the page's own start is left out", async ({ page }) => {
+  const warnings = warningsOf(page);
+  await ready(page, "?controls=advanced");
+  // the page opens on a fast pace, as a globe that turns a day a minute does
+  await page.evaluate((tag) => {
+    const el = document.querySelector(tag);
+    el.setAttribute("paces", "0.5 1 2 1440");
+    el.setAttribute("pace", "1440");
+  }, BAR);
+  await expect(speed(page, 1440)).toHaveAttribute("aria-pressed", "true");
+  await expect(page).not.toHaveURL(/pace=/);
+  await button(page, "play").click();
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=1(&|$)/));
+  // a press writes the attribute too, but it is the reader's choice, not a new start
+  await expect(page.locator(BAR)).toHaveAttribute("pace", "1");
+  await speed(page, 2).click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=2(&|$)/));
+  await speed(page, 1440).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+  // the page moves its own start to 1 (another look): from then on 1 is the start and stays off the address
+  await speed(page, 2).click();
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("pace", "1"), BAR);
+  await expect(speed(page, 1)).toHaveAttribute("aria-pressed", "true");
+  await speed(page, 2).click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=2(&|$)/));
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+});
+
 test("a page that starts the turn to the left keeps Right in the address, and the labels are in Japanese too", async ({ page }) => {
   await ready(page, "?controls=advanced&lang=ja");
   await page.evaluate(() => {
