@@ -2,7 +2,7 @@
 title: The family clock
 section: how-to
 order: 24
-description: One moment, one speed and running or paused for every view on a page: it counts the time that really passed, opens moving at the focused body's speed, waits for Play under reduced motion, and views follow it from outside.
+description: "One moment, one speed and running or paused for every view on a page: it counts the time that really passed, opens moving at the focused body's speed, waits for Play under reduced motion, and views follow it from outside."
 ---
 
 `@johnmorrisdotca/kazoku-ui/clock` is the family's one clock. It holds a **moment** (milliseconds since 1970, UTC), a **speed** (game seconds for each real second) and whether it **runs**. It was wakusei-planets' `GameClock`, moved here so that every package and the shared scene read the same moment. It has no DOM, so it imports on a server.

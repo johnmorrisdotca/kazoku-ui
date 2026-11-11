@@ -11,6 +11,8 @@
 //                                   - a release in CHANGELOG.md with no date, or a README over 64,000 characters (npm cuts at 65,536).
 //
 // A guide's front matter:  ---\n title: ...\n section: tutorial|how-to|explanation|troubleshooting|upgrading\n order: 1\n description: one sentence\n ---
+// It is read as YAML is, strictly (KAZOKU-UI-102; GitHub shows "Error in user YAML" above a guide that is not): one `key: value` to a line from the left edge, a value in
+// "double quotes" when it holds a colon and a space or " #", or starts with one of `[ ] { } & * ! | > % @` or a backtick, no tab, no indented continuation, no key twice.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
@@ -72,10 +74,56 @@ export function apiText() {
 const slug = (text) => text.toLowerCase().trim().replace(/<[^>]*>/g, '').replace(/[`*_]/g, '').replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s+/g, '-');
 const fences = (text) => [...text.matchAll(/^```(\S*)[^\n]*\n[\s\S]*?\n```$/gm)].map((match) => match[1]);
 const headings = (text) => new Set([...text.replace(/^```[\s\S]*?^```/gm, '').matchAll(/^#{1,6} (.+)$/gm)].map((match) => slug(match[1])));
-const frontMatter = (text) => {
-  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
-  if (!match) return null;
-  return Object.fromEntries(match[1].split('\n').map((line) => [line.slice(0, line.indexOf(':')).trim(), line.slice(line.indexOf(':') + 1).trim()]));
+const YAML_ESCAPES = { "0": "\0", a: "\x07", b: "\b", t: "\t", "\t": "\t", n: "\n", v: "\v", f: "\f", r: "\r", e: "\x1b", " ": " ", '"': '"', "/": "/", "\\": "\\", N: "\x85", _: "\xa0", L: " ", P: " " };
+/** What YAML would make of one front matter value: its text, or a plain sentence saying what is wrong with it. */
+const yamlValue = (key, raw) => {
+  const value = raw.replace(/\s+$/, "");
+  if (value === "") return { text: "" };
+  const first = value[0];
+  if (first === '"') {
+    const match = /^"((?:[^"\\]|\\.)*)"(?:\s+#.*)?$/.exec(value);
+    if (!match) return { problem: `${key} starts with a double quote and does not end with one (or has text after the closing quote): close the quote, and write \\" for a quote inside it.` };
+    const bad = /\\(?![0abt\tnvfre "/\\N_LPxuU])/.exec(match[1]);
+    if (bad) return { problem: `${key} has \\${match[1][bad.index + 1] ?? ""} in double quotes, which YAML does not know: write \\\\ for one backslash.` };
+    return { text: match[1].replace(/\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|.)/gs, (_, code) => (code.length > 1 ? String.fromCodePoint(parseInt(code.slice(1), 16)) : YAML_ESCAPES[code] ?? code)) };
+  }
+  if (first === "'") {
+    const match = /^'((?:[^']|'')*)'(?:\s+#.*)?$/.exec(value);
+    if (!match) return { problem: `${key} starts with a single quote and does not end with one (or has text after the closing quote): close the quote, and write '' for a quote inside it.` };
+    return { text: match[1].replace(/''/g, "'") };
+  }
+  if (/^[[\]{}&*!|>%@`]/.test(first) || /^[-?:](\s|$)/.test(value)) return { problem: `${key} starts with ${first}, which YAML reads as syntax, not text: put the whole value in "double quotes".` };
+  if (/\t/.test(value)) return { problem: `${key} has a tab in it: use a space, or put the value in "double quotes".` };
+  if (/:(\s|$)/.test(value)) return { problem: `${key} has a colon followed by a space (or ends in a colon) and is not in quotes, so YAML reads it as another key (GitHub shows "Error in user YAML"): put the whole value in "double quotes".` };
+  if (/\s#/.test(value)) return { problem: `${key} has " #" in it and is not in quotes, so YAML reads the rest as a comment and drops it: put the whole value in "double quotes".` };
+  return { text: value };
+};
+
+/**
+ * A guide's front matter read the way YAML reads it, and strictly: one `key: value` to a line, a value in quotes when it holds a colon and a space, " #" or
+ * starts with a character YAML uses as syntax, no tab, no indented continuation line, no key twice. Returns { data, body, problems }, where `data` is null with
+ * no front matter and each problem is { line, text } (the line of the file, 1 for its first).
+ */
+export const parseFrontMatter = (text) => {
+  const match = /^---\n([\s\S]*?)\n---\n?/.exec(text);
+  if (!match) return { data: null, body: text, problems: [] };
+  const data = {};
+  const problems = [];
+  match[1].split("\n").forEach((rawLine, index) => {
+    const line = index + 2;
+    const text = rawLine.replace(/\r$/, "");
+    if (text.trim() === "" || text[0] === "#") return;
+    if (/^ *\t/.test(text)) return void problems.push({ line, text: "is indented with a tab, which YAML does not allow: front matter is one `key: value` to a line, from the left edge." });
+    if (text[0] === " ") return void problems.push({ line, text: "is indented, so YAML reads it as part of the line above or as a mistake: front matter is one `key: value` to a line, from the left edge; keep the whole value on the key's line, in \"double quotes\"." });
+    const pair = /^([A-Za-z][\w-]*):( +|$)(.*)$/.exec(text);
+    if (!pair) return void problems.push({ line, text: "is not `key: value` (a key, a colon, a space, the value): YAML does not read it as a pair." });
+    const [, key, , raw] = pair;
+    if (Object.hasOwn(data, key)) return void problems.push({ line, text: `has the key ${key} a second time.` });
+    const read = yamlValue(key, raw);
+    if (read.problem !== undefined) { problems.push({ line, text: read.problem }); data[key] = raw.trim(); return; }
+    data[key] = read.text;
+  });
+  return { data, body: text.slice(match[0].length), problems };
 };
 
 function check() {
@@ -90,11 +138,13 @@ function check() {
   const japanese = existsSync(join(guideDir, 'ja')) ? readdirSync(join(guideDir, 'ja')).filter((file) => file.endsWith('.md')).sort() : [];
   const pages = [{ path: 'README.md', text: readme }];
   for (const file of english) {
-    const text = read(`docs/guides/${file}`), meta = frontMatter(text);
+    const text = read(`docs/guides/${file}`), { data: meta, problems: yaml } = parseFrontMatter(text);
     pages.push({ path: `docs/guides/${file}`, text });
+    for (const problem of yaml) bad(`docs/guides/${file}:${problem.line} front matter ${problem.text}`);
     if (!meta?.title || !meta.description || !SECTIONS.includes(meta.section)) bad(`docs/guides/${file}: the front matter needs title, description and a section of ${SECTIONS.join(', ')}`);
     if (!japanese.includes(file)) { bad(`docs/guides/${file} has no Japanese twin docs/guides/ja/${file}`); continue; }
     const twin = read(`docs/guides/ja/${file}`);
+    for (const problem of parseFrontMatter(twin).problems) bad(`docs/guides/ja/${file}:${problem.line} front matter ${problem.text}`);
     if (fences(text).join() !== fences(twin).join()) bad(`docs/guides/ja/${file}: its code blocks are not the same, in number and language, as the English page's`);
     if (!/[぀-ヿ一-鿿]/.test(twin.replace(/^```[\s\S]*?^```/gm, ''))) bad(`docs/guides/ja/${file} has no Japanese text`);
     if (/[a-z]{4,} [a-z]{4,} [a-z]{4,} [a-z]{4,}/.test(twin.replace(/^```[\s\S]*?^```/gm, '').replace(/`[^`]*`/g, '').replace(/\[[^\]]*\]\([^)]*\)/g, ''))) bad(`docs/guides/ja/${file} has a run of English words; the page is one language`);
