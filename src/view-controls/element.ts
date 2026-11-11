@@ -91,11 +91,11 @@ const HTML = `
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself moves),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
- * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
+ * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `free-pan` (the view moves at any zoom, zoomed out too, by up to this share of its size either way; bare is 0.5, for a 3D space whose zoom is far below 1), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "roll", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "speed", "direction", "tilt-direction", "roll-direction", "axis", "pace", "paces", "controls", "layout", "flat", "tilt-max", "roll-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "roll", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "free-pan", "speed", "direction", "tilt-direction", "roll-direction", "axis", "pace", "paces", "controls", "layout", "flat", "tilt-max", "roll-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -236,7 +236,7 @@ export class ViewControlsElement extends HTMLElement {
     this.#direction = direction ?? (first ? this.#start : this.#direction);
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
-    for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size"]) this.#option(name);
+    for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "free-pan"]) this.#option(name);
     if (this.hasAttribute("anchor")) this.#option("anchor");
     const fitScale = Number(this.getAttribute("fit-scale"));
     if (this.hasAttribute("fit-scale")) c.setFitScale(fitScale);
@@ -288,7 +288,7 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
-    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
+    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size" || name === "free-pan") this.#option(name);
     else if (name === "speed") {
       // The page's own start follows its speed's sign, unless the reader has chosen the other way.
       const start = this.#startDirection();
@@ -345,6 +345,10 @@ export class ViewControlsElement extends HTMLElement {
     else if (name === "object-size") {
       const [w, h] = (value ?? "").trim().split(/[\s,x]+/).map(Number);
       c.objectSize = w !== undefined && w > 0 && Number.isFinite(w) ? { width: w, height: h !== undefined && h > 0 && Number.isFinite(h) ? h : w } : undefined;
+    } else if (name === "free-pan") {
+      // bare: the middle may go to the edge of the view; a number is the share of the view's size, up to 4
+      const share = value === null ? Number.NaN : value.trim() === "" ? 0.5 : Number(value);
+      c.freePan = share > 0 && share <= 4 ? share : undefined;
     } else if (name === "grab-radius") c.grabRadius = value?.trim() === "fit" ? "fit" : Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
@@ -772,7 +776,7 @@ export class ViewControlsElement extends HTMLElement {
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;
     for (const node of this.#root.querySelectorAll<HTMLElement>(".adv")) node.hidden = !advanced;
-    q<HTMLElement>('[data-g="pan"]').hidden = !advanced || s.zoom <= ZOOMED;
+    q<HTMLElement>('[data-g="pan"]').hidden = !advanced || (s.zoom <= ZOOMED && c.freePan === undefined);
     // A flat view cannot turn: the angle, tilt, auto-turn and front are not shown, and a drag only moves.
     const flat = !c.turnable;
     for (const selector of [".angle", ".tilt", ".roll", ".play", '[data-g="axes"]']) q<HTMLElement>(selector).hidden = flat;

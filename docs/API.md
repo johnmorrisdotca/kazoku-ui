@@ -63,7 +63,7 @@ const clamp: (value: number, low: number, high: number) => number;
 *function*. Hold the pan so the object cannot be lost. By default the object is the picture, which fills the view at Fit: at zoom z it may move (z - 1) / 2 of the view's size either way, so the picture still covers the view.
 
 ```ts
-function clampPan(camera: Camera, size: Size | undefined, object?: Size): Camera;
+function clampPan(camera: Camera, size: Size | undefined, object?: Size, free?: number): Camera;
 ```
 
 ### COMMON_ZOOMS
@@ -272,10 +272,10 @@ const pendulumTilt: (phase: number, amplitude: number) => number;
 
 ### pinchTo
 
-*function*. The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels.
+*function*. The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels. `free`: the view may move at any zoom, so the fingers drag it zoomed out too.
 
 ```ts
-function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits?: Limits): Camera;
+function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits?: Limits, free?: boolean): Camera;
 ```
 
 ### quatFromEuler
@@ -460,10 +460,10 @@ const ZOOM_STEP = 1.4;
 
 ### zoomAbout
 
-*function*. Zoom to `next` (held between the limits) keeping the point `at` (pixels from the view's middle) where it is.
+*function*. Zoom to `next` (held between the limits) keeping the point `at` (pixels from the view's middle) where it is. At Fit or below the view goes back to the middle, unless it may move at any zoom (`free`).
 
 ```ts
-function zoomAbout(camera: Camera, next: number, at: Point, limits?: Limits): Camera;
+function zoomAbout(camera: Camera, next: number, at: Point, limits?: Limits, free?: boolean): Camera;
 ```
 
 ### zoomAtPosition
@@ -801,6 +801,8 @@ interface ViewController {
     grabRadius: number | "fit";
     /** The object's size at Fit (see `ViewControllerOptions.objectSize`). Can be changed at any time. */
     objectSize: Size | undefined;
+    /** The share of the view's size it may move at any zoom (see `ViewControllerOptions.freePan`); `undefined` for none. Can be changed at any time. */
+    freePan: number | undefined;
     /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
     readonly fitScale: number;
     /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
@@ -868,6 +870,8 @@ interface ViewControllerOptions {
     grabRadius?: number | "fit";
     /** The object's size at Fit in CSS pixels, when it is smaller than the view: a pan then keeps at least a quarter of it in view (see `clampPan`). Left out, the object is the picture, which covers the view. */
     objectSize?: Size;
+    /** Let the view move at any zoom, zoomed out too, by up to this share of its size either way (0.5: the middle may go to the edge). For a 3D space whose zoom is far below 1. Left out, the view moves only once zoomed in, and only as far as `clampPan` allows. */
+    freePan?: number;
     /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
     size?: () => Size | undefined;
     onChange?: (state: ViewState, info: ChangeInfo) => void;

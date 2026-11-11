@@ -73,6 +73,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `stop-turn` | A press, the wheel or a key stops the automatic turn. Off by default; buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees. 0 by default: not rounded. |
 | `object-size` | `w,h`: the object's size at Fit in CSS pixels when it is smaller than the view; a pan then keeps at least a quarter of it in view. |
+| `free-pan` | The view moves at any zoom, zoomed out too, by up to this share of its size either way (bare is 0.5: the middle may go to the edge). For a 3D space whose zoom is far below 1, where the view would otherwise never move: a middle-button drag, Ctrl or Command and a drag, Space and a drag, and the wheel then move it at every zoom, and the pan pad is shown. Or set `element.freePan` (the controller's `freePan`). |
 | `grab-radius` | Exact grab for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit`. A drag then keeps the touched point under the pointer. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which a turn stops by itself: the one `autoplay` starts, and one the Auto-turn button or `play()` starts. `play(seconds)` takes its own limit. |
