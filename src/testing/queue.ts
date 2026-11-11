@@ -182,10 +182,10 @@ export const placeWord = ordinal;
 /** Minutes a run may hold the browser before `kazoku-browser-queue status` warns. The run is never stopped for it. */
 export const LONG_HOLD_MINUTES = 45;
 
-/** How a run is named in a waiting line: the package and the npm script, else the start of its command. */
+/** How a run is named in a waiting line: the package and the npm script, else the program and its first words (no paths, no flags). */
 export function describeRun(run: { repo: string; command: string; script?: string }): string {
   const [first = "", ...rest] = run.command.split(" ");
-  const short = [basename(first), ...rest].join(" ").trim();
-  return `${run.repo} ${run.script || (short.length > 60 ? `${short.slice(0, 57)}...` : short)}`.trim();
+  const program = first.includes("@playwright/test/cli") ? "playwright" : basename(first);
+  const words = [program, ...rest.filter((word) => word && !word.startsWith("-"))].slice(0, 3).join(" ");
+  return `${run.repo} ${run.script || (words.length > 60 ? `${words.slice(0, 57)}...` : words)}`.trim();
 }
-

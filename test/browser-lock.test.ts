@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { after, before, beforeEach, test } from "node:test";
 import { pathToFileURL } from "node:url";
 import { acquireBrowserLock, browserLockStatus, browserQueueStatus, clearBrowserLock, orderBrowserQueue, setBrowserPriority, withBrowserLock } from "../src/testing/index.ts";
-import { joinQueue, readPriority, readQueue, type BrowserQueueTicket } from "../src/testing/queue.ts";
+import { describeRun, joinQueue, readPriority, readQueue, type BrowserQueueTicket } from "../src/testing/queue.ts";
 
 const lockModule = pathToFileURL(join(import.meta.dirname, "../src/testing/lock.ts")).href;
 const cli = join(import.meta.dirname, "../src/testing/cli.ts");
@@ -424,4 +424,10 @@ test("a lock file nobody can read is cleared, and the queue goes on", async () =
   const lock = await acquireBrowserLock({ pollMs: 20 });
   assert.equal(browserLockStatus().holder?.pid, process.pid);
   lock.release();
+});
+
+test("a run without an npm script is named by its program and first words", () => {
+  assert.equal(describeRun({ repo: "wakusei-planets", command: "/x/node_modules/@playwright/test/cli.js test --project=chromium-desk" }), "wakusei-planets playwright test");
+  assert.equal(describeRun({ repo: "r", command: "/x/scripts/check.mjs --all", script: "test:demo" }), "r test:demo");
+  assert.equal(describeRun({ repo: "r", command: "" }), "r");
 });
