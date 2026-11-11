@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.38.1, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.39.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -3100,7 +3100,7 @@ interface SnippetSpec {
 
 ## `@johnmorrisdotca/kazoku-ui/embed-panel/element`
 
-3 values and 2 types.
+3 values and 4 types.
 
 ```js
 import { EmbedPanelElement, EVENT, TAG } from '@johnmorrisdotca/kazoku-ui/embed-panel/element';
@@ -3139,8 +3139,19 @@ class EmbedPanelElement extends HTMLElement {
     set generate(generate: ((context: EmbedContext) => string) | undefined);
     /** The picture the code makes, as a node (or nothing). It is called when the picture's choices change; the iframe tab draws the iframe itself when this returns nothing for it. */
     set preview(preview: ((context: EmbedContext) => Node | undefined) | undefined);
-    /** The credit line shown under the code (and read by a screen reader): a text, or a function of the choices. */
-    set credits(credits: Text);
+    /**
+     * The credit line shown under the code (and read by a screen reader): a text, its pieces with some of them links (the
+     * licence and the source each linked, `["Flag: ", { text: "CC BY 2.5", href }, ", ", { text: "Wikimedia Commons", href }]`),
+     * or a function of the choices that gives either. Only an http, https or relative address links, in a tab of its own.
+     * The credit is the page's, not part of the copied code.
+     *
+     * @example
+     * ```ts
+     * const panel = document.querySelector("kazoku-embed-panel")!;
+     * panel.credits = ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }];
+     * ```
+     */
+    set credits(credits: Credits);
     /** A line above the code for the tab shown ("The embed page is for a site that cannot run script."): a text, or a function of the choices. */
     set note(note: Text);
     /** The names of the tabs the family has no word for: `{ image: "Image address" }`. */
@@ -3177,6 +3188,25 @@ const EVENT = "kazoku-embedchange";
 
 ```ts
 const TAG = "kazoku-embed-panel";
+```
+
+### CreditPart
+
+*type*. One piece of a credit line: a text, or a text that links. A link's `href` is used only where it is http, https or
+
+```ts
+type CreditPart = string | {
+    text: string;
+    href: string;
+};
+```
+
+### Credits
+
+*type*. The credit line: a text, its pieces (some of them links), or a function of the choices that gives either; a function
+
+```ts
+type Credits = string | readonly CreditPart[] | ((context: EmbedContext) => string | readonly CreditPart[]);
 ```
 
 ### EmbedChangeDetail
@@ -3492,7 +3522,7 @@ function defineWideToggle(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/page-frame`
 
-19 values and 11 types.
+19 values and 12 types.
 
 ```js
 import { applyPageMeta, CREDITS_TAG, creditsText, escapeHtml, FOOTER_TAG, languageOf, licenceText, pageCreditsHtml, pageFooterHtml, pageHeaderHtml, pageHeadHtml, pageProblems, pageTitle, pickText, samePage, TAG, watchPageMeta, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/page-frame';
@@ -3565,7 +3595,7 @@ function licenceText(info: DoorSourceInfo, words: {
 
 ### pageCreditsHtml
 
-*function*. `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both.
+*function*. `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both. A line given
 
 ```ts
 function pageCreditsHtml(credits: PageCredits | undefined, options?: PageCreditsOptions): string;
@@ -3659,6 +3689,17 @@ const WORDS: Record<Language, PageFrameWords>;
 const wordsFor: (language: Language, overrides?: Partial<PageFrameWords>) => PageFrameWords;
 ```
 
+### CreditPart
+
+*type*. One piece of a credit line: a text, or a text that links. A link's `href` is used only where it is http, https or
+
+```ts
+type CreditPart = string | {
+    text: string;
+    href: string;
+};
+```
+
 ### DoorCredit
 
 *interface*. What a view's `credits()` returns for each source that drew something in the last frame.
@@ -3715,12 +3756,12 @@ interface PageCheckOptions {
 
 ### PageCredits
 
-*interface*. What the page says in each language about its credits: the line itself. English is required.
+*interface*. What the page says in each language about its credits: the line itself, or its pieces (a text or `{ text, href }`) so a
 
 ```ts
 interface PageCredits {
-    en: string;
-    ja?: string;
+    en: string | readonly CreditPart[];
+    ja?: string | readonly CreditPart[];
 }
 ```
 
@@ -3869,7 +3910,7 @@ const FOOTER_TAG = "kazoku-page-footer";
 
 ### PageCreditsElement
 
-*class*. Attributes: `credits` (this page's credit line, for example "Stars: Yale Bright Star Catalogue, public domain"), `credits-ja`, `href` (a link to the NOTICE or credits page,
+*class*. Attributes: `credits` (this page's credit line, for example "Stars: Yale Bright Star Catalogue, public domain"), `credits-ja`, `credit-parts` and `credit-parts-ja` (the line in
 
 ```ts
 class PageCreditsElement extends HTMLElement {
@@ -3878,6 +3919,19 @@ class PageCreditsElement extends HTMLElement {
     constructor();
     /** Your own words over the family's, for example `{ credits: "Sources" }`. */
     set words(words: Partial<PageFrameWords>);
+    /**
+     * The credit line in pieces, over the `credits` attributes: one list for every language, or one for each
+     * (`{ en: [...], ja: [...] }`). A piece is a text or `{ text, href }`; only an http, https or relative address links.
+     *
+     * @example
+     * ```ts
+     * document.querySelector("kazoku-page-credits")!.credits = {
+     *   en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+     *   ja: ["旗：", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+     * };
+     * ```
+     */
+    set credits(pieces: readonly CreditPart[] | Partial<Record<Language, readonly CreditPart[]>> | null);
     connectedCallback(): void;
     disconnectedCallback(): void;
     attributeChangedCallback(): void;
