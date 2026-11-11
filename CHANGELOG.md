@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **`?readings=no` means off** (KAZOKU-UI-138). `parseReadings` took any value it did not know as on, so `?readings=no` or a typo turned the kana readings on. Now `on`, `1`, `true`, `yes` and the bare key (`?readings`) are on, `off`, `0`, `false` and `no` are off (any case, spaces round them ignored), and any other value says nothing: `readReadings` then goes on to the reader's kept choice on the device, else off. Guides in English and Japanese, and a test of each value.
+
 ## [0.40.0] - 2026-11-11
 
 - **The family's readings switch has one spelling: `?readings=on`** (KAZOKU-UI-130). `@johnmorrisdotca/kazoku-ui/address-state` gains the key for a page's ふりがな (furigana, the small kana readings beside kanji): `READINGS_KEY` (`readings`), `readReadings({ search, storage })` (the address first, then a press kept on the device, else off), `readingsParams(on)` for the address, `keepReadings(on)` for the device (`kazoku-readings`), and `parseReadings`. The interface words gain `readings`: Readings, and ふりがな in Japanese. Each package draws its own switch with its display options, shows it only where there is kanji to read, keeps only a press on the device, and writes the choice to the address only while the switch is shown. The first user is hoshi-stars. Guides in English and Japanese, and unit tests.

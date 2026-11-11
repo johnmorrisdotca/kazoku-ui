@@ -271,9 +271,10 @@ test("destroy writes what waits and stops listening", () => {
 test("the readings switch has one spelling: ?readings=on, off by default, the address before a press kept on the device", () => {
   assert.equal(READINGS_KEY, "readings");
   assert.equal(parseReadings(null), undefined);
-  assert.equal(parseReadings("on"), true);
   assert.equal(parseReadings(""), true, "the key with no value is on");
-  for (const off of ["off", "0", "false", "OFF"]) assert.equal(parseReadings(off), false, off);
+  for (const on of ["on", "1", "true", "yes", "ON", " Yes "]) assert.equal(parseReadings(on), true, on);
+  for (const off of ["off", "0", "false", "no", "OFF", " No "]) assert.equal(parseReadings(off), false, off);
+  for (const other of ["maybe", "2", "nein", "いいえ", "o n"]) assert.equal(parseReadings(other), undefined, `${other} says nothing`);
   const store = (value: string | null) => ({ getItem: (key: string) => (key === READINGS_STORAGE_KEY ? value : null) });
   assert.equal(readReadings(), false, "off by default");
   assert.equal(readReadings({ search: "?readings=on" }), true);
@@ -281,6 +282,9 @@ test("the readings switch has one spelling: ?readings=on, off by default, the ad
   assert.equal(readReadings({ search: "?x=1", storage: store("off") }), false);
   assert.equal(readReadings({ search: "?readings=off", storage: store("on") }), false, "a link that says off wins");
   assert.equal(readReadings({ search: "?readings=on", storage: store("off") }), true, "a link that says on wins");
+  assert.equal(readReadings({ search: "?readings=no", storage: store("on") }), false, "no is off");
+  assert.equal(readReadings({ search: "?readings=maybe", storage: store("on") }), true, "a value that says nothing leaves it to the device");
+  assert.equal(readReadings({ search: "?readings=maybe" }), false, "and with nothing kept, off");
   assert.equal(readReadings({ storage: { getItem: () => { throw new Error("blocked"); } } }), false, "a store that throws is empty");
   assert.equal(applyParams("?x=1", readingsParams(true)), "?x=1&readings=on");
   assert.equal(applyParams("?x=1&readings=on", readingsParams(false)), "?x=1");

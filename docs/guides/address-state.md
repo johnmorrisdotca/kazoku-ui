@@ -105,7 +105,7 @@ console.log(WORDS.en.readings, WORDS.ja.readings);
 // Readings ふりがな
 ```
 
-- `readReadings({ search, storage })`: whether the readings start on. The address comes first (`?readings=on`; `?readings=off` says off), then a press the reader made on this device, else off.
+- `readReadings({ search, storage })`: whether the readings start on. The address comes first: `on`, `1`, `true`, `yes` or the bare key (`?readings`) say on, `off`, `0`, `false` or `no` say off, and any other value says nothing. Then a press the reader made on this device, else off.
 - `readingsParams(on)`: the address change, `{ readings: "on" }` or `{ readings: null }`, for `applyParams` or a state's `setMany`.
 - `keepReadings(on)`: keeps a press of the switch on the device. Keep only a press, so a link someone sent does not change the reader's own choice.
 - `parseReadings(value)` reads an address value, `readingsStorage()` is this browser's localStorage (or nothing where it is blocked), and `READINGS_KEY`, `READINGS_ON` and `READINGS_STORAGE_KEY` are the names.

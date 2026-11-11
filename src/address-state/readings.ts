@@ -9,10 +9,17 @@ export const READINGS_ON = "on";
 /** The localStorage key for a reader's own press of the switch. */
 export const READINGS_STORAGE_KEY = "kazoku-readings";
 
-/** Whether an address value means on: the key is there with any value but `off`, `0` or `false` (`?readings`, `?readings=on`). No key is `undefined`. */
+const ON = ["", "on", "1", "true", "yes"];
+const OFF = ["off", "0", "false", "no"];
+
+/**
+ * What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or
+ * any other value, which says nothing, so the device's kept choice decides, else off.
+ */
 export function parseReadings(value: string | null | undefined): boolean | undefined {
   if (value === null || value === undefined) return undefined;
-  return !["off", "0", "false"].includes(value.trim().toLowerCase());
+  const word = value.trim().toLowerCase();
+  return ON.includes(word) ? true : OFF.includes(word) ? false : undefined;
 }
 
 /** Where a choice may be read from. A page that keeps nothing passes neither. */

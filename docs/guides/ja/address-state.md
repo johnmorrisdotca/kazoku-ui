@@ -107,7 +107,7 @@ console.log(WORDS.en.readings, WORDS.ja.readings);
 // Readings ふりがな
 ```
 
-- `readReadings({ search, storage })`：ふりがなを最初からオンにするかどうか。まずアドレス（`?readings=on`。`?readings=off`ならオフ）、次にユーザーがこの端末でスイッチを押した選択、どちらもなければオフです。
+- `readReadings({ search, storage })`：ふりがなを最初からオンにするかどうか。まずアドレスです（`on`、`1`、`true`、`yes`、値のないキー`?readings`ならオン、`off`、`0`、`false`、`no`ならオフで、それ以外の値は何も言わないものとして扱います）。次にユーザーがこの端末でスイッチを押した選択、どちらもなければオフです。
 - `readingsParams(on)`：アドレスへの変更。`{ readings: "on" }`か`{ readings: null }`で、`applyParams`や状態の`setMany`に渡します。
 - `keepReadings(on)`：スイッチを押した選択を端末に保存します。保存するのは押したときだけにしてください。だれかが送ったリンクで、ユーザー自身の選択が変わらないようにするためです。
 - `parseReadings(value)`はアドレスの値を読み、`readingsStorage()`はこのブラウザーのlocalStorage（使えないときは何もなし）を返します。`READINGS_KEY`、`READINGS_ON`、`READINGS_STORAGE_KEY`は名前です。

@@ -1615,7 +1615,7 @@ function keepReadings(on: boolean): void;
 
 ### parseReadings
 
-*function*. Whether an address value means on: the key is there with any value but `off`, `0` or `false` (`?readings`, `?readings=on`). No key is `undefined`.
+*function*. What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or
 
 ```ts
 function parseReadings(value: string | null | undefined): boolean | undefined;
