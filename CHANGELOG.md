@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-11-11
+
 - **The address keeps the last choice** (KAZOKU-UI-113). Two ways a choice could miss the address are closed: the view controls taken off the page (or moved by a layout) within the quarter-second wait dropped the choice still waiting, and now write it as they leave; and a write the page refused (Safari refuses more than a hundred address changes in thirty seconds) was lost, and is now tried once more a second later, then given up with one console warning and no timer left (`createAddressWriter`, and so `createAddressState` and every element that keeps its choice in the address). Unit tests and an e2e that failed first; the speed-button test prints the page's console warnings when its address check fails. Seen once in a full run as `pace=0.5` left in the address; not reproduced in 30 runs alone, so that run's cause is not proven to be either.
 
 - **CI installs Playwright's browsers in bounded, cached steps** (KAZOKU-UI-100). A slow package mirror held `playwright install --with-deps` for the whole job limit on 2026-11-09 and 2026-11-10, so no test ran and the failure read as a test failure. `.github/actions/playwright` (the family's, kazoku-ui's copy is canonical) caches the browsers by Playwright's version, then installs the system libraries in a step of their own: two tries, each cut off after 7 minutes, and a failure that says it is the runner's package mirror and that nothing was run. Free: GitHub-hosted Linux runners and the cache.
