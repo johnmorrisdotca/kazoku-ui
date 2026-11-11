@@ -56,7 +56,7 @@ The line reads "Hoshi Stars: The 88 constellations" (a full-width colon in Japan
 
 `credits` is this page's own line, `href` is a link to the NOTICE or credits page, and you can give both: the line, then the link "Data and credits". A line alone is led by "Data and credits:". It is always shown, never in a fold, at 15 px in the page's ink colour (never a pale grey).
 
-`embed` is the form for a page that sits inside someone else's site: the credit only, at 13 px, with the link inline and underlined. An embed page has the credit line and no header.
+`embed` is the form for a page that sits inside someone else's site: the credit only, at 13 px, with the link inline and underlined. Its link opens in a new tab (`target="_blank"`, `rel="noopener"`), since the site the credits live on may refuse to be shown in a frame. An embed page has the credit line and no header.
 
 | Attribute | What it is |
 |---|---|

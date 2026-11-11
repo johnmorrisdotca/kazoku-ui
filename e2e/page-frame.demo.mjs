@@ -139,6 +139,14 @@ test("the credit line in its three forms", async ({ page }) => {
   await expect(both.locator(".lead")).toHaveCount(0);
   await expect(embed.locator(".lead")).toHaveCount(0);
   await expect(embed.locator("a")).toHaveCSS("text-decoration-line", "underline");
+  // in someone else's frame the credits open in a tab of their own, not in the frame; on the package's own page they open in place
+  await expect(embed.locator("a")).toHaveAttribute("target", "_blank");
+  await expect(embed.locator("a")).toHaveAttribute("rel", "noopener");
+  await expect(both.locator("a")).not.toHaveAttribute("target", /.*/);
+  await page.context().route("https://github.com/**", (route) => route.fulfill({ contentType: "text/html", body: "<title>credits</title>" }));
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), embed.locator("a").click()]);
+  await tab.close();
+  expect(new URL(page.url()).pathname, "the page itself stayed where it was").toMatch(/page-frame\.html$/);
   const sizes = await page.evaluate(() => ["line", "embed"].map((id) => parseFloat(getComputedStyle(document.getElementById(id)).fontSize)));
   expect(sizes[1]).toBeLessThan(sizes[0]);
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
