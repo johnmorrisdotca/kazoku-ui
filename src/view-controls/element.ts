@@ -7,13 +7,13 @@ import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.
 import { BAR_EVENT, BAR_MARK, CARRY_EVENT } from "./carry.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
-import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, type TurnAxis, zoomText } from "./levels.ts";
+import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, TURN_PACES, TURN_SPEED, type TurnAxis, turnSeconds, zoomText } from "./levels.ts";
 import { DEFAULT_LIMITS, type Limits, type Point, readLimits, ZOOM_STEP, ZOOMED } from "./math.ts";
 import { turnOnlyInSight } from "./sight.ts";
 import "../speed-buttons/define.ts";
 import type { SpeedButtonsElement, SpeedChangeDetail } from "../speed-buttons/element.ts";
 import { EVENT as SPEED_EVENT } from "../speed-buttons/index.ts";
-import { nearestStep, parseSpeed, parseSteps, speedText } from "../speed-buttons/steps.ts";
+import { nearestStep, parseSpeed, parseSteps } from "../speed-buttons/steps.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
 import { SNAP_PX, zoomAtPosition, type ZoomMark, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomToMark } from "./zoomScale.ts";
@@ -509,9 +509,9 @@ export class ViewControlsElement extends HTMLElement {
     }
   }
 
-  /** The speeds the buttons stand for: the `paces` attribute, `0.5 1 2` by default. */
+  /** The speeds the buttons stand for: the `paces` attribute, `0.125 0.25 0.5 1` by default. */
   #paces(): number[] {
-    return parseSteps(this.getAttribute("paces"));
+    return parseSteps(this.getAttribute("paces"), TURN_PACES);
   }
 
   #nearestPace(value: number): number {
@@ -525,6 +525,18 @@ export class ViewControlsElement extends HTMLElement {
     if (this.getAttribute("pace") !== String(pace)) this.setAttribute("pace", String(pace));
     this.#show();
     if (this.hasAttribute("address")) this.#save();
+  }
+
+  /** How long one turn of the view takes at `pace`, as a button shows it ("30 s", "2 min") and as a screen reader says it, in the bar's language. */
+  #turnTime(pace: number): { text: string; label: string } {
+    const words = this.#labels;
+    const seconds = turnSeconds(Number(this.getAttribute("speed")) || TURN_SPEED, pace);
+    const minutes = seconds >= 60;
+    const n = String(Number((minutes ? seconds / 60 : seconds).toPrecision(2)));
+    const text = (minutes ? words.minutes : words.seconds).replace("{n}", n);
+    const one = n === "1";
+    const long = (minutes ? (one ? words.minuteLong : words.minutesLong) : one ? words.secondLong : words.secondsLong).replace("{n}", n);
+    return { text, label: words.turnEvery.replace("{t}", long) };
   }
 
   /** The way the page itself starts the turn: its `direction`, else left for a negative `speed` and right for the rest. */
@@ -588,14 +600,17 @@ export class ViewControlsElement extends HTMLElement {
     return this.#direction;
   }
 
-  /** The turn's degrees a second: the size of the `speed` attribute (30) times the pace, going left when the active axis says so. */
+  /** The turn's degrees a second: the size of the `speed` attribute (`TURN_SPEED`, 12) times the pace, going left when the active axis says so. */
   #speed(): void {
     const c = this.#ensure();
-    const size = Math.abs(Number(this.getAttribute("speed")) || 30) * this.#pace;
+    const size = Math.abs(Number(this.getAttribute("speed")) || TURN_SPEED) * this.#pace;
     c.turnAxis = this.#axis;
     c.tiltSign = this.#tiltWay === "left" ? -1 : 1;
     c.rollSign = this.#rollWay === "left" ? -1 : 1;
     c.speed = size * (this.#activeWay() === "left" ? -1 : 1);
+    // the buttons show how long a turn takes, which the page's speed decides: they say it again
+    const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
+    if (speeds?.format) speeds.format = (step) => this.#turnTime(step);
   }
 
   #limits(): void {
@@ -675,6 +690,8 @@ export class ViewControlsElement extends HTMLElement {
     const speeds = this.#root.querySelector<SpeedButtonsElement>("kazoku-speed-buttons");
     speeds?.setAttribute("lang", language);
     speeds?.setAttribute("label", words.speed);
+    // The turn speeds say how long one turn of the view takes ("30 s"), not a bare 1×, so they are not read as the speed of time.
+    if (speeds) speeds.format = (step) => this.#turnTime(step);
     set('[data-b="left"]', words.panLeft);
     set('[data-b="right"]', words.panRight);
     set('[data-b="up"]', words.panUp);
@@ -744,9 +761,9 @@ export class ViewControlsElement extends HTMLElement {
     if (speeds.getAttribute("steps") !== paces.join(" ")) speeds.setAttribute("steps", paces.join(" "));
     this.#pace = this.#nearestPace(this.#pace);
     if (speeds.value !== this.#pace) speeds.value = this.#pace;
-    const pace = speedText(this.#pace);
-    write(q('[data-o="pace"]'), pace);
-    say(q('[data-b="pace-now"]'), `${words.speed}: ${pace}`);
+    const pace = this.#turnTime(this.#pace);
+    write(q('[data-o="pace"]'), pace.text);
+    say(q('[data-b="pace-now"]'), pace.label);
     const way = this.#activeWay();
     q<HTMLButtonElement>('[data-b="turn-left"]').setAttribute("aria-pressed", String(way === "left"));
     q<HTMLButtonElement>('[data-b="turn-right"]').setAttribute("aria-pressed", String(way === "right"));

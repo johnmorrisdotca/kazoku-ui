@@ -56,7 +56,7 @@ test("a control never stops or resets the turn", () => {
 });
 
 test("a held turn waits and carries on from where the hand left it", () => {
-  const { view, clock } = make();
+  const { view, clock } = make({ speed: 30 });
   view.play();
   clock.step(16);
   view.holdTurn();
@@ -662,7 +662,7 @@ test("an object smaller than the view cannot be panned out of it", () => {
 });
 
 test("a suspended turn asks for no frames and sends no change, and goes on when resumed", () => {
-  const { view, clock, seen } = make();
+  const { view, clock, seen } = make({ speed: 30 });
   view.play();
   clock.step(16);
   clock.step(1000);
@@ -854,4 +854,12 @@ test("one frame is asked for at a time, whatever is pressed during a frame", () 
     assert.equal(waiting.size, 1, act.toString());
   }
   assert.equal(most, 1);
+});
+
+test("the turn is gentle unless a page asks: 12 degrees a second, one turn in 30 seconds", () => {
+  const { view, clock } = make();
+  view.play();
+  clock.step(16);
+  for (let i = 0; i < 10; i++) clock.step(100);
+  assert.ok(Math.abs(view.state.yaw - 12) < 0.5, String(view.state.yaw));
 });

@@ -39,6 +39,8 @@ description: One row of speed buttons for the whole family (0.5×, 1×, 2× by d
 | `address`, `address-key` | Keep the choice in the page's address under `speed`, or the key named. The start is left off, and other parameters are kept. |
 | `lang`, `theme` | `en` or `ja`; `light` or `dark`. |
 
+`element.format = (value, language) => ({ text, label })` gives each step words of your own in place of its number and unit: `text` on the button and, if given, `label` for a screen reader. The view controls use it to say how long one turn of the view takes ("30 s", "The view turns once in 30 seconds") so their speeds are not read as the speed of time; `null` brings the numbers back.
+
 `element.value` reads and sets the speed; `element.steps` reads and sets the steps; `element.step(1)` goes to the next speed, round at the ends (`-1` for the one before), which is what a single button that cycles does. The colours are `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`; the parts are `label`, `group` and `button`.
 
 ## The event

@@ -49,8 +49,8 @@ test("the controls are visible without scrolling, a finger wide, and in the page
     const plain = shown.filter((el) => getComputedStyle(el).appearance !== "none").map((el) => el.dataset.b ?? el.id);
     return { count: shown.length, small, below, plain, scrolled: window.scrollY, wide: document.documentElement.scrollWidth > window.innerWidth + 1 };
   });
-  // Angle (the one slider), four axis chips, auto-turn, three speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, More; no Move/Turn choice, a drag always turns.
-  expect(report.count).toBe(22);
+  // Angle (the one slider), four axis chips, auto-turn, four turn speeds, Left and Right, front, Centre (zoomed now), four zoom buttons (out, the readout, in, Fit), four arrows, More; no Move/Turn choice, a drag always turns.
+  expect(report.count).toBe(23);
   expect(report.small).toEqual([]);
   expect(report.below).toEqual([]);
   expect(report.plain).toEqual([]);

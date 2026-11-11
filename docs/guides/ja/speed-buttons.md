@@ -41,6 +41,8 @@ description: ファミリー全体で使う、1列の速さのボタンです。
 | `address`、`address-key` | 選んだ速さを、ページのアドレスの`speed`（またはキー名）に残します。開始値は残らず、ほかのパラメーターはそのままです。 |
 | `lang`、`theme` | `en`か`ja`。`light`か`dark`。 |
 
+`element.format = (value, language) => ({ text, label })`を使うと、各ステップに数字と単位の代わりに自分の言葉を付けられます。`text`はボタンに表示され、`label`があれば画面読み上げで読まれます。表示操作はこれを使って、1周にかかる時間をボタンに出し（「30秒」）、読み上げでは「30秒で1周します」と読ませて、時間の速さと見分けやすくしています。`null`にすると数字に戻ります。
+
 `element.value`で速さを読み書きし、`element.steps`でステップを読み書きし、`element.step(1)`で次の速さへ進みます（端まで来たら最初に戻ります。`-1`なら1つ前）。これは、押すたびに切り替わる1つのボタンの動きです。色は`--kazoku-ink`、`--kazoku-surface`、`--kazoku-line`、`--kazoku-accent`、パーツは`label`、`group`、`button`です。
 
 ## イベント

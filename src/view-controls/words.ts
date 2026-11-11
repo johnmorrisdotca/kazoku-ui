@@ -26,7 +26,18 @@ export interface ViewWords {
   zoomLevel: string;
   zoomReset: string;
   more: string;
+  /** The name of the turn speeds: they say how long one turn of the view takes, so they are not read as the speed of time. */
   speed: string;
+  /** A turn's time on a button, `{n}` the number: "{n} s", "{n} min". */
+  seconds: string;
+  minutes: string;
+  /** The same, read out: "One turn in {t}", with `{t}` "{n} seconds" or "{n} minutes". */
+  turnEvery: string;
+  secondsLong: string;
+  minutesLong: string;
+  /** The same for exactly one: "{n} second", "{n} minute". */
+  secondLong: string;
+  minuteLong: string;
   /** The name of the pair of buttons that choose which way Auto-turn goes. */
   direction: string;
   turnLeft: string;
@@ -64,7 +75,14 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomLevel: "Zoom level",
     zoomReset: "back to Fit",
     more: "More",
-    speed: "Speed",
+    speed: "One turn in",
+    seconds: "{n} s",
+    minutes: "{n} min",
+    turnEvery: "The view turns once in {t}",
+    secondsLong: "{n} seconds",
+    minutesLong: "{n} minutes",
+    secondLong: "{n} second",
+    minuteLong: "{n} minute",
     direction: "Turn direction",
     turnLeft: "Left",
     turnRight: "Right",
@@ -96,7 +114,14 @@ export const WORDS: Record<Language, ViewWords> = {
     zoomLevel: "ズーム倍率",
     zoomReset: "全体に戻す",
     more: "詳細",
-    speed: "速さ",
+    speed: "1周",
+    seconds: "{n}秒",
+    minutes: "{n}分",
+    turnEvery: "{t}で1周します",
+    secondsLong: "{n}秒",
+    minutesLong: "{n}分",
+    secondLong: "{n}秒",
+    minuteLong: "{n}分",
     direction: "回る向き",
     turnLeft: "左へ",
     turnRight: "右へ",

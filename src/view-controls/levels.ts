@@ -17,6 +17,21 @@ export const PACE_FACTOR: Record<Pace, number> = { slow: 0.5, medium: 1, fast: 2
 
 export const parsePace = (text: string | null | undefined): Pace | undefined => PACES.find((pace) => pace === text);
 
+/**
+ * The turn's degrees a second at a pace of 1, when a page gives no `speed`: one turn in 30 seconds. It was 30 (one turn in 12 seconds) until 0.33, which read as fast for a turn of
+ * the whole view; 1 is now about what 0.4 was.
+ */
+export const TURN_SPEED = 12;
+
+/** The paces the turn speed buttons offer when a page gives no `paces`: none faster than the page's own speed, and three gentler. */
+export const TURN_PACES: readonly number[] = [0.125, 0.25, 0.5, 1];
+
+/** How many seconds one whole turn takes at `speed` degrees a second times `pace`; `Infinity` for a turn that does not move. */
+export const turnSeconds = (speed: number, pace: number): number => {
+  const rate = Math.abs(speed * pace);
+  return rate > 0 ? 360 / rate : Number.POSITIVE_INFINITY;
+};
+
 /** Which way Auto-turn goes. By the drag rule `yaw` goes up as the hand goes right, so `right` is a positive speed and `left` a negative one; the page's drawing decides what that looks like. */
 export type Direction = "left" | "right";
 

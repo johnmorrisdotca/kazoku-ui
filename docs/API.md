@@ -845,7 +845,7 @@ interface ViewControllerOptions {
     initial?: Partial<ViewState>;
     /** False for a flat view that cannot turn: a drag then always moves it and the angle and tilt never change. */
     turnable?: boolean;
-    /** Degrees a second when it turns by itself. The sign is the active axis's direction. */
+    /** Degrees a second when it turns by itself (`TURN_SPEED`, 12, one turn in 30 seconds, by default). The sign is the active axis's direction. */
     speed?: number;
     /** Which axis turns by itself. `angle` (yaw) by default. */
     turnAxis?: TurnAxis;
@@ -920,7 +920,18 @@ interface ViewWords {
     zoomLevel: string;
     zoomReset: string;
     more: string;
+    /** The name of the turn speeds: they say how long one turn of the view takes, so they are not read as the speed of time. */
     speed: string;
+    /** A turn's time on a button, `{n}` the number: "{n} s", "{n} min". */
+    seconds: string;
+    minutes: string;
+    /** The same, read out: "One turn in {t}", with `{t}` "{n} seconds" or "{n} minutes". */
+    turnEvery: string;
+    secondsLong: string;
+    minutesLong: string;
+    /** The same for exactly one: "{n} second", "{n} minute". */
+    secondLong: string;
+    minuteLong: string;
     /** The name of the pair of buttons that choose which way Auto-turn goes. */
     direction: string;
     turnLeft: string;
@@ -2233,7 +2244,7 @@ interface SpeedWords {
 
 ## `@johnmorrisdotca/kazoku-ui/speed-buttons/element`
 
-3 values and 1 type.
+3 values and 2 types.
 
 ```js
 import { EVENT, SpeedButtonsElement, TAG } from '@johnmorrisdotca/kazoku-ui/speed-buttons/element';
@@ -2249,7 +2260,7 @@ const EVENT = "kazoku-speedchange";
 
 ### SpeedButtonsElement
 
-*class*. Attributes: `steps` (the speeds, `0.5 1 2` by default; any numbers, `1 10 100`, `0 1 3600 86400 -3600`), `value` (the one that is on; the start, and it follows the reader's choice),
+*class*
 
 ```ts
 class SpeedButtonsElement extends HTMLElement {
@@ -2264,6 +2275,12 @@ class SpeedButtonsElement extends HTMLElement {
     set steps(list: readonly number[] | string);
     /** Your own label over the language's, for example `{ group: "Time" }`. */
     set words(words: Partial<SpeedWords>);
+    /**
+     * Your own words for each step in place of the number and its unit, in the reader's language: `text` is shown on the button and `label`, if given, is what a screen reader
+     * says. The view controls use it to show how long one turn takes ("30 s") instead of a bare `1×`. `null` brings the numbers back.
+     */
+    get format(): StepFormat | null;
+    set format(format: StepFormat | null);
     /** One press of a single button that cycles: the next speed (`direction` 1) or the one before (-1), going round at the ends. */
     step(direction?: 1 | -1): void;
     connectedCallback(): void;
@@ -2292,6 +2309,17 @@ interface SpeedChangeDetail {
     /** `init` (once, when it comes up), `user` (a button or `step()`) or `set` (the `value` property or attribute). */
     reason: "init" | "user" | "set";
 }
+```
+
+### StepFormat
+
+*type*. A step's own words: what its button shows, and what a screen reader says if that differs.
+
+```ts
+type StepFormat = (value: number, language: Language) => {
+    text: string;
+    label?: string;
+};
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/speed-buttons/define`

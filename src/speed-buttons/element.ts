@@ -25,6 +25,9 @@ export interface SpeedChangeDetail {
  * `unit` (the word after each number, `×` by default), `label` (the group's name, shown before the buttons and read by a screen reader; "Speed" or 速さ by default), `no-label`
  * (hide the name from the eye), `address` (keep the choice in the address under `address-key`, `speed` by default; the start is left off it), `lang` (`en` or `ja`), `theme` (`light` or `dark`).
  */
+/** A step's own words: what its button shows, and what a screen reader says if that differs. */
+export type StepFormat = (value: number, language: Language) => { text: string; label?: string };
+
 export class SpeedButtonsElement extends HTMLElement {
   static observedAttributes = ["steps", "value", "unit", "label", "lang"];
 
@@ -35,6 +38,7 @@ export class SpeedButtonsElement extends HTMLElement {
   #ready = false;
   #styled = false;
   #words: Partial<SpeedWords> = {};
+  #format: StepFormat | null = null;
   #writer = createAddressWriter({ delay: 0 });
   #stop: (() => void) | undefined;
   #reflecting = false;
@@ -66,6 +70,19 @@ export class SpeedButtonsElement extends HTMLElement {
   /** Your own label over the language's, for example `{ group: "Time" }`. */
   set words(words: Partial<SpeedWords>) {
     this.#words = words;
+    this.#render();
+  }
+
+  /**
+   * Your own words for each step in place of the number and its unit, in the reader's language: `text` is shown on the button and `label`, if given, is what a screen reader
+   * says. The view controls use it to show how long one turn takes ("30 s") instead of a bare `1×`. `null` brings the numbers back.
+   */
+  get format(): StepFormat | null {
+    return this.#format;
+  }
+
+  set format(format: StepFormat | null) {
+    this.#format = format;
     this.#render();
   }
 
@@ -182,8 +199,11 @@ export class SpeedButtonsElement extends HTMLElement {
     }
     for (const button of box.querySelectorAll<HTMLButtonElement>("button")) {
       const step = Number(button.dataset["v"]);
-      const text = speedText(step, unit);
+      const own = this.#format?.(step, language);
+      const text = own?.text ?? speedText(step, unit);
       if (button.textContent !== text) button.textContent = text;
+      if (own?.label) button.setAttribute("aria-label", own.label);
+      else button.removeAttribute("aria-label");
       button.setAttribute("aria-pressed", String(step === this.#value));
     }
   }

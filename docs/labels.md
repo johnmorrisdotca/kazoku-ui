@@ -26,7 +26,13 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `zoomLevel` | Zoom level | ズーム倍率 | zūmu bairitsu, zoom ratio |
 | `zoomReset` | back to Fit | 全体に戻す | zentai ni modosu, put back to the whole |
 | `more` | More | 詳細 | shōsai, details |
-| `speed` | Speed | 速さ | hayasa, speed |
+| `speed` | One turn in | 1周 | isshū, one full round (the turn speeds' name: they say how long one turn of the view takes) |
+| `seconds` | {n} s | {n}秒 | {n} byō, {n} seconds (on a turn speed button) |
+| `minutes` | {n} min | {n}分 | {n} fun, {n} minutes (on a turn speed button) |
+| `turnEvery` | The view turns once in {t} | {t}で1周します | {t} de isshū shimasu, it goes round once in {t} (read out) |
+| `secondsLong` | {n} seconds | {n}秒 | {n} byō, {n} seconds |
+| `minutesLong` | {n} minutes | {n}分 | {n} fun, {n} minutes |
+| `secondLong`, `minuteLong` | {n} second, {n} minute | {n}秒, {n}分 | the same for exactly one |
 | `direction` | Turn direction | 回る向き | mawaru muki, the way it turns (the Left and Right buttons' group) |
 | `turnLeft` | Left | 左へ | hidari e, to the left |
 | `turnRight` | Right | 右へ | migi e, to the right |

@@ -2,7 +2,7 @@
 // buttons and sliders through its methods, a pointer, two fingers, the wheel and the keys through `bind`. It never draws anything: it
 // calls `onChange` with the new state and the page applies it to a canvas, WebGL, SVG or CSS 3D scene.
 import { turnOnlyInSight } from "./sight.ts";
-import type { TurnAxis } from "./levels.ts";
+import { TURN_SPEED, type TurnAxis } from "./levels.ts";
 import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragRoll, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
 
 export interface ViewState extends Camera {
@@ -34,7 +34,7 @@ export interface ViewControllerOptions {
   initial?: Partial<ViewState>;
   /** False for a flat view that cannot turn: a drag then always moves it and the angle and tilt never change. */
   turnable?: boolean;
-  /** Degrees a second when it turns by itself. The sign is the active axis's direction. */
+  /** Degrees a second when it turns by itself (`TURN_SPEED`, 12, one turn in 30 seconds, by default). The sign is the active axis's direction. */
   speed?: number;
   /** Which axis turns by itself. `angle` (yaw) by default. */
   turnAxis?: TurnAxis;
@@ -280,7 +280,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   const controller: ViewController = {
     state,
     turnable: options.turnable ?? true,
-    speed: options.speed ?? 30,
+    speed: options.speed ?? TURN_SPEED,
     turnAxis: options.turnAxis ?? "angle",
     tiltSign: 1,
     rollSign: 1,

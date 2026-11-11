@@ -13,6 +13,7 @@ description: "The view-controls element in full: what the reader gets, every att
 
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
 - A plain left drag, and one finger, turn the view at every zoom (a finger does not tilt, so the page can still scroll at Fit); the hand never changes with the zoom. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
+- **The turn speeds say how long one turn of the view takes.** They are the family's [speed buttons](speed-buttons.md) at paces of 0.125, 0.25, 0.5 and 1 times `speed`, and each shows its turn's time: 4 min, 2 min, 1 min, 30 s (4分 … 30秒 under 1周 in Japanese), and "The view turns once in 30 seconds" to a screen reader, so they cannot be taken for a clock's speed buttons and their `1×`. While the view turns in the basic level, one small button shows "One turn in" over the time and a press steps to the next. The choice is kept in the `pace` attribute and in the address as `?pace=0.5`. A page that wants faster turns names them in `paces` (`paces="1 4 8"`), and each still shows its time.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - English and Japanese labels, light and dark, 48 px touch targets, a compact bar on a phone, and no automatic turn for a reader who prefers reduced motion.
@@ -75,18 +76,18 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `grab-radius` | Exact grab for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit`. A drag then keeps the touched point under the pointer. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which a turn stops by itself: the one `autoplay` starts, and one the Auto-turn button or `play()` starts. `play(seconds)` takes its own limit. |
-| `speed` | Degrees a second at a pace of 1 (30). A negative number starts the turn to the left. |
+| `speed` | Degrees a second at a pace of 1: 12, one turn in 30 seconds, when left out (it was 30 before 0.33). A negative number starts the turn to the left. |
 | `direction` | Which way the angle's Auto-turn goes, `left` or `right`. The Left and Right buttons set the axis that is on (all three when All is on). Kept in the address as `direction`. Left out, the sign of `speed` decides. |
 | `axis` | Which axis Auto-turn drives: `angle` (the default), `tilt`, `roll` or `all`. `all` is a tumble, three rates that drift so the motion does not repeat. The four buttons are always on the bar. Kept in the address as `axis` (`angle` leaves it off). |
 | `tilt-direction`, `roll-direction` | Which way those axes turn, `left` or `right`. Kept as `tiltDirection` and `rollDirection` when they are not to the right. |
-| `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.5 and 2 on the default buttons. The reader's choice is written here and kept in the address as `pace`. The buttons are the family's [speed buttons](speed-buttons.md). |
-| `paces` | The speeds the buttons stand for: `0.5 1 2` by default; any numbers (`paces="1 4 8"`). |
+| `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.125, 0.25 and 0.5 on the default buttons. The reader's choice is written here and kept in the address as `pace`. The buttons are the family's [speed buttons](speed-buttons.md). |
+| `paces` | The speeds the buttons stand for: `0.125 0.25 0.5 1` by default; any numbers (`paces="1 4 8"`), each shown as its turn's time. |
 | `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. |
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: see [Layouts and the zoom slider](layouts-and-zoom.md). |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 0.1, 50). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
-| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&pace=2&direction=left`). |
+| `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&pace=0.5&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
@@ -95,7 +96,7 @@ Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, til
 
 ## The address
 
-Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=2`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
+Only what a reader chose is kept: angle, tilt, zoom, the auto-turn speed (`pace=0.5` or `pace=0.125`; 1 leaves the address) and the way it turns (`direction=left` or `direction=right`; the page's own start leaves the address). A page's own `speed` parameter is never touched. The pan is in pixels of one screen and the turning is of a moment, so neither is. A value at its start leaves the address.
 
 ```js
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "@johnmorrisdotca/kazoku-ui/view-controls";

@@ -57,7 +57,7 @@ test("horizontal: the turn on one row and the zoom slider on the next, finger wi
   await button(page, "more").click();
   await button(page, "in").click();
   const advanced = await look(page);
-  expect(advanced.shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.5", "pace-1", "pace-2", "front", "left", "up", "down", "right"]));
+  expect(advanced.shown).toEqual(expect.arrayContaining(["axis-tilt", "pace-0.125", "pace-0.25", "pace-0.5", "pace-1", "front", "left", "up", "down", "right"]));
   expect(advanced.fits).toBe(true);
   expect(errors).toEqual([]);
 });
@@ -100,7 +100,7 @@ test("compact: one row, the same row while it turns, and the rest one press of M
   await expect(button(page, "level")).toHaveText("1×");
   await button(page, "more").click();
   await expect(button(page, "more")).toHaveAttribute("aria-expanded", "true");
-  expect((await look(page)).shown).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "pace-0.5", "pace-1", "pace-2", "turn-left", "turn-right", "front", "zoom", "out", "level", "in", "fit", "more"]);
+  expect((await look(page)).shown).toEqual(["yaw", "axis-angle", "axis-tilt", "axis-roll", "axis-all", "play", "pace-0.125", "pace-0.25", "pace-0.5", "pace-1", "turn-left", "turn-right", "front", "zoom", "out", "level", "in", "fit", "more"]);
   expect((await look(page)).fits).toBe(true);
   await button(page, "more").click();
   expect((await look(page)).rows).toBe(1);
