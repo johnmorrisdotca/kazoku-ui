@@ -3675,8 +3675,10 @@ interface DoorSourceInfo {
     id: string;
     name: Bilingual;
     credit: Bilingual;
+    /** `nameJa` is the name in Japanese for a Japanese line (a source's own terms, `"UCAC4の利用条件"`); left out, a plain phrase is translated and an identifier stays. */
     licence: {
         name: string;
+        nameJa?: string;
         url: string;
         nonCommercial?: boolean;
         shareAlike?: boolean;
@@ -4563,8 +4565,10 @@ interface DoorSourceInfo {
     id: string;
     name: Bilingual;
     credit: Bilingual;
+    /** `nameJa` is the name in Japanese for a Japanese line (a source's own terms, `"UCAC4の利用条件"`); left out, a plain phrase is translated and an identifier stays. */
     licence: {
         name: string;
+        nameJa?: string;
         url: string;
         nonCommercial?: boolean;
         shareAlike?: boolean;
