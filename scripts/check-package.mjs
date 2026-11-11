@@ -146,6 +146,12 @@ const PARTS = [
   assert.deepEqual(slices.map((slice) => slice.ids), [["earth"], ["rocket"]]);
   assert.ok(Math.abs(pure.lengthKm(pure.lowPrecisionSun(Date.UTC(2000, 0, 1, 12))) - pure.AU_KM) < 0.02 * pure.AU_KM);`,
   },
+  {
+    name: "body-label", pure: ["bodyLabelLayout", "bodyLabelFacing", "createBodyLabel", "loadBodyLabelFont", "BODY_LABEL_HEIGHTS", "BODY_LABEL_MAX_LATITUDE", "BODY_LABEL_FONT", "BODY_LABEL_FONT_BYTES"],
+    run: `assert.deepEqual(pure.bodyLabelLayout({ widthEm: 4, repeat: "both" }).spans.map((span) => span.centre), [0, 180]);
+  assert.equal(Math.round(pure.bodyLabelFacing(0, -5, 0) * 180 / Math.PI), 90);
+  assert.equal(pure.BODY_LABEL_FONT, "Michroma");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
@@ -179,6 +185,14 @@ for (const file of new Set(pointed)) {
   }
 }
 console.log(`ok   every file package.json points at is in the tarball (${new Set(pointed).size})`);
+// the name-on-a-globe font is fetched by a URL beside its module, so it and its licence (SIL OFL 1.1, which must travel with it) are in the tarball
+for (const file of ["dist/body-label/fonts/Michroma-Regular.ttf", "dist/body-label/fonts/OFL.txt"]) {
+  if (!inTarball.has(file)) {
+    console.error(`FAIL ${file} is not in the tarball`);
+    process.exit(1);
+  }
+}
+console.log("ok   the body-label font and its licence are in the tarball");
 
 const project = join(scratch, "project");
 mkdirSync(project);
@@ -217,5 +231,5 @@ console.log("ok   every entry imports, each tag is defined once and a taken tag 
 process.stdout.write(run("node", ["check.mjs"], project));
 
 const bytes = (file) => gzipSync(readFileSync(join(root, "dist", file))).length;
-const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js", "page-frame/words.js", "page-frame/text.js", "page-frame/meta.js", "page-frame/html.js", "page-frame/check.js", "page-frame/link.js", "page-frame/styles.js", "page-frame/index.js", "page-frame/element.js", "page-frame/define.js", "clock/clock.js", "clock/slot.js", "clock/address.js", "clock/index.js", "scene/types.js", "scene/frame.js", "scene/compose.js", "scene/index.js"];
+const files = ["print/pages.js", "print/tile.js", "print/qr.js", "print/words.js", "print/type.js", "print/css.js", "print/sheet.js", "print/view.js", "print/index.js", "save-image/format.js", "save-image/render.js", "save-image/words.js", "save-image/element.js", "save-image/define.js", "speed-buttons/steps.js", "speed-buttons/words.js", "speed-buttons/styles.js", "speed-buttons/element.js", "speed-buttons/define.js", "address-state/address.js", "language-picker/languages.js", "language-picker/words.js", "language-picker/element.js", "language-picker/define.js", "shared/target.js", "shared/store.js", "theme-switch/theme.js", "theme-switch/words.js", "theme-switch/styles.js", "theme-switch/element.js", "theme-switch/define.js", "shared/base.js", "shared/scheme.js", "view-controls/math.js", "view-controls/address.js", "view-controls/words.js", "view-controls/controller.js", "view-controls/index.js", "view-controls/styles.js", "shared/adopt.js", "view-controls/element.js", "view-controls/define.js", "renderer/pixels.js", "renderer/scheduler.js", "renderer/cache.js", "renderer/stills.js", "renderer/renderer.js", "renderer/index.js", "testing/gestures.js", "testing/index.js", "replay-bar/state.js", "replay-bar/words.js", "replay-bar/styles.js", "replay-bar/index.js", "replay-bar/element.js", "replay-bar/define.js", "options-window/place.js", "options-window/words.js", "options-window/styles.js", "options-window/index.js", "options-window/element.js", "options-window/define.js", "wide-layout/wide.js", "wide-layout/words.js", "wide-layout/styles.js", "wide-layout/index.js", "wide-layout/element.js", "wide-layout/define.js", "page-frame/words.js", "page-frame/text.js", "page-frame/meta.js", "page-frame/html.js", "page-frame/check.js", "page-frame/link.js", "page-frame/styles.js", "page-frame/index.js", "page-frame/element.js", "page-frame/define.js", "clock/clock.js", "clock/slot.js", "clock/address.js", "clock/index.js", "scene/types.js", "scene/frame.js", "scene/compose.js", "scene/index.js", "body-label/layout.js", "body-label/label.js", "body-label/font.js", "body-label/index.js"];
 console.log(`ok   gzipped, no bundler: ${files.map((f) => `${f} ${bytes(f)}`).join(", ")} bytes`);

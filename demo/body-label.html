@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: a name on the globe</title>
+  <meta name="description" content="A body's name written on its globe, turning with it: four looks, once, twice or all round, at the equator or near a pole, or always facing the reader." />
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    main { max-width: 1100px; }
+    .globe { position: relative; height: min(70vh, 560px); min-height: 320px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #05070d; }
+    .globe:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+    .choices { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 10px 0; }
+    .choices .seg { align-items: center; }
+    .choices .name { font-weight: 600; margin-right: 2px; }
+    .stats { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 16px; color: var(--muted); font: 0.8rem/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">a name on the globe</span></h1>
+    <div class="tools">
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="a name on the globe" what-ja="天体に書く名前" description="A body's name written on its globe, turning with it: four looks, once, twice or all round, at the equator or near a pole, or always facing the reader." description-ja="天体の名前を、その球の表面に書いて、いっしょに回します。見た目は4種類から選べます。名前は1回・2回・ぐるりと一周、場所は赤道か極の近くにでき、いつも見る人のほうを向けることもできます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html">The view controls</a> · <a href="renderer.html">Shared 3D renderer</a> · <a href="scene.html">Shared scene</a></p>
+  <p class="intro">The family's default: Michroma, painted, at half strength, written once and turning with the body. Drag to turn the globe; Auto-turn spins it.</p>
+  <div class="choices" data-testid="choices">
+    <span class="seg" role="group" aria-label="Look" data-testid="look"><span class="name">Look</span></span>
+    <span class="seg" role="group" aria-label="How many" data-testid="repeat"><span class="name">How many</span></span>
+    <span class="seg" role="group" aria-label="Where" data-testid="where"><span class="name">Where</span></span>
+    <span class="seg" role="group" aria-label="Name" data-testid="name"><span class="name">Name</span></span>
+    <button type="button" class="pill" id="facing" aria-pressed="false" data-testid="facing">Always facing you</button>
+    <button type="button" class="pill" id="shown" aria-pressed="true" data-testid="shown">Name on</button>
+  </div>
+  <div class="globe" id="globe" tabindex="0" role="img" aria-label="A globe with its name written on it" data-testid="globe"></div>
+  <kazoku-view-controls id="controls" for="globe" data-testid="controls"></kazoku-view-controls>
+  <ul class="stats" id="stats" data-testid="stats" aria-label="Renderer numbers"></ul>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. The globe is drawn from our own shapes, no outside data. The name is in Michroma by Vernon Adams (SIL Open Font License 1.1). The 3D drawing uses three.js (MIT licence)." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。球は自前の図形で、外部のデータは使っていません。名前の文字はVernon AdamsのMichroma（SIL Open Font License 1.1）です。3Dの描画にはthree.js（MITライセンス）を使っています。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="body-label.js"></script>
+</body>
+</html>

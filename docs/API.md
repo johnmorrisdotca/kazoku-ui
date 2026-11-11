@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label"];
 ```
 
 ### Part
@@ -5458,6 +5458,267 @@ interface FamilyClockOptions {
     source?: ClockSource;
     /** Most often a `"tick"` is sent, in milliseconds (250, which is 4 a second). */
     tickMs?: number;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/body-label`
+
+8 values and 11 types.
+
+```js
+import { BODY_LABEL_FONT, BODY_LABEL_FONT_BYTES, BODY_LABEL_HEIGHTS, BODY_LABEL_MAX_LATITUDE, bodyLabelFacing, bodyLabelLayout, createBodyLabel, loadBodyLabelFont } from '@johnmorrisdotca/kazoku-ui/body-label';
+```
+
+### BODY_LABEL_FONT
+
+*constant*. The family's default font for a name on a globe, Michroma (SIL Open Font License 1.1), loaded by `loadBodyLabelFont`.
+
+```ts
+const BODY_LABEL_FONT = "Michroma";
+```
+
+### BODY_LABEL_FONT_BYTES
+
+*constant*. The font file's size in bytes, for a page that weighs what it loads.
+
+```ts
+const BODY_LABEL_FONT_BYTES = 64344;
+```
+
+### BODY_LABEL_HEIGHTS
+
+*constant*. The letters' height in degrees of latitude for each size.
+
+```ts
+const BODY_LABEL_HEIGHTS: Readonly<Record<BodyLabelSize, number>>;
+```
+
+### BODY_LABEL_MAX_LATITUDE
+
+*constant*. The farthest from the equator a name is written, in degrees: beyond it the letters would be stretched too far along a short circle.
+
+```ts
+const BODY_LABEL_MAX_LATITUDE = 70;
+```
+
+### bodyLabelFacing
+
+*function*. For a name that keeps facing the reader: the turn about the body's axis, in radians, that brings the name's middle (`longitude`) round to the camera, given the camera's
+
+```ts
+function bodyLabelFacing(x: number, z: number, longitude?: number): number;
+```
+
+### bodyLabelLayout
+
+*function*. Lay the name out on the globe. A name too long for its share of the circle is made smaller until it fits, so two copies never meet.
+
+```ts
+function bodyLabelLayout(input: BodyLabelLayoutInput): BodyLabelLayout;
+```
+
+### createBodyLabel
+
+*function*. Write a body's name on its globe. The label is a child of the globe, so it turns with it; with `facing` it turns back to the reader in `update`.
+
+```ts
+function createBodyLabel(three: BodyLabelThree, options: BodyLabelOptions): BodyLabel;
+```
+
+### loadBodyLabelFont
+
+*function*. Load Michroma into the page (once; again does nothing) and resolve its family name, for `createBodyLabel`'s `font`. Give `url` to load it from your own copy.
+
+```ts
+function loadBodyLabelFont(url?: string | URL): Promise<string>;
+```
+
+### BodyLabel
+
+*interface*. The label `createBodyLabel` returns.
+
+```ts
+interface BodyLabel {
+    /** The mesh: add it to the body's turning globe (`globe.add(label.object)`). */
+    readonly object: BodyLabelObject;
+    /** Resolves once the name is drawn in its own font (at once when the font is already loaded). Draw the view again then. */
+    readonly ready: Promise<void>;
+    /** The layout now: the band and each copy's place. */
+    readonly layout: BodyLabelLayout;
+    /** The settings now. */
+    readonly options: Readonly<Required<BodyLabelOptions>>;
+    /**
+     * Call it before a draw, with the camera and the body's radius on screen in CSS pixels (left out: always shown). It hides the label below `minRadiusPx` and, with
+     * `facing`, turns it to the camera. Returns true when something changed, so the host knows the view needs drawing. It allocates nothing and redraws no texture.
+     */
+    update(camera: BodyLabelCamera, radiusPx?: number): boolean;
+    /** Change settings. The texture is drawn again only when the text, font, look, size, repeat, latitude or longitude changed; strength alone does not. */
+    set(options: Partial<BodyLabelOptions>): void;
+    /** Free the texture, the material and the geometry. Take the object out of the scene first. */
+    dispose(): void;
+}
+```
+
+### BodyLabelCamera
+
+*interface*. A camera, as `update` reads it.
+
+```ts
+interface BodyLabelCamera {
+    getWorldPosition(target: never): unknown;
+}
+```
+
+### BodyLabelLayout
+
+*interface*. The band and the copies in it.
+
+```ts
+interface BodyLabelLayout {
+    /** The band's middle, degrees. */
+    latitude: number;
+    /** The letters' height, degrees of latitude (an em: the font size). */
+    height: number;
+    /** How much wider than on the equator a degree of text is drawn here, so the letters keep their shape on the shorter circle: 1 / cos(latitude). */
+    stretch: number;
+    spans: BodyLabelSpan[];
+}
+```
+
+### BodyLabelLayoutInput
+
+*interface*. What the layout needs: the text's width in ems (from the page's font), and the settings.
+
+```ts
+interface BodyLabelLayoutInput {
+    /** The text's width over its font size, as the font draws it (`measureText(text).width / fontPx`). */
+    widthEm: number;
+    /** The middle of the band, degrees; 0 is the equator. Kept within ±70. */
+    latitude?: number;
+    /** Where the (first) name is centred, degrees east. */
+    longitude?: number;
+    repeat?: BodyLabelRepeat;
+    size?: BodyLabelSize;
+}
+```
+
+### BodyLabelLook
+
+*type*. How the letters lie on the surface: pale paint (the default), a lightening etch, an outline, or burned in (darker).
+
+```ts
+type BodyLabelLook = "painted" | "etched" | "outline" | "burned";
+```
+
+### BodyLabelObject
+
+*interface*. What of the label's three `Mesh` a host touches.
+
+```ts
+interface BodyLabelObject {
+    visible: boolean;
+    name: string;
+    renderOrder: number;
+    rotation: {
+        y: number;
+    };
+    parent: {
+        updateWorldMatrix(parents: boolean, children: boolean): void;
+        worldToLocal(vector: never): unknown;
+    } | null;
+    geometry: unknown;
+}
+```
+
+### BodyLabelOptions
+
+*interface*. What a name on a globe looks like and where it sits. Every setting is optional but `text`.
+
+```ts
+interface BodyLabelOptions {
+    /** The name as it is to be written (pass capitals for the family's look: `EARTH`, `地球`). */
+    text: string;
+    /** A CSS font family the page has loaded. Default Michroma. */
+    font?: string;
+    /** The family for the letters `font` has none of (Japanese: `"Noto Sans JP"`). Default none: the page's sans (`system-ui`). */
+    fallbackFont?: string;
+    look?: BodyLabelLook;
+    /** How strongly it shows, 0 to 1. Default 0.5. */
+    strength?: number;
+    repeat?: BodyLabelRepeat;
+    /** The band's latitude in degrees; 0, the equator, is the default. */
+    latitude?: number;
+    /** Where the (first) name is centred, degrees east in the body's own frame. */
+    longitude?: number;
+    size?: BodyLabelSize;
+    /** True: the name keeps facing the reader while the body turns under it. */
+    facing?: boolean;
+    /** The globe's radius in its mesh's own units. Default 1. */
+    radius?: number;
+    /** No label while the body is drawn smaller than this many CSS pixels in radius. Default 24. */
+    minRadiusPx?: number;
+}
+```
+
+### BodyLabelRepeat
+
+*type*. How many times the name is written: once, twice on opposite sides, or as many times as fit all round.
+
+```ts
+type BodyLabelRepeat = "once" | "both" | "around";
+```
+
+### BodyLabelSize
+
+*type*. The letters' height: small, medium (the default) or large.
+
+```ts
+type BodyLabelSize = "small" | "medium" | "large";
+```
+
+### BodyLabelSpan
+
+*interface*. One copy of the name on the globe.
+
+```ts
+interface BodyLabelSpan {
+    /** Its middle, degrees east, within [0, 360). */
+    centre: number;
+    /** How far it runs along the band, degrees of longitude. */
+    width: number;
+}
+```
+
+### BodyLabelThree
+
+*interface*. The few shapes of three.js the label uses. Any three of the right shape fits; nothing here imports it.
+
+```ts
+interface BodyLabelThree {
+    CanvasTexture: new (canvas: never) => {
+        colorSpace: string;
+        anisotropy: number;
+        needsUpdate: boolean;
+        dispose(): void;
+    };
+    SphereGeometry: new (radius: number, widthSegments: number, heightSegments: number, phiStart: number, phiLength: number, thetaStart: number, thetaLength: number) => {
+        dispose(): void;
+    };
+    MeshLambertMaterial: new (parameters: Record<string, unknown>) => {
+        opacity: number;
+        blending: number;
+        needsUpdate: boolean;
+        dispose(): void;
+    };
+    Mesh: new (geometry: never, material: never) => BodyLabelObject;
+    Vector3: new () => {
+        x: number;
+        y: number;
+        z: number;
+    };
+    SRGBColorSpace: string;
+    NormalBlending: number;
+    AdditiveBlending: number;
 }
 ```
 

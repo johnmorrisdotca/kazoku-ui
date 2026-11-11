@@ -60,7 +60,9 @@
     "clock",
     "scene",
     "floating-origin",
-    "depth-slices"
+    "depth-slices",
+    "globe-label",
+    "planet-label"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -274,6 +276,11 @@
       "import": "./dist/clock/index.js",
       "default": "./dist/clock/index.js"
     },
+    "./body-label": {
+      "types": "./dist/body-label/index.d.ts",
+      "import": "./dist/body-label/index.js",
+      "default": "./dist/body-label/index.js"
+    },
     "./scene": {
       "types": "./dist/scene/index.d.ts",
       "import": "./dist/scene/index.js",
@@ -318,7 +325,7 @@
     }
   },
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json && node -e \"require('node:fs').cpSync('src/body-label/fonts', 'dist/body-label/fonts', { recursive: true })\"",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.check.json",
     "test": "node --test test/*.test.ts",
@@ -329,7 +336,7 @@
     "site": "pnpm build && node scripts/site.mjs",
     "test:demo": "pnpm site && playwright test",
     "test:demo:one": "pnpm site && playwright test",
-    "test:freeze": "pnpm site && playwright test e2e/renderer.demo.mjs e2e/scene.demo.mjs --project=chromium-desk",
+    "test:freeze": "pnpm site && playwright test e2e/renderer.demo.mjs e2e/scene.demo.mjs e2e/body-label.demo.mjs --project=chromium-desk",
     "screenshots": "pnpm site && node scripts/screenshots.mjs",
     "docs:api": "pnpm build && node scripts/docs.mjs api",
     "docs:check": "pnpm build && node scripts/docs.mjs check",
