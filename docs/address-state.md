@@ -33,7 +33,7 @@ A change that sets what the address already holds is not announced.
 ## Writes
 
 The address is written in place with `replaceState`, the path and the `#hash` kept and every other parameter left in its order. Changes inside the delay are one write, so a slider or a text box
-does not reach the hundred changes in thirty seconds after which Safari stops a page. A page that cannot change its address (a sandboxed frame) is left as it is, and nothing throws.
+does not reach the hundred changes in thirty seconds after which Safari stops a page. A write the page refuses is tried once more a second later (a newer choice made in that second is the one tried); refused again, it is given up with one console warning, and no timer is left. A page that cannot change its address at all (a sandboxed frame) is left as it is, and nothing throws. An element taken off the page writes a choice that was still waiting.
 
 ## Smaller pieces
 

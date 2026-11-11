@@ -12,6 +12,20 @@ const ready = async (page, query = "") => {
   await expect(page.locator(`${BAR} .bar`)).toBeVisible();
   return errors;
 };
+/** The page's console warnings, kept from now on, so a failed address check can say what the page said (Chromium warns instead of throwing when it refuses an address). */
+const warningsOf = (page) => {
+  const warnings = [];
+  page.on("console", (m) => m.type() === "warning" && warnings.push(m.text()));
+  return warnings;
+};
+/** An address check that, when it fails, also prints the page's console warnings. */
+const addressCheck = async (warnings, check) => {
+  try {
+    await check();
+  } catch (error) {
+    throw new Error(`${error.message}\nThe page's console warnings: ${warnings.join(" | ") || "none"}`);
+  }
+};
 /** The names of the buttons and sliders a reader can see. */
 const shown = (page) => page.evaluate(() => {
   const kids = (root) => [...root.querySelectorAll("button, input, kazoku-speed-buttons")].flatMap((n) => (n.localName === "kazoku-speed-buttons" ? [...n.shadowRoot.querySelectorAll("button")] : [n]));
@@ -374,6 +388,7 @@ test("after the element moved, the buttons drive the view the readout speaks for
 });
 
 test("basic shows one small speed button only while it turns; it steps through the speeds, keeps turning and is kept in the address", async ({ page }) => {
+  const warnings = warningsOf(page);
   await ready(page);
   const speed = () => page.evaluate((tag) => document.querySelector(tag).controller.speed, BAR);
   const now = button(page, "pace-now");
@@ -388,7 +403,7 @@ test("basic shows one small speed button only while it turns; it steps through t
   await expect(now).toHaveAttribute("aria-label", "The view turns once in 4 minutes");
   expect(await speed()).toBe(1.5);
   expect((await stateOf(page)).turning).toBe(true);
-  await expect(page).toHaveURL(/pace=0\.125/);
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=0\.125/));
   await now.click();
   await expect(now).toHaveAttribute("aria-label", "The view turns once in 2 minutes");
   expect(await speed()).toBe(3);
@@ -396,13 +411,30 @@ test("basic shows one small speed button only while it turns; it steps through t
   await expect(now).toHaveAttribute("aria-label", "The view turns once in 1 minute");
   await expect(now).toHaveText("One turn in1 min");
   expect(await speed()).toBe(6);
-  await expect(page).toHaveURL(/pace=0\.5/);
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=0\.5/));
   await now.click();
   await expect(now).toHaveAttribute("aria-label", "The view turns once in 30 seconds");
-  await expect(page).not.toHaveURL(/pace=/);
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
   await button(page, "play").click();
   await expect(now).toBeHidden();
   expect(await speed()).toBe(12);
+});
+
+test("a speed chosen just before the bar is taken off the page and put back is still kept in the address", async ({ page }) => {
+  await ready(page);
+  await button(page, "play").click();
+  const now = button(page, "pace-now");
+  await expect(now).toBeVisible();
+  await now.click();
+  // inside the address' quarter-second wait: the bar leaves the page and comes back, as a layout that moves it would do
+  await page.evaluate((tag) => {
+    const bar = document.querySelector(tag);
+    const parent = bar.parentNode;
+    const next = bar.nextSibling;
+    bar.remove();
+    parent.insertBefore(bar, next);
+  }, BAR);
+  await expect(page).toHaveURL(/pace=0\.125/);
 });
 
 test("a page opened on a speed shows it as soon as it turns, and a page's own speed attribute still works", async ({ page }) => {

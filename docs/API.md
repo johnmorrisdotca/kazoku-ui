@@ -1592,7 +1592,7 @@ function createAddressState(options?: AddressStateOptions): AddressState;
 
 ### createAddressWriter
 
-*function*. Writes the address in place (`replaceState`), the pathname and hash kept. A page that cannot change its address (a sandboxed frame) is left as it is: nothing throws.
+*function*. Writes the address in place (`replaceState`), the pathname and hash kept. A write the page refuses is kept and tried once more a second later (a newer write made in
 
 ```ts
 function createAddressWriter(options?: AddressWriterOptions): AddressWriter;

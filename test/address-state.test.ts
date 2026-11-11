@@ -85,12 +85,83 @@ test("calls inside the delay are one write, made with the latest, and flush and 
 });
 
 test("an address that cannot be changed does not throw", () => {
-  const { host } = page("/p");
-  host.history.replaceState = () => {
-    throw new Error("sandboxed");
-  };
-  const writer = createAddressWriter({ delay: 0, host });
-  assert.doesNotThrow(() => writer.write((search) => applyParams(search, { a: "1" })));
+  mock.timers.enable({ apis: ["setTimeout"] });
+  const warn = mock.method(console, "warn", () => undefined);
+  try {
+    const { host } = page("/p");
+    host.history.replaceState = () => {
+      throw new Error("sandboxed");
+    };
+    const writer = createAddressWriter({ delay: 0, host });
+    assert.doesNotThrow(() => writer.write((search) => applyParams(search, { a: "1" })));
+    assert.doesNotThrow(() => mock.timers.tick(1000));
+  } finally {
+    warn.mock.restore();
+    mock.timers.reset();
+  }
+});
+
+test("a write the page refuses is kept and tried once more after a second, and a newer write in that second is the one tried", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const { host, log } = page("/p");
+    const real = host.history.replaceState.bind(host.history);
+    let refusals = 1;
+    host.history.replaceState = (state: unknown, unused: string, next: string) => {
+      if (refusals > 0) {
+        refusals -= 1;
+        throw new Error("SecurityError: too many calls");
+      }
+      real(state, unused, next);
+    };
+    const writer = createAddressWriter({ delay: 250, host });
+    writer.write((search) => applyParams(search, { pace: "0.5" }));
+    mock.timers.tick(250);
+    assert.deepEqual(log, [], "refused");
+    mock.timers.tick(999);
+    assert.deepEqual(log, []);
+    mock.timers.tick(1);
+    assert.deepEqual(log, ["/p?pace=0.5"], "tried again after a second");
+    // refused again, then a newer choice inside the second: the newer one is written
+    refusals = 1;
+    writer.write((search) => applyParams(search, { pace: null }));
+    mock.timers.tick(250);
+    writer.write((search) => applyParams(search, { pace: "2" }));
+    mock.timers.tick(1000);
+    assert.deepEqual(log, ["/p?pace=0.5", "/p?pace=2"]);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("a page that refuses twice is left alone after one warning, with no timer kept", () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  const warn = mock.method(console, "warn", () => undefined);
+  try {
+    const { host } = page("/p");
+    let tries = 0;
+    host.history.replaceState = () => {
+      tries += 1;
+      throw new Error("sandboxed");
+    };
+    const writer = createAddressWriter({ delay: 250, host });
+    writer.write((search) => applyParams(search, { a: "1" }));
+    mock.timers.tick(250);
+    mock.timers.tick(1000);
+    assert.equal(tries, 2);
+    assert.equal(warn.mock.callCount(), 1);
+    mock.timers.tick(60_000);
+    assert.equal(tries, 2, "no timer left that tries again");
+    // a later write is tried the same way, and the warning is not repeated
+    writer.write((search) => applyParams(search, { a: "2" }));
+    mock.timers.tick(250);
+    mock.timers.tick(1000);
+    assert.equal(tries, 4);
+    assert.equal(warn.mock.callCount(), 1);
+  } finally {
+    warn.mock.restore();
+    mock.timers.reset();
+  }
 });
 
 test("a state reads what is in the address, gives a default, and sees its own change at once", () => {

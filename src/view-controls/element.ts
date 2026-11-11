@@ -258,6 +258,8 @@ export class ViewControlsElement extends HTMLElement {
   }
 
   disconnectedCallback(): void {
+    // a choice still waiting for the address is written now, while its state is here (a layout that moves the element would otherwise drop it)
+    this.#writer.flush();
     this.#unwatch?.();
     this.#unwatch = undefined;
     this.#unbind?.();
@@ -268,7 +270,6 @@ export class ViewControlsElement extends HTMLElement {
     this.#view = undefined;
     this.#ready = false;
     this.#sliderHeld = 0;
-    this.#writer.cancel();
     clearTimeout(this.#sayTimer);
     this.#said = "";
   }

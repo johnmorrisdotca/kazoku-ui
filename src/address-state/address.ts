@@ -52,11 +52,20 @@ export interface AddressWriter {
   cancel(): void;
 }
 
-/** Writes the address in place (`replaceState`), the pathname and hash kept. A page that cannot change its address (a sandboxed frame) is left as it is: nothing throws. */
+/** How long a write the page refused waits before it is tried once more: Safari refuses a page that changes its address more than a hundred times in thirty seconds. */
+const RETRY_MS = 1000;
+
+/**
+ * Writes the address in place (`replaceState`), the pathname and hash kept. A write the page refuses is kept and tried once more a second later (a newer write made in
+ * that second is the one tried); refused again, it is given up with one console warning for the writer's life, and no timer is left. A page that can never change its
+ * address (a sandboxed frame) is left as it is: nothing throws, and the choices still work.
+ */
 export function createAddressWriter(options: AddressWriterOptions = {}): AddressWriter {
   const delay = options.delay ?? 250;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let latest: ((search: string) => string) | undefined;
+  let retrying = false;
+  let warned = false;
   const run = (): void => {
     const compute = latest;
     latest = undefined;
@@ -65,8 +74,24 @@ export function createAddressWriter(options: AddressWriterOptions = {}): Address
       const host = options.host ?? (globalThis as unknown as AddressHost);
       const next = compute(host.location.search);
       if (next !== host.location.search) host.history.replaceState(host.history.state, "", `${host.location.pathname}${next}${host.location.hash}`);
+      retrying = false;
     } catch {
-      /* an address that cannot be changed: the choices still work */
+      if (!retrying) {
+        retrying = true;
+        latest ??= compute;
+        if (timer === undefined) {
+          timer = globalThis.setTimeout(() => {
+            timer = undefined;
+            run();
+          }, RETRY_MS);
+        }
+        return;
+      }
+      retrying = false;
+      if (!warned) {
+        warned = true;
+        console.warn("The page would not change its address, so the latest choice is not in the link.");
+      }
     }
   };
   const clear = (): void => {
