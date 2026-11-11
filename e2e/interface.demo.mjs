@@ -217,9 +217,9 @@ test("object card on a phone is a sheet that rises from above the control bar, w
   expect(card.b).toBeLessThanOrEqual(bar.y + 1);
   expect(card.b).toBeGreaterThan(bar.y - 12);
   expect(card.w).toBeCloseTo(page.viewportSize().width, 0);
-  expect(await page.getByTestId("card").locator(".grab").evaluate((el) => getComputedStyle(el).display)).toBe("block");
-  const radius = await page.getByTestId("card").locator(".card").evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
-  expect(radius).toBe("16px");
+  // Each read waits for the style to be there (a card that draws its shadow DOM again between a locator and a read answers "" in WebKit).
+  await expect(page.getByTestId("card").locator(".grab")).toHaveCSS("display", "block");
+  await expect(page.getByTestId("card").locator(".card")).toHaveCSS("border-top-left-radius", "16px");
 });
 
 test("layers panel: real checkboxes with labels, in two columns, and the data door's outside sources", async ({ page }) => {
