@@ -310,3 +310,37 @@ test("the panel asks for no frame at rest and never more than one at a time, wha
   await page.waitForTimeout(1200);
   expect((await readCounts(page)).rafRequests - settled.rafRequests).toBe(0);
 });
+
+test("the credit line can link its licence and its source, each on its own, and refuses any address that is not a web page", async ({ page }) => {
+  await ready(page);
+  const panel = page.locator(P);
+  await panel.evaluate((element) => {
+    element.credits = [
+      "Flag: ",
+      { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" },
+      ", ",
+      { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/wiki/File:Flag.svg" },
+      " ",
+      { text: "not a link", href: "javascript:alert(1)" },
+    ];
+  });
+  const credits = page.locator(`${P} [part="credits"]`);
+  await expect(credits).toHaveText("Credit: Flag: CC BY 2.5, Wikimedia Commons not a link");
+  const links = page.locator(`${P} [part="credit-link"]`);
+  await expect(links).toHaveText(["CC BY 2.5", "Wikimedia Commons"]);
+  await expect(links.nth(0)).toHaveAttribute("href", "https://creativecommons.org/licenses/by/2.5/");
+  await expect(links.nth(1)).toHaveAttribute("href", "https://commons.wikimedia.org/wiki/File:Flag.svg");
+  // the pieces may come from a function of the choices, and a relative address is the page's own site
+  await panel.evaluate((element) => {
+    element.credits = ({ kind }) => ["Shown as ", { text: kind, href: "NOTICE.html" }];
+  });
+  await expect(credits).toHaveText("Credit: Shown as html");
+  await expect(links).toHaveAttribute("href", "NOTICE.html");
+  // nothing at all hides the line
+  await panel.evaluate((element) => {
+    element.credits = [];
+  });
+  await expect(credits).toBeHidden();
+  // and the credit is never in the code copied
+  expect(await code(page)).not.toContain("Wikimedia Commons");
+});

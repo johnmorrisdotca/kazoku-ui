@@ -52,6 +52,19 @@ description: ファミリーのどのパッケージにも同じ「自分のペ�
 </script>
 ```
 
+クレジットの行には、名前を挙げたもののリンクを入れられます。`credits`に、テキストか`{ text, href }`を並べた配列を渡すか、選択に応じてそれを返す関数を渡します。こうすると、CC BYが求めるように、ライセンスと出典をそれぞれリンクにできます。
+
+```js no-check
+panel.credits = [
+  "旗：",
+  { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" },
+  "、",
+  { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/wiki/File:Flag_of_Saint_Barthelemy_(local).svg" },
+];
+```
+
+リンクになるのは、アドレスがhttp、https、またはページと同じサイトのものだけです。それ以外のアドレスは、テキストとして表示します。リンクは`credit-link`パーツで、クレジットは読者がコピーするコードには入りません。
+
 `generate`は、パネルに必ず必要なものです。いま表示しているタブのコードを返します。`preview`は絵 (ノード) を返します。何も返さなければ、iframeのタブはそのコードのiframeを自分で描くので、パッケージが書くのは動いている絵だけで足ります。パッケージ自身の選択 (見た目、色、切り替え) が変わったら、`panel.update()`を呼んでください。パネルはすべてを読み直し、絵は、見せるものが変わったときだけ作り直します。
 
 ## ページの作り方ごとのコード

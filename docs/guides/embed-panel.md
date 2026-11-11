@@ -50,6 +50,19 @@ What is in it, top to bottom:
 </script>
 ```
 
+The credit line can link what it names: give `credits` its pieces, a text or `{ text, href }`, or a function of the choices that returns them. A licence and its source can then each be a link, as CC BY asks:
+
+```js no-check
+panel.credits = [
+  "Flag: ",
+  { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" },
+  ", ",
+  { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/wiki/File:Flag_of_Saint_Barthelemy_(local).svg" },
+];
+```
+
+A link is kept only when its address is http, https or on the page's own site; any other address shows as its text. The links are the `credit-link` part, and the credit is never in the code the reader copies.
+
 `generate` is the one thing the panel cannot do without: it is the text of the tab shown. `preview` returns the picture (a node), or nothing: the iframe tab then draws the iframe of the text, so a package need only write its live picture. Call `panel.update()` whenever the package's own choices change (a look, a colour, a toggle); the panel reads everything again and rebuilds the picture only when what it shows has changed.
 
 ## The code for each way a page is made

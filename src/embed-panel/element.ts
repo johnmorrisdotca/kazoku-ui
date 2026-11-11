@@ -36,6 +36,26 @@ export interface EmbedChangeDetail {
 
 type Text = string | ((context: EmbedContext) => string);
 
+/**
+ * One piece of the credit line: a text, or a text that links (a licence, a source's page). A link's `href` is used only
+ * where it is http, https or an address on the page's own site; any other is shown as its text.
+ */
+export type CreditPart = string | { text: string; href: string };
+
+/** The credit line: a text, its pieces (some of them links), or a function of the choices that gives either. */
+export type Credits = string | readonly CreditPart[] | ((context: EmbedContext) => string | readonly CreditPart[]);
+
+/** A link's address when it is http, https or on the page's own site (a relative one resolves there); else null. */
+const safeHref = (href: unknown, base: string): string | null => {
+  if (typeof href !== "string" || href.trim() === "") return null;
+  try {
+    const url = new URL(href, base);
+    return url.protocol === "https:" || url.protocol === "http:" ? href : null;
+  } catch {
+    return null;
+  }
+};
+
 const SVG = "http://www.w3.org/2000/svg";
 
 function icon(doc: Document, path: string): SVGElement {
@@ -54,7 +74,7 @@ function icon(doc: Document, path: string): SVGElement {
  * `no-preview` (no picture), `heading` (show the shared heading), `search` / `no-search` (force the picker's search box on or off), `pick-label` (the picker's name), `address` (keep the tab and
  * the size in the address under `kind-key`, `embed`, and `size-key`, `size`; the starts are left off it), `lang` (`en` or `ja`), `theme` (`light` or `dark`).
  * Slots: `lede` (a line under the heading), `picker` (your own picker in place of the built-in one), `options` (your own choices between the size and the tabs), `actions` (more buttons
- * beside Copy: Save SVG, Download). Parts: `panel`, `title`, `picker`, `size`, `tabs`, `tab`, `preview`, `note`, `code`, `copy`, `open`, `docs`, `credits`.
+ * beside Copy: Save SVG, Download). Parts: `panel`, `title`, `picker`, `size`, `tabs`, `tab`, `preview`, `note`, `code`, `copy`, `open`, `docs`, `credits`, `credit-link`.
  * Custom properties: `--kazoku-preview-bg` (behind the picture, the page's surface by default), `--kazoku-preview-width` (the picture's column, 260px).
  */
 export class EmbedPanelElement extends HTMLElement {
@@ -73,7 +93,7 @@ export class EmbedPanelElement extends HTMLElement {
   #group = "";
   #generate: ((context: EmbedContext) => string) | undefined;
   #preview: ((context: EmbedContext) => Node | undefined) | undefined;
-  #credits: Text = "";
+  #credits: Credits = "";
   #note: Text = "";
   #labels: Record<string, string> = {};
   #words: Partial<PanelWords> = {};
@@ -174,8 +194,12 @@ export class EmbedPanelElement extends HTMLElement {
     this.update();
   }
 
-  /** The credit line shown under the code (and read by a screen reader): a text, or a function of the choices. */
-  set credits(credits: Text) {
+  /**
+   * The credit line shown under the code (and read by a screen reader): a text, its pieces with some of them links (the
+   * licence and the source each linked, `["Flag: ", { text: "CC BY 2.5", href }, ", ", { text: "Wikimedia Commons", href }]`),
+   * or a function of the choices that gives either. The credit is the page's, not part of the copied code.
+   */
+  set credits(credits: Credits) {
     this.#credits = credits;
     this.update();
   }
@@ -358,6 +382,31 @@ export class EmbedPanelElement extends HTMLElement {
 
   #text(text: Text, preview = false): string {
     return typeof text === "function" ? text({ kind: this.#kind, size: this.#size, preview }) : text;
+  }
+
+  /** The credit line's pieces as nodes: texts, and links where the address is http, https or the page's own site. */
+  #creditParts(): (string | HTMLAnchorElement)[] {
+    const given = typeof this.#credits === "function" ? this.#credits({ kind: this.#kind, size: this.#size, preview: false }) : this.#credits;
+    const parts = typeof given === "string" ? [given] : given;
+    const out: (string | HTMLAnchorElement)[] = [];
+    for (const part of parts) {
+      if (typeof part === "string") {
+        if (part !== "") out.push(part);
+        continue;
+      }
+      if (typeof part?.text !== "string" || part.text === "") continue;
+      const href = safeHref(part.href, this.ownerDocument.baseURI);
+      if (href === null) {
+        out.push(part.text);
+        continue;
+      }
+      const link = this.ownerDocument.createElement("a");
+      link.href = href;
+      link.textContent = part.text;
+      link.setAttribute("part", "credit-link");
+      out.push(link);
+    }
+    return out.some((one) => typeof one !== "string" || one.trim() !== "") ? out : [];
   }
 
   #build(): void {
@@ -552,9 +601,9 @@ export class EmbedPanelElement extends HTMLElement {
     const note = this.#text(this.#note);
     el["note"]!.textContent = note;
     el["note"]!.hidden = note === "";
-    const credits = this.#text(this.#credits);
-    el["credits"]!.textContent = credits === "" ? "" : `${words.credits}: ${credits}`;
-    el["credits"]!.hidden = credits === "";
+    const parts = this.#creditParts();
+    el["credits"]!.replaceChildren(...(parts.length === 0 ? [] : [`${words.credits}: `, ...parts]));
+    el["credits"]!.hidden = parts.length === 0;
     this.#links();
     this.#picture();
   }

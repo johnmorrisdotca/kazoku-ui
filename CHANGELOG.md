@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- **The embed panel's credit line can carry links** (KAZOKU-UI-134). `credits` also takes its pieces, a text or `{ text, href }`, or a function of the choices that returns them, so a licence and its source can each be a link (CC BY asks for the licence's address). A link is kept only for an http, https or same-site address; any other shows as its text. The links are the new `credit-link` part. A plain text works as before.
+- **Short status messages in Japanese end without 。** (KAZOKU-UI-132). The family template's builder said リンクをコピーしました。 ("Copied the link.") beside the panel's コピーしました ("Copied"); its two copy messages now end without 。, as the panel's do. `templates/family-template.mjs` is FAMILY_TEMPLATE_VERSION 2026-11-11b: a package takes it by copying it and recording its new hash.
+
 ## [0.38.1] - 2026-11-11
 
 - **A chosen pace of 1 is kept when the page starts at another** (KAZOKU-UI-133). The view controls left `pace` out of the address whenever it was 1, so on a page that starts elsewhere (chikyu's line globe opens at 1440, a day a minute) a reader's 1× was written as no pace and came back as the page's start. `formatAddress` takes the page's start pace (`startPace`, 1 by default) and leaves out only that, as it already did for the zoom and the direction; the element's start pace is its `pace` attribute as the page last set it, and a button press, which writes the attribute too, is the reader's choice and not a new start. Unit tests and an e2e.

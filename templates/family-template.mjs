@@ -46,7 +46,7 @@
 const OWNER = "johnmorrisdotca";
 
 /** The day this file was last changed, in every repository at once. A test records the file's hash beside it. */
-export const FAMILY_TEMPLATE_VERSION = "2026-11-11";
+export const FAMILY_TEMPLATE_VERSION = "2026-11-11b";
 
 /** The packages, in the order the footer lists them. `kana` is the name as it is written in Japanese. */
 export const FAMILY = [
@@ -479,9 +479,9 @@ export const FAMILY_EMBED_BUILDER_WORDS = {
     "reset": "元に戻す",
     "startAgain": "最初からやり直す",
     "copy": "コードをコピー",
-    "copied": "コピーしました。",
+    "copied": "コピーしました",
     "copyLink": "この設定へのリンクをコピー",
-    "linkCopied": "リンクをコピーしました。",
+    "linkCopied": "リンクをコピーしました",
     "codeTitle": "コード",
     "codeText": "ページへの埋め込み方法を選びます。",
     "onlyDifferent": "初期値と異なる選択だけがコードに含まれます。",

@@ -41,4 +41,5 @@ button.primary { background: var(--_accent); border-color: var(--_accent); color
 button.primary:hover:not(:disabled) { border-color: var(--_ink); }
 .status { font-weight: 400; font-size: 0.85rem; min-height: 1.2em; }
 .credits { margin: 0; font-weight: 400; font-size: 0.85rem; opacity: 0.85; }
+.credits a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 `;
