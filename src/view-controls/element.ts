@@ -13,7 +13,7 @@ import { turnOnlyInSight } from "./sight.ts";
 import "../speed-buttons/define.ts";
 import type { SpeedButtonsElement, SpeedChangeDetail } from "../speed-buttons/element.ts";
 import { EVENT as SPEED_EVENT } from "../speed-buttons/index.ts";
-import { nearestStep, parseSpeed, parseSteps } from "../speed-buttons/steps.ts";
+import { nearestStep, parseSpeed, parseSteps, speedValue } from "../speed-buttons/steps.ts";
 import { STYLES } from "./styles.ts";
 import { languageOf, type Language, type ViewWords, wordsFor } from "./words.ts";
 import { SNAP_PX, zoomAtPosition, type ZoomMark, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomToMark } from "./zoomScale.ts";
@@ -124,7 +124,7 @@ export class ViewControlsElement extends HTMLElement {
   #tiltWay: Direction = "right";
   #rollWay: Direction = "right";
   #writing = false;
-  /** The pace the page starts at: its `pace` attribute, as the page last set it (a button press writes the attribute too, and is not a start). */
+  /** The pace the page starts at: its `pace` attribute as the page last set it, unsnapped (a button press writes the attribute too, and is not a start). */
   #startPace: number | undefined;
   #labels: ViewWords = wordsFor("en");
   #said = "";
@@ -241,7 +241,7 @@ export class ViewControlsElement extends HTMLElement {
     }
     c.turnable = !this.hasAttribute("flat");
     this.#level = parseLevel(this.#remembered()) ?? parseLevel(this.getAttribute("controls")) ?? "basic";
-    this.#startPace ??= this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
+    this.#startPace ??= speedValue(this.getAttribute("pace")) ?? 1;
     this.#pace = this.#nearestPace(pace ?? parseSpeed(this.getAttribute("pace"), this.#paces()) ?? 1);
     // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
     const first = this.#start === undefined;
@@ -329,9 +329,8 @@ export class ViewControlsElement extends HTMLElement {
     }
     else if (name === "pace" || name === "paces") {
       this.#pace = this.#nearestPace(parseSpeed(this.getAttribute("pace"), this.#paces()) ?? this.#pace);
-      // The page set its pace: that is the start now (a button press sets the attribute while writing, and is the reader's choice). New paces move the start to the nearest of them.
-      if (name === "pace" && !this.#writing) this.#startPace = this.#pace;
-      else if (name === "paces" && this.#startPace !== undefined) this.#startPace = this.#nearestPace(this.#startPace);
+      // The page set its pace (or took it away: back to 1): that is the start now. A button press sets the attribute while writing, and is the reader's choice.
+      if (name === "pace" && !this.#writing) this.#startPace = value === null ? 1 : (speedValue(value) ?? this.#startPace);
       this.#speed();
       this.#show();
     }
@@ -847,7 +846,7 @@ export class ViewControlsElement extends HTMLElement {
         axis: this.#axis,
         tiltDirection: this.#tiltWay === "right" ? null : this.#tiltWay,
         rollDirection: this.#rollWay === "right" ? null : this.#rollWay,
-      }, this.#keys, s.turning, this.#ensure().startZoom, this.#startPace ?? 1);
+      }, this.#keys, s.turning, this.#ensure().startZoom, this.#nearestPace(this.#startPace ?? 1));
     });
   }
 }

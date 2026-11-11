@@ -222,6 +222,23 @@ test("a page that starts at another pace keeps a chosen 1 in the address, and on
   await addressCheck(warnings, () => expect(page).toHaveURL(/pace=2(&|$)/));
   await speed(page, 1).click();
   await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+  // a page that takes its pace away starts at 1 again
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("pace", "1440"), BAR);
+  await page.evaluate((tag) => document.querySelector(tag).removeAttribute("pace"), BAR);
+  await speed(page, 2).click();
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
+  // a start set before its step is among the paces is found again when the paces come
+  await page.evaluate((tag) => {
+    const el = document.querySelector(tag);
+    el.setAttribute("paces", "0.5 1 2");
+    el.setAttribute("pace", "1440");
+    el.setAttribute("paces", "0.5 1 2 1440");
+  }, BAR);
+  await speed(page, 1).click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/pace=1(&|$)/));
+  await speed(page, 1440).click();
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/pace=/));
 });
 
 test("a page that starts the turn to the left keeps Right in the address, and the labels are in Japanese too", async ({ page }) => {

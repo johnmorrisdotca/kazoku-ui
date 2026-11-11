@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { DEFAULT_STEPS, nearestStep, parseSpeed, parseSteps, speedText, startStep, stepFrom } from "../src/speed-buttons/steps.ts";
+import { DEFAULT_STEPS, nearestStep, parseSpeed, parseSteps, speedText, speedValue, startStep, stepFrom } from "../src/speed-buttons/steps.ts";
 import { WORDS, languageOf, wordsFor } from "../src/speed-buttons/words.ts";
 
 test("the steps are the numbers of a list, once each, in the order given", () => {
@@ -50,6 +50,10 @@ test("a single button that cycles goes round at both ends", () => {
 test("an address or attribute is a number nearest to a step, or one of the words of 0.12 and 0.13", () => {
   assert.equal(parseSpeed("2", [0.5, 1, 2]), 2);
   assert.equal(parseSpeed("3", [0.5, 1, 2]), 2);
+  assert.equal(speedValue("1440"), 1440, "the number itself, not moved to a step");
+  assert.equal(speedValue("fast"), 2);
+  assert.equal(speedValue("soon"), undefined);
+  assert.equal(speedValue(null), undefined);
   assert.equal(parseSpeed("fast", [0.5, 1, 2]), 2);
   assert.equal(parseSpeed("slow", [1, 10]), 1);
   assert.equal(parseSpeed("", [0.5, 1, 2]), undefined);

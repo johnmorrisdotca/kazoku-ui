@@ -55,10 +55,16 @@ export function stepFrom(value: number, steps: readonly number[], direction: 1 |
   return steps[(Math.max(from, 0) + direction + steps.length) % steps.length] as number;
 }
 
-/** What an address or attribute says: a number that is (or is nearest to) one of the steps. `undefined` when it is not a number at all. The words `slow`, `medium` and `fast` of the first view controls mean 0.5, 1 and 2. */
-export function parseSpeed(text: string | null | undefined, steps: readonly number[]): number | undefined {
+/** The number an address or attribute says, not moved to a step. `undefined` when it is not a number at all. The words `slow`, `medium` and `fast` of the first view controls mean 0.5, 1 and 2. */
+export function speedValue(text: string | null | undefined): number | undefined {
   if (text === null || text === undefined) return undefined;
   const word = { slow: 0.5, medium: 1, fast: 2 }[text.trim().toLowerCase() as "slow"];
   const value = word ?? number(text);
-  return Number.isFinite(value) ? nearestStep(value, steps) : undefined;
+  return Number.isFinite(value) ? value : undefined;
+}
+
+/** What an address or attribute says: a number that is (or is nearest to) one of the steps. `undefined` when it is not a number at all. The words `slow`, `medium` and `fast` of the first view controls mean 0.5, 1 and 2. */
+export function parseSpeed(text: string | null | undefined, steps: readonly number[]): number | undefined {
+  const value = speedValue(text);
+  return value === undefined ? undefined : nearestStep(value, steps);
 }
