@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.40.0] - 2026-11-11
+
 - **The family's readings switch has one spelling: `?readings=on`** (KAZOKU-UI-130). `@johnmorrisdotca/kazoku-ui/address-state` gains the key for a page's ふりがな (furigana, the small kana readings beside kanji): `READINGS_KEY` (`readings`), `readReadings({ search, storage })` (the address first, then a press kept on the device, else off), `readingsParams(on)` for the address, `keepReadings(on)` for the device (`kazoku-readings`), and `parseReadings`. The interface words gain `readings`: Readings, and ふりがな in Japanese. Each package draws its own switch with its display options, shows it only where there is kanji to read, keeps only a press on the device, and writes the choice to the address only while the switch is shown. The first user is hoshi-stars. Guides in English and Japanese, and unit tests.
 - **A pace read from the address is written to the view controls' `pace` attribute** (KAZOKU-UI-135). On a page with `pace="1440"`, a link with `?pace=1` opened on 1× but left the attribute saying 1440, so a page that reads the reader's choice there (as the docs say) had the wrong pace after a reload. The address's pace is now written to the attribute when the controls start, as a press is, and the page's own start stays the value the page set (so 1× is still kept in the address). Two e2e tests: a fresh element at 1440 opened with `?pace=1`, and the demo's own controls opened with `?pace=0.5`.
 
