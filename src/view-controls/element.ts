@@ -183,6 +183,16 @@ export class ViewControlsElement extends HTMLElement {
     this.#ensure().set(next);
   }
 
+  /** The share of the view's size it may move at any zoom, zoomed out too (see the `free-pan` attribute); `undefined` for none. */
+  get freePan(): number | undefined {
+    return this.#ensure().freePan;
+  }
+
+  set freePan(share: number | undefined | null) {
+    this.#ensure().freePan = share ?? undefined;
+    if (this.#ready) this.#show();
+  }
+
   /** The point the zoom buttons and keys zoom about: `{ x, y }` in CSS pixels from the view's middle when it is at Fit, moving with the picture. `undefined` zooms about the view's middle. The `anchor` attribute (`"x,y"`) sets the same. */
   get anchor(): Point | undefined {
     return this.#ensure().anchor;
@@ -288,7 +298,11 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
-    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size" || name === "free-pan") this.#option(name);
+    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
+    else if (name === "free-pan") {
+      this.#option(name);
+      if (this.#ready) this.#show();
+    }
     else if (name === "speed") {
       // The page's own start follows its speed's sign, unless the reader has chosen the other way.
       const start = this.#startDirection();
@@ -346,9 +360,9 @@ export class ViewControlsElement extends HTMLElement {
       const [w, h] = (value ?? "").trim().split(/[\s,x]+/).map(Number);
       c.objectSize = w !== undefined && w > 0 && Number.isFinite(w) ? { width: w, height: h !== undefined && h > 0 && Number.isFinite(h) ? h : w } : undefined;
     } else if (name === "free-pan") {
-      // bare: the middle may go to the edge of the view; a number is the share of the view's size, up to 4
-      const share = value === null ? Number.NaN : value.trim() === "" ? 0.5 : Number(value);
-      c.freePan = share > 0 && share <= 4 ? share : undefined;
+      // a share of the view's size from above 0 to 4; bare, or anything else, is 0.5 (the middle may go to the edge). Left out, no free pan.
+      const share = Number(value);
+      c.freePan = value === null ? undefined : share > 0 && share <= 4 ? share : 0.5;
     } else if (name === "grab-radius") c.grabRadius = value?.trim() === "fit" ? "fit" : Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
@@ -776,7 +790,8 @@ export class ViewControlsElement extends HTMLElement {
     more.setAttribute("aria-expanded", String(advanced));
     this.dataset.level = this.#level;
     for (const node of this.#root.querySelectorAll<HTMLElement>(".adv")) node.hidden = !advanced;
-    q<HTMLElement>('[data-g="pan"]').hidden = !advanced || (s.zoom <= ZOOMED && c.freePan === undefined);
+    const free = c.freePan !== undefined && c.freePan > 0 && Number.isFinite(c.freePan);
+    q<HTMLElement>('[data-g="pan"]').hidden = !advanced || (s.zoom <= ZOOMED && !free);
     // A flat view cannot turn: the angle, tilt, auto-turn and front are not shown, and a drag only moves.
     const flat = !c.turnable;
     for (const selector of [".angle", ".tilt", ".roll", ".play", '[data-g="axes"]']) q<HTMLElement>(selector).hidden = flat;

@@ -167,8 +167,16 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     return { width: r.width, height: r.height };
   };
 
+  /** The view may move at any zoom (`freePan` a share above 0). */
+  const isFree = (): boolean => {
+    const share = controller.freePan;
+    return share !== undefined && share > 0 && Number.isFinite(share);
+  };
+  /** A zoomed view, or one that may move at any zoom (a full-view explorer), takes every touch; at Fit the page may scroll. */
+  const touchAction = (): string => (state.zoom > ZOOMED || isFree() ? "none" : "pan-y");
+
   const emit = (final: boolean, reason: string): void => {
-    if (bound !== undefined) bound.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
+    if (bound !== undefined) bound.style.touchAction = touchAction();
     options.onChange?.({ ...state }, { final, reason });
   };
 
@@ -185,6 +193,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   const pose = (): void => {
     state.orientation = quatFromEuler(state.yaw, state.tilt, state.roll ?? 0);
   };
+
+  let freePan = options.freePan;
 
   const take = (next: Camera): void => {
     if (!stepping) stopCentre();
@@ -296,7 +306,13 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     tiltStep: options.tiltStep ?? 0,
     grabRadius: options.grabRadius ?? 0,
     objectSize: options.objectSize,
-    freePan: options.freePan,
+    get freePan() {
+      return freePan;
+    },
+    set freePan(share: number | undefined) {
+      freePan = share;
+      if (bound !== undefined) bound.style.touchAction = touchAction();
+    },
     get fitScale() {
       return fitScale;
     },
@@ -403,7 +419,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       centring = clock.request(step);
     },
     zoomAt(next, at, final = true) {
-      take(zoomAbout(camera(), next, fromMiddle(at), limits, controller.freePan !== undefined));
+      take(zoomAbout(camera(), next, fromMiddle(at), limits, isFree()));
       emit(final, "zoom");
     },
     zoomBy(factor, at) {
@@ -508,6 +524,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const onDown = (e: PointerEvent): void => {
       if (e.pointerType === "mouse" && e.button > 2) return;
       if (ignored(e)) return;
+      // the middle button moves the view: the browser's own autoscroll (Windows and Linux) would fight the drag
+      if (e.button === 1) e.preventDefault?.();
       grab();
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try {
@@ -532,6 +550,11 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       view.dataset.grab = "1";
     };
 
+    /** A middle-button press inside the view starts no autoscroll: it moves the view. */
+    const onMouseDown = (e: MouseEvent): void => {
+      if (e.button === 1 && !ignored(e)) e.preventDefault();
+    };
+
     const onMove = (e: PointerEvent): void => {
       const p = pointers.get(e.pointerId);
       if (p === undefined || gesture === undefined) return;
@@ -539,11 +562,11 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       p.y = e.clientY;
       if (gesture.kind === "pinch" && pointers.size >= 2) {
         const [a, b] = [...pointers.values()] as [Point, Point];
-        take(pinchTo(gesture.start, a, b, centre(), limits, controller.freePan !== undefined));
+        take(pinchTo(gesture.start, a, b, centre(), limits, isFree()));
         emit(false, "pinch");
       } else if (gesture.kind === "pan") {
         if (Math.abs(e.clientX - gesture.x) + Math.abs(e.clientY - gesture.y) > 3) gesture.moved = true;
-        if (state.zoom > 1 || controller.freePan !== undefined) {
+        if (state.zoom > 1 || isFree()) {
           take({ ...camera(), panX: gesture.camera.panX + (e.clientX - gesture.x), panY: gesture.camera.panY + (e.clientY - gesture.y) });
           emit(false, "drag");
         }
@@ -668,7 +691,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     doc.addEventListener?.("keydown", onSpace);
     doc.addEventListener?.("keyup", onSpace);
     view.addEventListener("contextmenu", onMenu);
-    view.style.touchAction = state.zoom > ZOOMED ? "none" : "pan-y";
+    view.addEventListener("mousedown", onMouseDown);
+    view.style.touchAction = touchAction();
     const unwatch = turnOnlyInSight(controller, view);
     const off = (): void => {
       unwatch();
@@ -683,6 +707,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       doc.removeEventListener?.("keydown", onSpace);
       doc.removeEventListener?.("keyup", onSpace);
       view.removeEventListener("contextmenu", onMenu);
+      view.removeEventListener("mousedown", onMouseDown);
       view.style.touchAction = "";
       release();
       if (bound === view) bound = undefined;

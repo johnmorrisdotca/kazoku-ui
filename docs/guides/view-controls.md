@@ -12,7 +12,7 @@ description: "The view-controls element in full: what the reader gets, every att
 ## What the reader gets
 
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
-- A plain left drag, and one finger, turn the view at every zoom (a finger does not tilt, so the page can still scroll at Fit); the hand never changes with the zoom. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again.
+- A plain left drag, and one finger, turn the view at every zoom (a finger does not tilt, so the page can still scroll at Fit); the hand never changes with the zoom. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again. With `free-pan` every one of these moves the view at any zoom, zoomed out too, and the view takes every touch.
 - **The turn speeds say how long one turn of the view takes.** They are the family's [speed buttons](speed-buttons.md) at paces of 0.125, 0.25, 0.5 and 1 times `speed`, and each shows its turn's time: 4 min, 2 min, 1 min, 30 s (4分 … 30秒 under 1周 in Japanese), and "The view turns once in 30 seconds" to a screen reader, so they cannot be taken for a clock's speed buttons and their `1×`. While the view turns in the basic level, one small button shows "One turn in" over the time and a press steps to the next. The choice is kept in the `pace` attribute and in the address as `?pace=0.5`. A page that wants faster turns names them in `paces` (`paces="1 4 8"`), and each still shows its time.
 - **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
@@ -51,7 +51,7 @@ Put the element on the view or right beside it, so it is on screen with the view
 | `roll` | Degrees about the forward axis, held to plus or minus `roll-max` (180). |
 | `orientation` | The pose as a quaternion `{ x, y, z, w }`. Draw this when a tumble rolls past a right angle, so the up axis does not flip. |
 | `zoom` | 0.1 to 50 (`zoom-min`, `zoom-max`): 1 is Fit. The scene is drawn at `zoom * fitScale`. |
-| `panX`, `panY` | CSS pixels the zoomed picture is moved from the middle of the view; 0 at 1x. |
+| `panX`, `panY` | CSS pixels the picture is moved from the middle of the view; 0 at 1x and below, unless `free-pan` is on. |
 | `turning` | True while Auto-turn is running. |
 | `final` | False for the steps of a drag, a pinch, a slider and the automatic turn; true when something settled. Do the costly drawing on `final`, the cheap transform on every event. |
 | `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `fit-scale`, `play`, `pause` or `set`. |
@@ -73,7 +73,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `stop-turn` | A press, the wheel or a key stops the automatic turn. Off by default; buttons and sliders never stop it. |
 | `tilt-step` | Round the tilt of a drag to a multiple of this many degrees. 0 by default: not rounded. |
 | `object-size` | `w,h`: the object's size at Fit in CSS pixels when it is smaller than the view; a pan then keeps at least a quarter of it in view. |
-| `free-pan` | The view moves at any zoom, zoomed out too, by up to this share of its size either way (bare is 0.5: the middle may go to the edge). For a 3D space whose zoom is far below 1, where the view would otherwise never move: a middle-button drag, Ctrl or Command and a drag, Space and a drag, and the wheel then move it at every zoom, and the pan pad is shown. Or set `element.freePan` (the controller's `freePan`). |
+| `free-pan` | The view moves at any zoom, zoomed out too, by up to this share of its size either way (bare is 0.5: the middle may go to the edge). Values above 0 up to 4; bare or anything else is 0.5. For a 3D space whose zoom is far below 1, where the view would otherwise never move. The view then takes every touch: a middle-button drag, Ctrl or Command and a drag, Space and a drag, and the wheel then move it at every zoom, and the pan pad is shown. Or set `element.freePan` (the controller's `freePan`). |
 | `grab-radius` | Exact grab for a globe or any turnable piece: its on-screen radius in CSS pixels at Fit, or `fit`. A drag then keeps the touched point under the pointer. |
 | `autoplay` | Turn by itself from the start, unless the reader prefers reduced motion. |
 | `autoplay-for` | Seconds of turning after which a turn stops by itself: the one `autoplay` starts, and one the Auto-turn button or `play()` starts. `play(seconds)` takes its own limit. |
@@ -152,7 +152,7 @@ Every interactive view in the family answers the same gestures, so a reader neve
 |---|---|
 | Drag | Turn (yaw), and tilt for a mouse, at every zoom; a flat view (it cannot turn) moves instead |
 | Shift and a drag, or a two-finger twist | Roll |
-| Ctrl or Command and a left drag, Space and a drag, the middle or right button and a drag, two fingers dragging together | Move (pan) a zoomed view |
+| Ctrl or Command and a left drag, Space and a drag, the middle or right button and a drag, two fingers dragging together | Move (pan) a zoomed view, or with `free-pan` a view at any zoom |
 | The wheel, Shift and the wheel, a two-finger swipe | Move a zoomed view (at Fit the page scrolls) |
 | Ctrl, Command or Alt with the wheel, a trackpad pinch, two fingers apart or together | Zoom about the pointer |
 | Arrows, `+` and `-` | Turn and tip, zoom |

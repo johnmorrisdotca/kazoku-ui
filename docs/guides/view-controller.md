@@ -49,7 +49,7 @@ The automatic turn is idle whenever nothing can see the view: while the element 
 
 ## Options and members
 
-`createViewController` takes `initial`, `turnable`, `speed`, `limits`, `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`, `objectSize`, `size`, `onChange` and `clock`. The `clock` is the one place time comes in: a test passes its own, so it turns the controller by hand.
+`createViewController` takes `initial`, `turnable`, `speed`, `limits`, `zoom` (`"fit"` or a number), `fitScale`, `ignore`, `anchor`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`, `objectSize`, `freePan`, `size`, `onChange` and `clock`. The `clock` is the one place time comes in: a test passes its own, so it turns the controller by hand.
 
 | Member | |
 |---|---|
@@ -61,7 +61,7 @@ The automatic turn is idle whenever nothing can see the view: while the element 
 | `panBy(stepsX, stepsY)` | Move by whole fractions of the view's size. |
 | `suspendTurn()`, `resumeTurn()`, `holdTurn()`, `releaseTurn()` | Pause the turn for a reason, counted, so they nest. |
 | `bind(view)`, `destroy()` | Attach the hands; let everything go. |
-| `anchor`, `ignore`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`, `objectSize` | Options you can also change at any time. |
+| `anchor`, `ignore`, `keyTilt`, `stopTurn`, `tiltStep`, `grabRadius`, `objectSize`, `freePan` | Options you can also change at any time. `freePan` (a share of the view's size above 0) lets the view move at any zoom, zoomed out too; the view then takes every touch. |
 | `fitScale`, `startZoom`, `setFitScale(n)`, `setStartZoom(zoom)` | What zoom 1 means, and where the view opens. |
 
 ## Buttons and links inside the view
