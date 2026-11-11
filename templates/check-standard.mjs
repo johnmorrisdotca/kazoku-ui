@@ -8,7 +8,7 @@
 //
 //   "family": { "notApplicable": { "angular": "a data package with no element", "embed": "no view to frame" } }
 //
-// The items: demo, pages, homepage, embed, embed-panel, page-frame, family-files, docs-site, ja-guides, usage-tested, usage-in-ci, and the README's (or a guide's) usage for script-tag,
+// The items: demo, pages, homepage, embed, embed-panel, page-frame, family-files, docs-site, ja-guides, usage-tested, usage-in-ci, data-door, playwright-image, and the README's (or a guide's) usage for script-tag,
 // esm, bundlers, react, vue, svelte, angular, iframe and typescript.
 import console from "node:console";
 import { createHash } from "node:crypto";
@@ -18,7 +18,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 /** The day this file was last changed, in every repository at once. A test in each repository records the file's hash beside it. */
-export const STANDARD_VERSION = "2026-11-11";
+export const STANDARD_VERSION = "2026-11-11b";
 
 const OWNER = "johnmorrisdotca";
 
@@ -55,6 +55,7 @@ export const ITEMS = {
   "usage-tested": "every example run by a test: a test:usage script in package.json and an examples/ folder",
   "usage-in-ci": "that test run in CI (.github/workflows/ci.yml names test:usage)",
   "data-door": "src/data-door.ts, when the package has one, is kazoku-ui's templates/data-door.ts unchanged (a package without it takes outside data in no way yet)",
+  "playwright-image": "every workflow that runs in Microsoft's Playwright image (mcr.microsoft.com/playwright:vX.Y.Z) names the version of @playwright/test the lockfile has, whose browsers the image carries",
   ...Object.fromEntries(Object.entries(USAGE).map(([id, one]) => [id, `the README or a guide shows ${one.label}`])),
 };
 
@@ -126,6 +127,21 @@ export function standardOf(root = ".") {
 
   const door = at(root, "src", "data-door.ts");
   need("data-door", !existsSync(door) || createHash("sha256").update(read(door)).digest("hex") === DATA_DOOR_SHA256, "src/data-door.ts differs from kazoku-ui's templates/data-door.ts: copy the template again, unchanged (the data door is the same file in every package)");
+
+  // A workflow that runs in Microsoft's Playwright image gets that version's browsers only: an image older or newer than
+  // the lockfile's @playwright/test fails with "Executable doesn't exist" before a test runs. The tag names the version.
+  const lock = existsSync(at(root, "pnpm-lock.yaml")) ? read(at(root, "pnpm-lock.yaml")) : "";
+  const playwright = /^\s*'?@playwright\/test'?:\s*\n\s*specifier:[^\n]*\n\s*version:\s*([0-9]+\.[0-9]+\.[0-9]+)/m.exec(lock)?.[1] ?? null;
+  const workflows = existsSync(at(root, ".github", "workflows")) ? readdirSync(at(root, ".github", "workflows")).filter((name) => /\.ya?ml$/.test(name)) : [];
+  const images = workflows.flatMap((name) => [...read(at(root, ".github", "workflows", name)).matchAll(/mcr\.microsoft\.com\/playwright:v([0-9]+\.[0-9]+\.[0-9]+)/g)].map((match) => ({ name, version: match[1] })));
+  const wrong = images.filter((one) => one.version !== playwright);
+  need(
+    "playwright-image",
+    wrong.length === 0,
+    playwright === null
+      ? `pnpm-lock.yaml names no version of @playwright/test, but ${[...new Set(wrong.map((one) => one.name))].join(", ")} run in Microsoft's Playwright image: add @playwright/test as a dev dependency, or run elsewhere`
+      : `set the Playwright image to mcr.microsoft.com/playwright:v${playwright}-noble, the lockfile's @playwright/test, in ${wrong.map((one) => `${one.name} (now v${one.version})`).join(", ")}`,
+  );
 
   const words = [readme, ...guides.map((name) => read(at(root, "docs", "guides", name)))].join("\n");
   for (const [item, one] of Object.entries(USAGE)) need(item, one.find.test(words), `show ${one.label} in the README or a guide, as a copy-paste example that a test runs`);

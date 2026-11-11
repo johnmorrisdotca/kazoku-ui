@@ -45,7 +45,8 @@ const FILES: Record<string, string> = {
   "docs/guides/ja/getting-started.md": "# はじめに",
   "examples/a.html": "<!doctype html>",
   ".github/workflows/pages.yml": "- uses: actions/deploy-pages@v5",
-  ".github/workflows/ci.yml": "- run: pnpm test:usage",
+  ".github/workflows/ci.yml": "    container:\n      image: mcr.microsoft.com/playwright:v1.64.1-noble\n    steps:\n      - run: pnpm test:usage",
+  "pnpm-lock.yaml": "importers:\n  .:\n    devDependencies:\n      '@playwright/test':\n        specifier: ^1.63.0\n        version: 1.64.1\n",
 };
 
 function make(change: (files: Record<string, string | null>) => void = () => undefined): string {
@@ -86,6 +87,7 @@ test("each item, taken away, is named, and only it", () => {
     "usage-tested": (files) => (files["examples/a.html"] = null),
     "usage-in-ci": (files) => (files[".github/workflows/ci.yml"] = "- run: pnpm check"),
     "data-door": (files) => (files["src/data-door.ts"] = readFileSync(new URL("../templates/data-door.ts", import.meta.url), "utf8") + "\n// changed"),
+    "playwright-image": (files) => (files[".github/workflows/ci.yml"] = (files[".github/workflows/ci.yml"] ?? "").replace("v1.64.1", "v1.63.0")),
     "script-tag": (files) => (files["README.md"] = README.replace(/jsdelivr/g, "cdn")),
     esm: (files) => (files["README.md"] = README.replace(/import \{ sample \} from "@johnmorrisdotca\/sample-pkg";/, "")),
     bundlers: (files) => (files["README.md"] = README.replace("Vite, webpack, ", "")),
@@ -112,6 +114,26 @@ test("the data door: a copy of the template passes, no copy is not asked for, a 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("the Playwright image: a tag the lockfile's @playwright/test has passes, another is named with both versions, and an image with no Playwright in the lockfile is named", () => {
+  const say = (change: (files: Record<string, string | null>) => void): string[] => {
+    const root = make(change);
+    try {
+      return standard.standardOf(root).missing.filter((one) => one.item === "playwright-image").map((one) => one.say);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  };
+  assert.deepEqual(say(() => undefined), []);
+  assert.deepEqual(say((files) => (files[".github/workflows/ci.yml"] = "- run: pnpm test:usage")), [], "no image, nothing to match");
+  const older = say((files) => (files[".github/workflows/docs.yml"] = "    container:\n      image: mcr.microsoft.com/playwright:v1.63.0-noble"));
+  assert.equal(older.length, 1);
+  assert.match(older[0] ?? "", /mcr\.microsoft\.com\/playwright:v1\.64\.1-noble/);
+  assert.match(older[0] ?? "", /docs\.yml \(now v1\.63\.0\)/);
+  assert.doesNotMatch(older[0] ?? "", /ci\.yml/, "the workflow that matches is not named");
+  const none = say((files) => (files["pnpm-lock.yaml"] = null));
+  assert.match(none[0] ?? "", /names no version of @playwright\/test/);
 });
 
 test("an item that cannot apply is exempt when package.json says why, and not when it does not", () => {

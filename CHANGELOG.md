@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The must-have list checks the Playwright image** (MODULES-1036, `templates/check-standard.mjs`, STANDARD_VERSION 2026-11-11b). A new item, `playwright-image`: every workflow that runs in `mcr.microsoft.com/playwright:vX.Y.Z` must name the version of `@playwright/test` that `pnpm-lock.yaml` has, since the image carries only that version's browsers. A bump of `@playwright/test` without the image now fails `pnpm check` with the tag to write (and each workflow's current one), instead of failing in CI with "Executable doesn't exist". A package with no such image passes; one with the image but no `@playwright/test` in its lockfile is told so. Packages take it by copying the file and recording its new hash.
+
 ## [0.38.1] - 2026-11-11
 
 - **A chosen pace of 1 is kept when the page starts at another** (KAZOKU-UI-133). The view controls left `pace` out of the address whenever it was 1, so on a page that starts elsewhere (chikyu's line globe opens at 1440, a day a minute) a reader's 1× was written as no pace and came back as the page's start. `formatAddress` takes the page's start pace (`startPace`, 1 by default) and leaves out only that, as it already did for the zoom and the direction; the element's start pace is its `pace` attribute as the page last set it, and a button press, which writes the attribute too, is the reader's choice and not a new start. Unit tests and an e2e.

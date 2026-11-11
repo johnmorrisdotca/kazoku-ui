@@ -23,6 +23,7 @@ node scripts/check-standard.mjs        # prints what is missing, exit 1; or "ok"
 | `ja-guides` | a Japanese twin in `docs/guides/ja/` for every guide, one language to a page |
 | `usage-tested` | an `examples/` folder and a `test:usage` script that builds, runs or type-checks every example |
 | `usage-in-ci` | `.github/workflows/ci.yml` runs `test:usage` |
+| `playwright-image` | every workflow that runs in Microsoft's Playwright image (`mcr.microsoft.com/playwright:vX.Y.Z-noble`) names the version of `@playwright/test` that `pnpm-lock.yaml` has, whose browsers the image carries; a bump of `@playwright/test` without the image fails here, with the tag to write, not in CI with "Executable doesn't exist" |
 | `script-tag`, `esm`, `bundlers`, `react`, `vue`, `svelte`, `angular`, `iframe`, `typescript` | the README or a guide shows it, as a copy-paste example that the test runs |
 
 ## When an item cannot apply
