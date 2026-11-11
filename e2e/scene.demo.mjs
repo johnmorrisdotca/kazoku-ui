@@ -19,6 +19,22 @@ const settle = async (page) => {
   await expect.poll(() => page.evaluate(() => window.kazokuDemo.renderer.scheduler.pending), { timeout: 30_000 }).toBe(false);
   await drainGpu(page);
 };
+/**
+ * The picture is on the screen: no frame waiting, the GPU caught up, and the page has presented two animation frames since, so a screenshot reads what was drawn and not
+ * the frame before it (KAZOKU-UI-109: on a loaded runner two pictures of a scene at rest differed once). Every wait is on what the page reports, none on a time.
+ */
+const shown = async (page) => {
+  await settle(page);
+  await page.evaluate(() => new Promise((done) => window.requestAnimationFrame(() => window.requestAnimationFrame(done))));
+  await settle(page);
+};
+/** Ask the view for another frame, wait for the page to say it drew one (the draw count rose), then until the picture is on the screen. */
+const redraw = async (page) => {
+  const before = (await readCounts(page)).draws;
+  await page.evaluate(() => window.kazokuDemo.view.invalidate());
+  await expect.poll(async () => (await readCounts(page)).draws, { timeout: 30_000 }).toBeGreaterThan(before);
+  await shown(page);
+};
 const focusOn = async (page, id) => {
   await page.locator(`[data-focus="${id}"]`).click();
   await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.focus)).toBe(id);
@@ -207,19 +223,17 @@ test("from 400 km above the Earth, the satellite and the Earth draw without flic
   await page.evaluate(() => window.kazokuDemo.clock.pause());
   // The camera at 400 km above the Earth's surface, looking at the Earth with the Moon beyond; and, close to the satellite, the satellite over the Earth.
   await page.evaluate(() => window.kazokuDemo.scene.camera.set({ focus: "earth", distanceKm: window.kazokuDemo.EARTH_KM + 400, tilt: 0, yaw: 0 }));
-  await settle(page);
+  await shown(page);
   const stage = page.locator('[data-testid="stage"]');
   const one = await stage.screenshot();
-  await page.evaluate(() => window.kazokuDemo.view.invalidate());
-  await settle(page);
+  await redraw(page);
   const two = await stage.screenshot();
   expect(Buffer.compare(one, two)).toBe(0);
   await focusOn(page, "satellite");
   await page.evaluate(() => window.kazokuDemo.scene.camera.set({ distanceKm: 0.3, tilt: 20, yaw: 40 }));
-  await settle(page);
+  await shown(page);
   const near = await stage.screenshot();
-  await page.evaluate(() => window.kazokuDemo.view.invalidate());
-  await settle(page);
+  await redraw(page);
   expect(Buffer.compare(near, await stage.screenshot())).toBe(0);
   const slices = await page.evaluate(() => window.kazokuDemo.scene.stats.slices.map((s) => s.ids));
   expect(slices.length).toBe(2);
@@ -278,7 +292,7 @@ test("what is drawn is really there: hiding the Earth, the stars or the satellit
   await ready(page);
   await page.evaluate(() => window.kazokuDemo.clock.pause());
   const stage = page.locator('[data-testid="stage"]');
-  const shot = async () => { await page.evaluate(() => window.kazokuDemo.view.invalidate()); await settle(page); return stage.screenshot(); };
+  const shot = async () => { await redraw(page); return stage.screenshot(); };
   const hide = (what) => page.evaluate((id) => {
     const { layers } = window.kazokuDemo;
     const layer = layers.find((l) => l.id === id);
