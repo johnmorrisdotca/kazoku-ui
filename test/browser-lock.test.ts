@@ -170,6 +170,7 @@ test("the command line shows who holds the lock and clears a stale one", async (
   const held = await status("status");
   assert.equal(held.code, 1);
   assert.match(held.out, new RegExp(`held by .+ pid ${holder.child.pid}`));
+  assert.match(held.out, /\nload: \d+\.\d \d+\.\d \d+\.\d \(1, 5 and 15 min\) on \d+ cores\n/, "the machine's load is shown beside the holder");
   assert.equal((await status("clear")).code, 1, "a running holder is not cleared");
   assert.equal(existsSync(file), true);
   holder.child.kill("SIGKILL");
