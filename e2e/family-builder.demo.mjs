@@ -11,14 +11,15 @@ const FORMATS = ["element", "iframe", "module", "react", "vue", "svelte", "angul
 /** The page's script: the panel defined before the builder mounts, or (`late`) after it. */
 const script = (late = false) => `
 ${late ? "" : 'import "./dist/embed-panel/define.js";\n'}import { familyEmbedBuilder, FAMILY_EMBED_BUILDER_WORDS } from "./family-embed-builder.js";
-const words = { en: { ...FAMILY_EMBED_BUILDER_WORDS.en, makerDial: "A dial", makerDialSays: "One dial." }, ja: { ...FAMILY_EMBED_BUILDER_WORDS.ja, makerDial: "ダイヤル", makerDialSays: "ダイヤルがひとつ。" } };
+const words = { en: { ...FAMILY_EMBED_BUILDER_WORDS.en, makerDial: "A dial", makerDialSays: "One dial.", makerBadge: "A badge", makerBadgeSays: "One badge." }, ja: { ...FAMILY_EMBED_BUILDER_WORDS.ja, makerDial: "ダイヤル", makerDialSays: "ダイヤルがひとつ。", makerBadge: "バッジ", makerBadgeSays: "バッジがひとつ。" } };
 let mounted;
 const page = globalThis.familyLanguage({ id: "kazoku-ui", words, onChange: () => mounted?.draw() });
 const options = [{ id: "size", kind: "choice", group: "look", names: { dial: "size" }, say: { en: { label: "Size", help: "How big the dial is." }, ja: { label: "大きさ", help: "ダイヤルの大きさです。" } }, default: "medium", choices: ["small", "medium", "large"] },
   { id: "label", kind: "text", group: "look", names: { dial: "label" }, say: { en: { label: "Label", help: "Words on the dial." }, ja: { label: "ラベル", help: "ダイヤルの文字です。" } } }];
 const builder = familyEmbedBuilder({ id: "kazoku-ui", packageName: "@scope/dial", major: "1", site: "https://example.com/dial/", title: "Dial", options, groups: { look: { en: "Look", ja: "見た目" } },
-  makers: { dial: { names: "dial", element: "dial", tag: "x-dial", embed: "embed.html", description: "makerDialSays", formats: ${JSON.stringify(FORMATS)}, width: 320, height: 320 } },
-  docsHref: "docs/", credits: "Dial drawn by the test." });
+  makers: { dial: { names: "dial", element: "dial", tag: "x-dial", embed: "embed.html", description: "makerDialSays", formats: ${JSON.stringify(FORMATS)}, width: 320, height: 320 },
+    badge: { names: "dial", element: "dial", tag: "x-badge", embed: "badge.html", description: "makerBadgeSays", formats: ["element", "iframe", "html"], width: 200, height: 200 } },
+  docsHref: "docs/", credits: ({ maker }) => "Dial drawn by the test." + (maker === "badge" ? " Badge by the test." : "") });
 mounted = builder.mount({ words, language: () => page, initial: { dial: {} }, renderPreview: ({ stage, attrs }) => {
   const dial = document.createElement("div");
   dial.dataset.testid = "dial";
@@ -26,6 +27,7 @@ mounted = builder.mount({ words, language: () => page, initial: { dial: {} }, re
   stage.append(dial);
   return { destroy() { dial.remove(); } };
 } });
+window.__mounted = mounted;
 ${late ? 'await import("./dist/embed-panel/define.js");\n' : ""}`;
 
 const PREVIEW_AND_CONTROLS = `
@@ -34,7 +36,7 @@ const PREVIEW_AND_CONTROLS = `
     <div id="bld-stage" data-testid="bld-stage"></div>
     <p id="bld-note" aria-live="polite"></p>
   </section>
-  <div id="bld-makers" role="group" data-say-label="makerLabel"><button type="button" data-maker="dial" data-say="makerDial"></button></div>
+  <div id="bld-makers" role="group" data-say-label="makerLabel"><button type="button" data-maker="dial" data-say="makerDial"></button><button type="button" data-maker="badge" data-say="makerBadge"></button></div>
   <p id="bld-maker-says"></p>
   <div id="bld-groups" data-testid="bld-groups"></div>`;
 
@@ -74,7 +76,7 @@ async function open(page, codeSection, hash = "", { late = false } = {}) {
   await page.route(at("family-embed-builder-page.js"), (route) => route.fulfill({ contentType: "text/javascript", body: script(late) }));
   await page.addInitScript(() => {
     window.__copied = [];
-    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => void window.__copied.push(text) } });
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { if (window.__refuse) throw new Error("refused"); window.__copied.push(text); } } });
   });
   await page.goto(`/family-builder-test.html${hash}`);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
@@ -155,6 +157,56 @@ test("Copy right after typing copies the code with what was typed, not the code 
   await panel(page).locator("[part=copy]").click();
   await expect.poll(() => page.evaluate(() => window.__copied.length)).toBe(1);
   expect((await page.evaluate(() => window.__copied))[0]).toContain('label="North"');
+});
+
+test("a choice that keeps the formats and the language does not set the panel's tab names or language again, so the panel draws once", async ({ page }) => {
+  await open(page, WITH_PANEL);
+  await panel(page).evaluate((el) => {
+    window.__sets = { labels: 0, lang: 0 };
+    const own = Object.getPrototypeOf(el);
+    const labels = Object.getOwnPropertyDescriptor(own, "labels");
+    Object.defineProperty(el, "labels", { configurable: true, get: () => labels.get.call(el), set: (value) => { window.__sets.labels += 1; labels.set.call(el, value); } });
+    const setAttribute = el.setAttribute.bind(el);
+    el.setAttribute = (name, value) => { if (name === "lang") window.__sets.lang += 1; setAttribute(name, value); };
+  });
+  await page.getByTestId("bld-groups").getByRole("button", { name: "large", exact: true }).click();
+  await expect(code(page)).toContainText('size="large"');
+  expect(await page.evaluate(() => window.__sets), "neither is set again for a choice").toEqual({ labels: 0, lang: 0 });
+  // a change of language sets them once
+  await page.evaluate(() => document.dispatchEvent(new window.CustomEvent("kazoku-languagechange", { detail: { lang: "ja" } })));
+  await expect(panel(page).getByRole("tab").first()).toHaveText("カスタム要素");
+  expect(await page.evaluate(() => window.__sets)).toEqual({ labels: 1, lang: 1 });
+});
+
+test("a maker with other formats changes the tabs and keeps a tab that exists; credits given as a function follow the maker", async ({ page }) => {
+  await open(page, WITH_PANEL);
+  await tab(page, "React 19").click();
+  await expect(panel(page).locator("[part=credits]")).not.toContainText("Badge");
+  await page.locator('#bld-makers [data-maker="badge"]').click();
+  await expect(panel(page).getByRole("tab")).toHaveText(["Custom element", "iframe", "Plain HTML"]);
+  await expect(tab(page, "Custom element")).toHaveAttribute("aria-selected", "true");
+  await expect(code(page)).toContainText("<x-badge");
+  await expect(panel(page).locator("[part=credits]")).toContainText("Badge by the test.");
+  await expect(panel(page).locator("[part=open]")).toHaveAttribute("href", "badge.html");
+});
+
+test("when the browser will not copy, the panel says to copy by hand", async ({ page }) => {
+  await open(page, WITH_PANEL);
+  await page.evaluate(() => (window.__refuse = true));
+  await panel(page).locator("[part=copy]").click();
+  await expect(panel(page).locator(".status")).toHaveText("Select the code and copy it by hand.");
+  expect(await page.evaluate(() => window.__copied)).toEqual([]);
+});
+
+test("after destroy() the builder no longer follows the panel: a tab press leaves the address alone", async ({ page }) => {
+  await open(page, WITH_PANEL);
+  await tab(page, "Vue").click();
+  await expect.poll(() => new URL(page.url()).hash).toContain("show=vue");
+  const kept = new URL(page.url()).hash;
+  await page.evaluate(() => window.__mounted.destroy());
+  await tab(page, "Svelte").click();
+  await expect(tab(page, "Svelte")).toHaveAttribute("aria-selected", "true");
+  expect(new URL(page.url()).hash, "no listener of the builder is left").toBe(kept);
 });
 
 test("a builder page with the old code section keeps it: the tabs, the code and Copy work as before", async ({ page }) => {
