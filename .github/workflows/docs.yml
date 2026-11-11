@@ -23,5 +23,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
-      - run: pnpm exec playwright install --with-deps chromium
+      - uses: ./.github/actions/playwright
+        with:
+          browsers: chromium
       - run: pnpm test:readme
