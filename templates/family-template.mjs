@@ -716,15 +716,21 @@ export function familyEmbedBuilder(config) {
     /** The family's embed panel, when the page has one (`<kazoku-embed-panel id="bld-embed">`): it draws the tabs, the code, Copy, the embed page, the docs and the credit. Without it the page's own code section is used. */
     const panel = $("bld-embed");
     let panelKinds = "";
+    let panelLang = "";
 
     function drawPanel() {
       const formats = spec().formats;
+      // the tabs, their names and the language are set only when they change, so a choice re-renders the panel once
       if (panelKinds !== formats.join(" ")) {
         panelKinds = formats.join(" ");
         panel.kinds = formats;
+        panelLang = "";
       }
-      panel.labels = Object.fromEntries(formats.map((name) => [name, formatList[name].label[page.lang]]));
-      panel.setAttribute("lang", page.lang);
+      if (panelLang !== page.lang) {
+        panelLang = page.lang;
+        panel.labels = Object.fromEntries(formats.map((name) => [name, formatList[name].label[page.lang]]));
+        panel.setAttribute("lang", page.lang);
+      }
       if (panel.kind !== format) panel.kind = format;
       // links as attributes and update only once the tag is defined: the page may define the panel after the builder mounts, and the panel reads all of it when it comes up
       panel.setAttribute("open-href", api.embedAddress(optionList, settings, maker) ?? "");
