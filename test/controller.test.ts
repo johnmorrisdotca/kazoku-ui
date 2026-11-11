@@ -863,3 +863,25 @@ test("the turn is gentle unless a page asks: 12 degrees a second, one turn in 30
   for (let i = 0; i < 10; i++) clock.step(100);
   assert.ok(Math.abs(view.state.yaw - 12) < 0.5, String(view.state.yaw));
 });
+
+test("with freePan a middle-button drag moves the view zoomed out as well as zoomed in, and the pan pad is not needed to get there", () => {
+  for (const zoom of [0.0051, 0.23, 2]) {
+    const { view } = make({ freePan: 0.5, limits: { zoomMin: 0.0001 } });
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    view.set({ zoom });
+    hands.press(10, 10, 1);
+    hands.move(60, 40);
+    hands.release();
+    assert.deepEqual([view.state.panX, view.state.panY], [50, 30], `at ${zoom}x the drag moves the view`);
+    assert.deepEqual([view.state.yaw, view.state.tilt], [0, 0], "and does not turn it");
+  }
+  const { view } = make({ limits: { zoomMin: 0.0001 } });
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  view.set({ zoom: 0.23 });
+  hands.press(10, 10, 1);
+  hands.move(60, 40);
+  hands.release();
+  assert.deepEqual([view.state.panX, view.state.panY], [0, 0], "without freePan a zoomed-out view stays in the middle, as before");
+});

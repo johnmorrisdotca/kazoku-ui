@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A view can move at any zoom: `free-pan`** (MODULES-991, the kazoku-ui part). John could not move wakusei's space view at all: the controls held the pan at zero below zoom 1 (a view at or below Fit counted as not zoomed), and a space view's zoom is almost always far below 1 (0.23x, 0.0051x). With `free-pan` (bare, or a share of the view's size: 0.5 lets the middle go to the edge) or `freePan` on the controller, a middle-button drag, Ctrl or Command and a drag, Space and a drag, a two-finger pinch and the wheel move the view at every zoom, zooming keeps the point under the pointer instead of snapping back to the middle, and the pan pad is shown. Without it nothing changes. Unit tests for the clamp, the zoom and the drag, and an e2e with a real middle button zoomed out and in. A package takes it by setting the attribute (wakusei-planets' space view next).
+
 ## [0.37.0] - 2026-11-11
 
 - **The address keeps the last choice** (KAZOKU-UI-113). Two ways a choice could miss the address are closed: the view controls taken off the page (or moved by a layout) within the quarter-second wait dropped the choice still waiting, and now write it as they leave; and a write the page refused (Safari refuses more than a hundred address changes in thirty seconds) was lost, and is now tried once more a second later, then given up with one console warning and no timer left (`createAddressWriter`, and so `createAddressState` and every element that keeps its choice in the address). Unit tests and an e2e that failed first; the speed-button test prints the page's console warnings when its address check fails. Seen once in a full run as `pace=0.5` left in the address; not reproduced in 30 runs alone, so that run's cause is not proven to be either.

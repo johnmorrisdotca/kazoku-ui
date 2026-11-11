@@ -57,6 +57,8 @@ export interface ViewControllerOptions {
   grabRadius?: number | "fit";
   /** The object's size at Fit in CSS pixels, when it is smaller than the view: a pan then keeps at least a quarter of it in view (see `clampPan`). Left out, the object is the picture, which covers the view. */
   objectSize?: Size;
+  /** Let the view move at any zoom, zoomed out too, by up to this share of its size either way (0.5: the middle may go to the edge). For a 3D space whose zoom is far below 1. Left out, the view moves only once zoomed in, and only as far as `clampPan` allows. */
+  freePan?: number;
   /** The view's size in CSS pixels, for holding the pan; `bind` gives it from the element when this is left out. */
   size?: () => Size | undefined;
   onChange?: (state: ViewState, info: ChangeInfo) => void;
@@ -86,6 +88,8 @@ export interface ViewController {
   grabRadius: number | "fit";
   /** The object's size at Fit (see `ViewControllerOptions.objectSize`). Can be changed at any time. */
   objectSize: Size | undefined;
+  /** The share of the view's size it may move at any zoom (see `ViewControllerOptions.freePan`); `undefined` for none. Can be changed at any time. */
+  freePan: number | undefined;
   /** What zoom 1 means to the page (see `ViewControllerOptions.fitScale`). */
   readonly fitScale: number;
   /** The `state.zoom` the view opens at: 1 for "fit", else the starting scale divided by `fitScale`. The address leaves a zoom at this value out. */
@@ -186,7 +190,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     if (!stepping) stopCentre();
     const rollMax = limits.rollMax;
     const roll = clamp(wrapYaw(next.roll ?? state.roll ?? 0), -rollMax, rollMax);
-    const held = clampPan({ ...next, roll, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size(), controller.objectSize);
+    const held = clampPan({ ...next, roll, zoom: clamp(next.zoom, limits.zoomMin, limits.zoomMax), tilt: clamp(next.tilt, -limits.tiltMax, limits.tiltMax) }, size(), controller.objectSize, controller.freePan);
     state.yaw = controller.turnable ? wrapYaw(held.yaw) : state.yaw;
     state.tilt = controller.turnable ? held.tilt : state.tilt;
     state.roll = controller.turnable ? roll : state.roll;
@@ -292,6 +296,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     tiltStep: options.tiltStep ?? 0,
     grabRadius: options.grabRadius ?? 0,
     objectSize: options.objectSize,
+    freePan: options.freePan,
     get fitScale() {
       return fitScale;
     },
@@ -398,7 +403,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       centring = clock.request(step);
     },
     zoomAt(next, at, final = true) {
-      take(zoomAbout(camera(), next, fromMiddle(at), limits));
+      take(zoomAbout(camera(), next, fromMiddle(at), limits, controller.freePan !== undefined));
       emit(final, "zoom");
     },
     zoomBy(factor, at) {
@@ -534,11 +539,11 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       p.y = e.clientY;
       if (gesture.kind === "pinch" && pointers.size >= 2) {
         const [a, b] = [...pointers.values()] as [Point, Point];
-        take(pinchTo(gesture.start, a, b, centre(), limits));
+        take(pinchTo(gesture.start, a, b, centre(), limits, controller.freePan !== undefined));
         emit(false, "pinch");
       } else if (gesture.kind === "pan") {
         if (Math.abs(e.clientX - gesture.x) + Math.abs(e.clientY - gesture.y) > 3) gesture.moved = true;
-        if (state.zoom > 1) {
+        if (state.zoom > 1 || controller.freePan !== undefined) {
           take({ ...camera(), panX: gesture.camera.panX + (e.clientX - gesture.x), panY: gesture.camera.panY + (e.clientY - gesture.y) });
           emit(false, "drag");
         }
@@ -614,7 +619,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         controller.zoomAt(state.zoom * factor, { x: e.clientX, y: e.clientY });
         return;
       }
-      const next = clampPan({ ...camera(), panX: state.panX + asked.panX, panY: state.panY + asked.panY }, size(), controller.objectSize);
+      const next = clampPan({ ...camera(), panX: state.panX + asked.panX, panY: state.panY + asked.panY }, size(), controller.objectSize, controller.freePan);
       const moved = next.panX !== state.panX || next.panY !== state.panY;
       if (!moved && !continuing) return;
       e.preventDefault();

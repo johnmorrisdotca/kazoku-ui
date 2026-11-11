@@ -60,23 +60,27 @@ export const clamp = (value: number, low: number, high: number): number => Math.
 /** An angle brought into [-180, 180). */
 export const wrapYaw = (angle: number): number => ((((angle + 180) % 360) + 360) % 360) - 180;
 
-/** Zoom to `next` (held between the limits) keeping the point `at` (pixels from the view's middle) where it is. */
-export function zoomAbout(camera: Camera, next: number, at: Point, limits: Limits = DEFAULT_LIMITS): Camera {
+/** Zoom to `next` (held between the limits) keeping the point `at` (pixels from the view's middle) where it is. At Fit or below the view goes back to the middle, unless it may move at any zoom (`free`). */
+export function zoomAbout(camera: Camera, next: number, at: Point, limits: Limits = DEFAULT_LIMITS, free = false): Camera {
   const zoom = clamp(next, limits.zoomMin, limits.zoomMax);
   const k = zoom / camera.zoom;
-  const atOne = zoom <= 1;
+  const atOne = zoom <= 1 && !free;
   return { ...camera, zoom, panX: atOne ? 0 : at.x - (at.x - camera.panX) * k, panY: atOne ? 0 : at.y - (at.y - camera.panY) * k };
 }
 
 /**
  * Hold the pan so the object cannot be lost. By default the object is the picture, which fills the view at Fit: at zoom z it may move (z - 1) / 2 of the view's size either way, so the picture still covers the view.
  * A page whose object is smaller than the view gives its `object` (its size at Fit, in CSS pixels): it may then move until a quarter of it is still in view, in a view of any size, so it can never be dragged out.
+ * A page that may be moved at any zoom (a 3D space whose zoom is far below 1) gives `free`, a share of the view's size: the view may then move that share of its width and height either way at
+ * every zoom, zoomed out too, and never less than the room above.
  */
-export function clampPan(camera: Camera, size: Size | undefined, object?: Size): Camera {
-  if (camera.zoom <= 1) return { ...camera, panX: 0, panY: 0 };
+export function clampPan(camera: Camera, size: Size | undefined, object?: Size, free?: number): Camera {
+  const loose = free !== undefined && free > 0 && Number.isFinite(free);
+  if (camera.zoom <= 1 && !loose) return { ...camera, panX: 0, panY: 0 };
   if (size === undefined) return camera;
-  const roomX = object === undefined ? (size.width * (camera.zoom - 1)) / 2 : size.width / 2 + (object.width * camera.zoom) / 4;
-  const roomY = object === undefined ? (size.height * (camera.zoom - 1)) / 2 : size.height / 2 + (object.height * camera.zoom) / 4;
+  const zoomed = camera.zoom > 1;
+  const roomX = Math.max(zoomed ? (object === undefined ? (size.width * (camera.zoom - 1)) / 2 : size.width / 2 + (object.width * camera.zoom) / 4) : 0, loose ? size.width * free : 0);
+  const roomY = Math.max(zoomed ? (object === undefined ? (size.height * (camera.zoom - 1)) / 2 : size.height / 2 + (object.height * camera.zoom) / 4) : 0, loose ? size.height * free : 0);
   return { ...camera, panX: clamp(camera.panX, -roomX, roomX), panY: clamp(camera.panY, -roomY, roomY) };
 }
 
@@ -89,12 +93,12 @@ export interface PinchStart {
   angle?: number;
 }
 
-/** The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels. */
-export function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits: Limits = DEFAULT_LIMITS): Camera {
+/** The camera for two fingers now at `a` and `b`: zoom by the change of distance about where the pinch began, the middle of the fingers drags the view, and a twist rolls about the view axis. `centre` is the view's middle in client pixels. `free`: the view may move at any zoom, so the fingers drag it zoomed out too. */
+export function pinchTo(start: PinchStart, a: Point, b: Point, centre: Point, limits: Limits = DEFAULT_LIMITS, free = false): Camera {
   const distance = Math.hypot(a.x - b.x, a.y - b.y) || 1;
   const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  const zoomed = zoomAbout(start.camera, start.camera.zoom * (distance / start.distance), { x: start.middle.x - centre.x, y: start.middle.y - centre.y }, limits);
-  const placed = zoomed.zoom <= 1 ? zoomed : { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
+  const zoomed = zoomAbout(start.camera, start.camera.zoom * (distance / start.distance), { x: start.middle.x - centre.x, y: start.middle.y - centre.y }, limits, free);
+  const placed = zoomed.zoom <= 1 && !free ? zoomed : { ...zoomed, panX: zoomed.panX + (middle.x - start.middle.x), panY: zoomed.panY + (middle.y - start.middle.y) };
   if (start.angle === undefined) return placed;
   let turned = Math.atan2(b.y - a.y, b.x - a.x) - start.angle;
   if (turned > Math.PI) turned -= 2 * Math.PI;

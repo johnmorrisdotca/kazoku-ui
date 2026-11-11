@@ -198,3 +198,18 @@ test("readLimits reads the four attributes over a base and ignores what is not a
   assert.equal(readLimits(attrs({ "zoom-min": "0.5", "zoom-max": "0.2" })).zoomMax, 0.5, "the top is never under the bottom");
   assert.equal(readLimits(attrs({ "zoom-min": "1", "zoom-max": "5" })).zoomMax, 5, "a page that passes the old range keeps it");
 });
+
+test("a view that may move at any zoom (free) moves zoomed out too, up to that share of its size, and zooming keeps its place", () => {
+  const start: Camera = { yaw: 0, tilt: 0, zoom: 0.005, panX: 0, panY: 0 };
+  const size = { width: 400, height: 300 };
+  assert.deepEqual([clampPan({ ...start, panX: 120, panY: -90 }, size).panX, clampPan({ ...start, panX: 120, panY: -90 }, size).panY], [0, 0], "without it, no move below Fit");
+  const held = clampPan({ ...start, panX: 900, panY: -900 }, size, undefined, 0.5);
+  assert.deepEqual([held.panX, held.panY], [200, -150], "half the view's width and height either way");
+  assert.deepEqual([clampPan({ ...start, panX: 120, panY: -90 }, size, undefined, 0.5).panX], [120]);
+  // zoomed in further than the share allows, the zoom's own room still holds
+  assert.equal(clampPan({ ...start, zoom: 4, panX: 900 }, size, undefined, 0.5).panX, 600);
+  // a step of the wheel zoomed out keeps the point under the pointer, not the middle
+  const z = zoomAbout({ ...start, panX: 100, panY: 0 }, 0.0025, { x: 0, y: 0 }, { ...DEFAULT_LIMITS, zoomMin: 0.0001 }, true);
+  assert.deepEqual([z.panX, z.panY], [50, 0]);
+  assert.deepEqual([zoomAbout({ ...start, panX: 100 }, 0.0025, { x: 0, y: 0 }, { ...DEFAULT_LIMITS, zoomMin: 0.0001 }).panX], [0], "without it, back to the middle");
+});

@@ -76,3 +76,35 @@ test("exact grab can aim at a point of the picture: the drag starts there and on
   await checkExactGrab(page, { view: "#scene", picture: "#globe", radius: 120, aim: [0.58, 0.5], span: 0.1 });
   await checkExactGrab(page, { view: "#scene", picture: "#globe", radius: 120, window: [0.45, 0.55, 0.45, 0.55] });
 });
+
+test("with free-pan a middle-button drag moves the view zoomed out as well as zoomed in; without it a zoomed-out view stays put", async ({ page, browserName }, info) => {
+  test.skip(info.project.name.includes("phone"), "a middle button is a desk pointer's");
+  await ready(page);
+  const controls = page.locator("#controls");
+  const scene = page.locator("#scene");
+  const box = await scene.boundingBox();
+  const middleDrag = async () => {
+    const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down({ button: "middle" });
+    for (let i = 1; i <= 10; i += 1) await page.mouse.move(at.x + 4 * i, at.y + 3 * i);
+    await page.mouse.up({ button: "middle" });
+  };
+  // the pan the controls report, read after they have told the page about it
+  const panOf = () => controls.evaluate((el) => [Math.round(el.state.panX), Math.round(el.state.panY)]);
+  await controls.evaluate((el) => {
+    el.setAttribute("zoom-min", "0.001");
+    el.setAttribute("free-pan", "");
+  });
+  for (const zoom of [0.0051, 0.23, 2]) {
+    await controls.evaluate((el, z) => el.set({ zoom: z, panX: 0, panY: 0 }), zoom);
+    await middleDrag();
+    await expect.poll(panOf, { message: `a middle-button drag moves the view at ${zoom}x` }).toEqual([40, 30]);
+  }
+  await controls.evaluate((el) => {
+    el.removeAttribute("free-pan");
+    el.set({ zoom: 0.23, panX: 0, panY: 0 });
+  });
+  await middleDrag();
+  expect(await panOf(), `without free-pan (${browserName}) a zoomed-out view stays in the middle`).toEqual([0, 0]);
+});
