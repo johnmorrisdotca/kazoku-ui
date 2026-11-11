@@ -885,3 +885,54 @@ test("with freePan a middle-button drag moves the view zoomed out as well as zoo
   hands.release();
   assert.deepEqual([view.state.panX, view.state.panY], [0, 0], "without freePan a zoomed-out view stays in the middle, as before");
 });
+
+test("with freePan the wheel, a pinch and the zoom keys move a zoomed-out view, every touch is the view's, and a middle press starts no autoscroll", () => {
+  const zoomedOut = (freePan?: number) => {
+    const { view } = make({ ...(freePan === undefined ? {} : { freePan }), limits: { zoomMin: 0.0001 } });
+    const hands = fakeBound();
+    view.bind(hands.fakeView);
+    view.set({ zoom: 0.23 });
+    return { view, hands, style: (hands.fakeView as unknown as { style: { touchAction?: string } }).style };
+  };
+  // the plain wheel moves it, where without freePan it leaves a zoomed-out view (and the page scrolls)
+  const wheel = zoomedOut(0.5);
+  wheel.hands.wheel({ deltaY: 40 });
+  assert.notEqual(wheel.view.state.panY, 0, "the wheel moves a zoomed-out view");
+  const still = zoomedOut();
+  still.hands.wheel({ deltaY: 40 });
+  assert.equal(still.view.state.panY, 0, "without freePan it stays");
+  // two fingers moving together carry the view zoomed out
+  const pinch = zoomedOut(0.5);
+  pinch.hands.pointer("pointerdown", 1, 100, 100);
+  pinch.hands.pointer("pointerdown", 2, 200, 100);
+  pinch.hands.pointer("pointermove", 1, 130, 120);
+  pinch.hands.pointer("pointermove", 2, 230, 120);
+  pinch.hands.pointer("pointerup", 1, 130, 120);
+  pinch.hands.pointer("pointerup", 2, 230, 120);
+  assert.deepEqual([Math.round(pinch.view.state.panX), Math.round(pinch.view.state.panY)], [30, 20], "two fingers move it");
+  // the zoom keys keep the place: the view zooms about its middle and the pan scales with it, not back to the middle
+  const keys = zoomedOut(0.5);
+  keys.view.set({ panX: 40, panY: 0 });
+  keys.hands.key("-");
+  assert.ok(keys.view.state.zoom < 0.23 && keys.view.state.panX > 0, `- zooms out and keeps the place (${keys.view.state.panX})`);
+  const keysStill = zoomedOut();
+  keysStill.view.set({ panX: 40 });
+  keysStill.hands.key("-");
+  assert.equal(keysStill.view.state.panX, 0, "without freePan the view goes back to the middle");
+  // a full-view explorer takes every touch, zoomed out too, so a two-finger move is never a page scroll
+  assert.equal(zoomedOut(0.5).style.touchAction, "none");
+  assert.equal(zoomedOut().style.touchAction, "pan-y");
+  // a middle press is the view's: the browser's autoscroll is not started
+  const middle = zoomedOut(0.5);
+  let prevented = false;
+  middle.hands.press(10, 10, 1, { preventDefault: () => (prevented = true) });
+  assert.equal(prevented, true);
+  // freePan 0, NaN or Infinity set from code is no free pan at all
+  for (const share of [0, Number.NaN, Number.POSITIVE_INFINITY]) {
+    const bad = zoomedOut(share);
+    bad.hands.press(10, 10, 1, { preventDefault: () => undefined });
+    bad.hands.move(60, 40);
+    bad.hands.release();
+    assert.deepEqual([bad.view.state.panX, bad.view.state.panY], [0, 0], `freePan ${share} does not move a zoomed-out view`);
+  }
+});

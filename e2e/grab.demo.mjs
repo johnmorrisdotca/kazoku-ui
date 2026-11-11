@@ -105,6 +105,63 @@ test("with free-pan a middle-button drag moves the view zoomed out as well as zo
     el.removeAttribute("free-pan");
     el.set({ zoom: 0.23, panX: 0, panY: 0 });
   });
+  // the drag is proved to have run (the scene saw the middle button come up) before the pan is read
+  await scene.evaluate((el) => {
+    window.__ups = 0;
+    el.addEventListener("pointerup", (event) => event.button === 1 && (window.__ups += 1));
+  });
   await middleDrag();
+  await expect.poll(() => page.evaluate(() => window.__ups)).toBe(1);
   expect(await panOf(), `without free-pan (${browserName}) a zoomed-out view stays in the middle`).toEqual([0, 0]);
+});
+
+test("free-pan reads a share from 0 to 4, takes 0.5 for a bare or wrong value, and shows the pan pad zoomed out", async ({ page }) => {
+  await ready(page);
+  const controls = page.locator("#controls");
+  const read = (value) =>
+    controls.evaluate((el, v) => {
+      if (v === null) el.removeAttribute("free-pan");
+      else el.setAttribute("free-pan", v);
+      return el.freePan ?? null;
+    }, value);
+  expect(await read("")).toBe(0.5);
+  expect(await read("0.25")).toBe(0.25);
+  expect(await read("4")).toBe(4);
+  for (const wrong of ["abc", "-1", "0", "9"]) expect(await read(wrong), `free-pan="${wrong}"`).toBe(0.5);
+  expect(await read(null)).toBe(null);
+  // the pan pad sits in More: hidden at a zoom below Fit, shown once free-pan is on, hidden again without it
+  await controls.evaluate((el) => el.set({ zoom: 0.5 }));
+  await page.locator('kazoku-view-controls [data-b="more"]').click();
+  const pad = page.locator('kazoku-view-controls [data-g="pan"]');
+  await expect(pad).toBeHidden();
+  await read("");
+  await expect(pad).toBeVisible();
+  await read(null);
+  await expect(pad).toBeHidden();
+});
+
+test("on a phone, with free-pan, two fingers dragging together move a zoomed-out view, and the view takes every touch", async ({ page }, info) => {
+  test.skip(!info.project.name.includes("phone"), "two fingers are a phone's");
+  await ready(page);
+  const controls = page.locator("#controls");
+  await controls.evaluate((el) => {
+    el.setAttribute("zoom-min", "0.001");
+    el.setAttribute("free-pan", "");
+    el.set({ zoom: 0.23, panX: 0, panY: 0 });
+  });
+  await expect(page.locator("#scene")).toHaveCSS("touch-action", "none");
+  const box = await page.locator("#scene").boundingBox();
+  await page.evaluate(({ x, y }) => {
+    const el = document.querySelector("#scene");
+    const send = (type, id, px, py) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: "touch", isPrimary: id === 1, clientX: px, clientY: py, bubbles: true, cancelable: true, composed: true, button: 0, buttons: type === "pointerup" ? 0 : 1 }));
+    send("pointerdown", 1, x - 40, y);
+    send("pointerdown", 2, x + 40, y);
+    for (let i = 1; i <= 8; i += 1) {
+      send("pointermove", 1, x - 40 + 4 * i, y + 3 * i);
+      send("pointermove", 2, x + 40 + 4 * i, y + 3 * i);
+    }
+    send("pointerup", 1, x - 8, y + 24);
+    send("pointerup", 2, x + 72, y + 24);
+  }, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+  await expect.poll(() => controls.evaluate((el) => [Math.round(el.state.panX), Math.round(el.state.panY)])).toEqual([32, 24]);
 });

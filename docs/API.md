@@ -1010,6 +1010,9 @@ class ViewControlsElement extends HTMLElement {
     centre(animate?: boolean): void;
     fit(): void;
     set(next: Partial<ViewState>): void;
+    /** The share of the view's size it may move at any zoom, zoomed out too (see the `free-pan` attribute); `undefined` for none. */
+    get freePan(): number | undefined;
+    set freePan(share: number | undefined | null);
     /** The point the zoom buttons and keys zoom about: `{ x, y }` in CSS pixels from the view's middle when it is at Fit, moving with the picture. `undefined` zooms about the view's middle. The `anchor` attribute (`"x,y"`) sets the same. */
     get anchor(): Point | undefined;
     set anchor(point: Point | undefined | null);

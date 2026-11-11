@@ -51,7 +51,7 @@ myZoomIn.onclick = () => view.zoomBy(1.4);
 
 ## オプションとメンバー
 
-`createViewController`は、`initial`、`turnable`、`speed`、`limits`、`zoom`（`"fit"`か数値）、`fitScale`、`ignore`、`anchor`、`keyTilt`、`stopTurn`、`tiltStep`、`grabRadius`、`objectSize`、`size`、`onChange`、`clock`を受け取ります。`clock`は時間が入ってくる唯一の場所です。テストでは自前のものを渡し、コントローラーを手で回します。
+`createViewController`は、`initial`、`turnable`、`speed`、`limits`、`zoom`（`"fit"`か数値）、`fitScale`、`ignore`、`anchor`、`keyTilt`、`stopTurn`、`tiltStep`、`grabRadius`、`objectSize`、`freePan`、`size`、`onChange`、`clock`を受け取ります。`clock`は時間が入ってくる唯一の場所です。テストでは自前のものを渡し、コントローラーを手で回します。
 
 | メンバー | |
 |---|---|
@@ -63,7 +63,7 @@ myZoomIn.onclick = () => view.zoomBy(1.4);
 | `panBy(stepsX, stepsY)` | ビューの大きさの何分の1かずつ動かします。 |
 | `suspendTurn()`、`resumeTurn()`、`holdTurn()`、`releaseTurn()` | 理由ごとに回転を止めます。回数が数えられるので、入れ子にできます。 |
 | `bind(view)`、`destroy()` | 操作を結びつけます。すべて手放します。 |
-| `anchor`、`ignore`、`keyTilt`、`stopTurn`、`tiltStep`、`grabRadius`、`objectSize` | いつでも変えられるオプションです。 |
+| `anchor`、`ignore`、`keyTilt`、`stopTurn`、`tiltStep`、`grabRadius`、`objectSize`、`freePan` | いつでも変えられるオプションです。`freePan`（0より大きい、ビューの大きさに対する割合）を指定すると、縮小していてもどのズームでもビューを動かせます。そのときビューはタッチをすべて受け取ります。 |
 | `fitScale`、`startZoom`、`setFitScale(n)`、`setStartZoom(zoom)` | ズーム1が何を意味するか、どこで開くか。 |
 
 ## ビューの中のボタンとリンク
