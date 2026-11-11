@@ -130,6 +130,8 @@ test("the picture fits its box at every size, on this screen and in a narrow box
 });
 
 test("Copy says Copy, copies the code of the tab shown and says so", async ({ page }) => {
+  // the page's own clock, so the status's two and a half seconds are the page's and not the machine's (under load a wall-clock wait ran out first)
+  await page.clock.install();
   await ready(page);
   await expect(page.locator(`${P} [part="copy"]`)).toHaveText("Copy code");
   await tab(page, "react").click();
@@ -137,7 +139,8 @@ test("Copy says Copy, copies the code of the tab shown and says so", async ({ pa
   await expect(page.locator(`${P} .status`)).toHaveText("Copied");
   expect(await page.evaluate(() => window.__copied)).toEqual([await code(page)]);
   expect((await code(page)).includes("useEffect")).toBe(true);
-  await expect(page.locator(`${P} .status`)).toHaveText("", { timeout: 5000 });
+  await page.clock.runFor(2500);
+  await expect(page.locator(`${P} .status`)).toHaveText("");
 });
 
 test("when the browser will not copy, the code is selected and the panel says to copy by hand", async ({ page }) => {

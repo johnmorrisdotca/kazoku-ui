@@ -6,17 +6,36 @@ const SETTLE = 400;
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const seen = { frames: 0, auto: 0 };
+    const seen = { frames: 0, auto: 0, paused: [], turnsOf: {} };
     const request = window.requestAnimationFrame.bind(window);
     window.requestAnimationFrame = (callback) => request((time) => { seen.frames += 1; callback(time); });
-    document.addEventListener("kazoku-viewchange", (event) => { if (event.detail.reason === "auto") seen.auto += 1; }, true);
+    document.addEventListener("kazoku-viewchange", (event) => {
+      if (event.detail.reason === "auto") {
+        seen.auto += 1;
+        const id = event.target.id || "?";
+        seen.turnsOf[id] = (seen.turnsOf[id] ?? 0) + 1;
+      }
+      if (event.detail.reason === "pause") seen.paused.push(event.target.id || "?");
+    }, true);
     window.__seen = seen;
   });
   await page.goto("/");
   await expect(page.locator(`${BAR} .bar`)).toBeVisible();
 });
 
-const count = (page) => page.evaluate(() => ({ ...window.__seen }));
+const count = (page) => page.evaluate(() => ({ frames: window.__seen.frames, auto: window.__seen.auto }));
+/** How many times the controls with this id have said their turn stopped (a `pause` change). */
+const pausesOf = (page, id) => page.evaluate((name) => window.__seen.paused.filter((one) => one === name).length, id);
+/** The turning frames the controls with this id have drawn. */
+const turnsOf = (page, id) => page.evaluate((name) => window.__seen.turnsOf[name] ?? 0, id);
+/**
+ * A turn with a limit stops by itself: wait for the controls to say so (a `pause` change), not for a clock. The limit counts the time the view really turned, and on a
+ * loaded machine the frames that count it come late (and none come until the view is seen), so a wall-clock wait of a few seconds ran out first.
+ */
+const stopsByItself = async (page, id, before) => {
+  await expect.poll(() => pausesOf(page, id), { timeout: 60_000 }).toBeGreaterThan(before);
+  expect(await page.evaluate((name) => document.getElementById(name).state.turning, id)).toBe(false);
+};
 /** What happens in `ms` milliseconds. */
 const during = async (page, ms) => {
   const before = await count(page);
@@ -96,7 +115,7 @@ test("autoplay-for stops the turn by itself, counting only the time it turned", 
   });
   const state = () => page.evaluate(() => document.getElementById("intro").state.turning);
   await expect.poll(state).toBe(true);
-  await expect.poll(state, { timeout: 4000 }).toBe(false);
+  await stopsByItself(page, "intro", 0);
   const after = await during(page, 500);
   expect(after.auto).toBe(0);
 });
@@ -112,12 +131,14 @@ test("autoplay-for also stops a turn the Play button or play() starts", async ({
   const state = () => page.evaluate(() => document.getElementById("intro").state.turning);
   await page.locator("#intro").evaluate((el) => el.shadowRoot.querySelector('[data-b="play"]').click());
   await expect.poll(state).toBe(true);
-  await expect.poll(state, { timeout: 5000 }).toBe(false);
+  await stopsByItself(page, "intro", 0);
   await page.evaluate(() => document.getElementById("intro").play());
   await expect.poll(state).toBe(true);
-  await expect.poll(state, { timeout: 5000 }).toBe(false);
+  await stopsByItself(page, "intro", 1);
+  // a limit of a minute: after eight more turning frames (whatever their pace) it still turns
+  const frames = await turnsOf(page, "intro");
   await page.evaluate(() => document.getElementById("intro").play(60));
-  await page.waitForTimeout(1500);
+  await expect.poll(() => turnsOf(page, "intro"), { timeout: 60_000 }).toBeGreaterThanOrEqual(frames + 8);
   expect(await state()).toBe(true);
 });
 
@@ -130,6 +151,7 @@ test("autoplay without autoplay-for keeps turning", async ({ page }) => {
     document.body.append(controls);
   });
   await expect.poll(() => page.evaluate(() => document.getElementById("intro").state.turning)).toBe(true);
-  await page.waitForTimeout(1500);
+  // twenty turning frames, whatever their pace, and it still turns
+  await expect.poll(() => turnsOf(page, "intro"), { timeout: 60_000 }).toBeGreaterThanOrEqual(20);
   expect(await page.evaluate(() => document.getElementById("intro").state.turning)).toBe(true);
 });
