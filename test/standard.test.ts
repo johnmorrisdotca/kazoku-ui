@@ -116,24 +116,44 @@ test("the data door: a copy of the template passes, no copy is not asked for, a 
   }
 });
 
-test("the Playwright image: a tag the lockfile's @playwright/test has passes, another is named with both versions, and an image with no Playwright in the lockfile is named", () => {
+test("the Playwright image: each workflow's tag matches every @playwright/test the lockfile pins, read the ways a workflow and a lockfile write them", () => {
   const say = (change: (files: Record<string, string | null>) => void): string[] => {
     const root = make(change);
     try {
-      return standard.standardOf(root).missing.filter((one) => one.item === "playwright-image").map((one) => one.say);
+      return standard.standardOf(root).missing.filter((one) => one.item === "playwright-image").flatMap((one) => one.say.split("; "));
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   };
+  const ci = (text: string) => (files: Record<string, string | null>) => (files[".github/workflows/ci.yml"] = text);
   assert.deepEqual(say(() => undefined), []);
-  assert.deepEqual(say((files) => (files[".github/workflows/ci.yml"] = "- run: pnpm test:usage")), [], "no image, nothing to match");
-  const older = say((files) => (files[".github/workflows/docs.yml"] = "    container:\n      image: mcr.microsoft.com/playwright:v1.63.0-noble"));
-  assert.equal(older.length, 1);
-  assert.match(older[0] ?? "", /mcr\.microsoft\.com\/playwright:v1\.64\.1-noble/);
-  assert.match(older[0] ?? "", /docs\.yml \(now v1\.63\.0\)/);
-  assert.doesNotMatch(older[0] ?? "", /ci\.yml/, "the workflow that matches is not named");
-  const none = say((files) => (files["pnpm-lock.yaml"] = null));
-  assert.match(none[0] ?? "", /names no version of @playwright\/test/);
+  assert.deepEqual(say(ci("- run: pnpm test:usage")), [], "no image, nothing to match");
+  // the container: shorthand, and a tag other than -noble, which the message keeps
+  assert.deepEqual(say(ci("    container: mcr.microsoft.com/playwright:v1.64.1-jammy\n    steps:\n      - run: pnpm test:usage")), []);
+  const jammy = say(ci("    container: mcr.microsoft.com/playwright:v1.63.0-jammy"));
+  assert.equal(jammy.length, 1);
+  assert.match(jammy[0] ?? "", /set ci\.yml's image to mcr\.microsoft\.com\/playwright:v1\.64\.1-jammy, the @playwright\/test of \. in pnpm-lock\.yaml \(now v1\.63\.0-jammy\)/);
+  // a comment, on its own line or after one, is not a tag
+  assert.deepEqual(say(ci("    # was mcr.microsoft.com/playwright:v1.50.0-noble\n    container:\n      image: mcr.microsoft.com/playwright:v1.64.1-noble # not mcr.microsoft.com/playwright:v1.40.0-noble")), []);
+  // a correct tag beside a wrong one: only the wrong one is named
+  const mixed = say((files) => (files[".github/workflows/docs.yml"] = "    container:\n      image: mcr.microsoft.com/playwright:v1.63.0-noble"));
+  assert.equal(mixed.length, 1);
+  assert.match(mixed[0] ?? "", /docs\.yml/);
+  // a tag that is not a whole version is not checked
+  assert.deepEqual(say(ci("    container:\n      image: mcr.microsoft.com/playwright:${{ env.PW }}\n    other: mcr.microsoft.com/playwright:latest mcr.microsoft.com/playwright:v1.64")), []);
+  // a catalog: the importer and the catalog both pin it, and both are read
+  const catalog = "catalogs:\n  default:\n    '@playwright/test':\n      specifier: ^1.64.0\n      version: 1.64.1\nimporters:\n  .:\n    devDependencies:\n      '@playwright/test':\n        specifier: 'catalog:'\n        version: 1.64.1\n";
+  assert.deepEqual(say((files) => (files["pnpm-lock.yaml"] = catalog)), []);
+  // two importers on two versions: the one that differs is named
+  const two = say((files) => (files["pnpm-lock.yaml"] = `${files["pnpm-lock.yaml"]}  site:\n    devDependencies:\n      '@playwright/test':\n        specifier: ^1.60.0\n        version: 1.60.0\n`));
+  assert.equal(two.length, 1);
+  assert.match(two[0] ?? "", /v1\.60\.0-noble, the @playwright\/test of site/);
+  // the older one-line form is read; a link: is said plainly
+  assert.deepEqual(say((files) => (files["pnpm-lock.yaml"] = "devDependencies:\n  '@playwright/test': 1.64.1\n")), []);
+  const linked = say((files) => (files["pnpm-lock.yaml"] = "importers:\n  .:\n    devDependencies:\n      '@playwright/test':\n        specifier: link:../playwright\n        version: link:../playwright\n"));
+  assert.match(linked[0] ?? "", /gives @playwright\/test for \. as "link:\.\.\/playwright", not a version this check can read/);
+  // an image with no Playwright in the lockfile
+  assert.match(say((files) => (files["pnpm-lock.yaml"] = null))[0] ?? "", /pnpm-lock\.yaml names no @playwright\/test/);
 });
 
 test("an item that cannot apply is exempt when package.json says why, and not when it does not", () => {

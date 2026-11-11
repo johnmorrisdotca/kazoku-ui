@@ -23,7 +23,7 @@ node scripts/check-standard.mjs        # prints what is missing, exit 1; or "ok"
 | `ja-guides` | a Japanese twin in `docs/guides/ja/` for every guide, one language to a page |
 | `usage-tested` | an `examples/` folder and a `test:usage` script that builds, runs or type-checks every example |
 | `usage-in-ci` | `.github/workflows/ci.yml` runs `test:usage` |
-| `playwright-image` | every workflow that runs in Microsoft's Playwright image (`mcr.microsoft.com/playwright:vX.Y.Z-noble`) names the version of `@playwright/test` that `pnpm-lock.yaml` has, whose browsers the image carries; a bump of `@playwright/test` without the image fails here, with the tag to write, not in CI with "Executable doesn't exist" |
+| `playwright-image` | every workflow in `.github/workflows` that runs in Microsoft's Playwright image (`mcr.microsoft.com/playwright:vX.Y.Z-noble`, or `-jammy` and the like) names the version of `@playwright/test` that `pnpm-lock.yaml` pins, for every importer and catalog that pins it, since the image carries only that version's browsers. Only `.github/workflows` is read, with its comments taken out; a tag that is not a whole version (`${{ }}`, `latest`, `v1.64`) is not checked. A mismatch fails here with the tag to write, keeping the workflow's own suffix, and names the importer; a lockfile entry that is no version (`link:`, `workspace:`) is said plainly. Without it, CI fails with "Executable doesn't exist" |
 | `script-tag`, `esm`, `bundlers`, `react`, `vue`, `svelte`, `angular`, `iframe`, `typescript` | the README or a guide shows it, as a copy-paste example that the test runs |
 
 ## When an item cannot apply
