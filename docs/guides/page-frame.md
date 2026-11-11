@@ -68,6 +68,8 @@ The line reads "Hoshi Stars: The 88 constellations" (a full-width colon in Japan
 The line can link what it names, as CC BY asks for the licence's address: give it in pieces, each a text or `{ text, href }`. In a script, set the element's `credits` (one list, or `{ en, ja }`); in a build, give `pageCreditsHtml` the pieces and it writes them into `credit-parts` and the no-script text, links included. Only an http, https or relative address links; any other shows as its text. Each piece's link is the `credit-link` part and opens in a tab of its own (`rel="noopener noreferrer"`).
 
 ```js
+import { pageCreditsHtml } from "@johnmorrisdotca/kazoku-ui/page-frame";
+
 pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/" }] }, { embed: true });
 ```
 
