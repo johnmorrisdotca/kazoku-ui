@@ -39,7 +39,7 @@ const mine: RecordSource<{ ra: number; dec: number; mag: number }> = {
 - **`loadRecords(source, signal, finite)`** reads a record list once and never throws. It freezes the list, refuses more than 200,000 records (bigger data must be tiles), and skips and counts a record with a `NaN` or an infinity in any number `finite` names. A source that throws or rejects is a failed read; an aborted read is `aborted`.
 - **`createTileStore(options)`** loads tiles by key under one byte budget (default 48 MB for all sources, a picture counting with its mipmaps, 4/3 of its bytes). At most 6 loads run at once for a source. A load starts only because the keys changed: asking again at rest sends nothing, and a tile that failed is tried again at the next change, not on a timer (a caller that means "once more, the same keys" passes `again`). The least recently used tile goes first, never one the view needs; a tile that does not fit even so is refused and counted, so the held bytes never pass the budget (a `maxTiles` option caps the count too). A tile that throws, comes back empty or reports a size that is not a number is counted in `failed` and never held, so it is never drawn. `drop(id)` aborts the source's loads and frees its tiles.
 
-```ts
+```ts no-check
 import { createTileStore, creditLine, validateSource } from "./data-door.ts";
 
 const store = createTileStore<Tile>({ onChange: draw });

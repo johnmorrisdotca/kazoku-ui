@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The Docs workflow is green again** (KAZOKU-UI-108). `pnpm test:readme` failed on three examples: the data door guide's first example imports `./data-door.ts`, which the check now puts beside every example (a copy of `templates/data-door.ts`, as a package has it), and its second is an excerpt of a view (`ts no-check`); the interface guide's script ran in Node with no page, so it is one `html` block now and runs in Chromium. The Japanese twins have the same block structure.
+
 ## [0.35.0] - 2026-11-11
 
 - **The browser lock serves waiters in order** (KAZOKU-UI-101). Waiting runs used to poll, so whoever looked first when the lock freed won, and a run could lose it again and again for hours. Now a waiting run writes a ticket (pid, package, folder, command, time) in a `queue` folder next to the lock, and only the oldest live ticket may take the lock; a ticket of a dead pid, or one not touched for two minutes, is cleared and nothing is killed. `kazoku-browser-queue status` (the same command as `kazoku-browser-lock`) shows the holder with its npm script and minutes, the queue in order, and a warning when a holder has had the lock over 45 minutes; `kazoku-browser-queue first <folder>` puts that folder's oldest waiter next (`first --clear` removes it). A waiting run prints a line a minute: `waiting for the browser: 2nd in line, holder hoshi-stars test:demo for 12 min`. `KAZOKU_BROWSER_LOCK_DIR` moves the lock, queue and priority file. New `browserQueueStatus`, `setBrowserPriority`, `orderBrowserQueue`. A package on the earlier lock code still works alongside, and can jump the line until it takes this version. Guide in English and Japanese.

@@ -8,7 +8,7 @@
 //     is defined and has drawn. `no-check` skips a block. Flags: `wait=<selector>` waits for a selector inside the page.
 // A block that fails is named by its file and line.
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import process from 'node:process';
 import { createServer } from 'node:http';
@@ -32,6 +32,8 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const work = join(root, '.readme-examples');
 rmSync(work, { recursive: true, force: true });
 mkdirSync(work, { recursive: true });
+// A guide's example may import the data door as a package does (`./data-door.ts`, its copy of templates/data-door.ts): give each block that file beside it.
+copyFileSync(join(root, 'templates', 'data-door.ts'), join(work, 'data-door.ts'));
 
 const files = ['README.md'];
 for (const dir of ['docs/guides']) for (const file of readdirSync(join(root, dir)).sort()) if (file.endsWith('.md')) files.push(`${dir}/${file}`);

@@ -13,6 +13,9 @@ description: ファミリー共通のインターフェース部品（トーク�
 <script type="module">
   import "@johnmorrisdotca/kazoku-ui/interface/define";
   import "@johnmorrisdotca/kazoku-ui/page-frame/define";
+  import { createFamilyClock } from "@johnmorrisdotca/kazoku-ui/clock"; // 共有シーンと一緒に公開されます。それまでは、時計の4つのメソッドを持つオブジェクトなら使えます
+  bar.clock = createFamilyClock();
+  card.data = { kind: { en: "Planet · gas giant", ja: "惑星・ガス惑星" }, name: { en: "Jupiter", ja: "木星" }, stats: [/* 数値には、それぞれ出典をつけます */] };
 </script>
 <kazoku-top-bar brand="Hoshi Stars" home="index.html"></kazoku-top-bar>
 <kazoku-scale-switch value="solar"></kazoku-scale-switch>
@@ -21,11 +24,6 @@ description: ファミリー共通のインターフェース部品（トーク�
 <kazoku-page-footer href="credits.html"></kazoku-page-footer>
 ```
 
-```js
-import { createFamilyClock } from "@johnmorrisdotca/kazoku-ui/clock"; // 共有シーンと一緒に公開されます。それまでは、時計の4つのメソッドを持つオブジェクトなら使えます
-bar.clock = createFamilyClock();
-card.data = { kind: { en: "Planet · gas giant", ja: "惑星・ガス惑星" }, name: { en: "Jupiter", ja: "木星" }, stats: [/* 数値には、それぞれ出典をつけます */] };
-```
 
 ビュー、時計、データを持つのはページです。部品は、読み手がしたことを`kazoku-*`イベントで知らせ、ページがそれを反映します。部品がページのシーンを描くことはありません。デモの[interface.html](https://johnmorrisdotca.github.io/kazoku-ui/interface.html)はすべての部品をビューの上に並べ、[interface-parts.html](https://johnmorrisdotca.github.io/kazoku-ui/interface-parts.html)は部品を1つずつ見せ、[interface-page.html](https://johnmorrisdotca.github.io/kazoku-ui/interface-page.html)は読むためのページです。
 

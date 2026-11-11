@@ -11,6 +11,9 @@ Four packages draw a sky, a solar system, an Earth and a rocket. A reader who mo
 <script type="module">
   import "@johnmorrisdotca/kazoku-ui/interface/define";
   import "@johnmorrisdotca/kazoku-ui/page-frame/define";
+  import { createFamilyClock } from "@johnmorrisdotca/kazoku-ui/clock"; // arrives with the shared scene; until then any object with the clock's four methods will do
+  bar.clock = createFamilyClock();
+  card.data = { kind: { en: "Planet · gas giant", ja: "惑星・ガス惑星" }, name: { en: "Jupiter", ja: "木星" }, stats: [/* each with a source */] };
 </script>
 <kazoku-top-bar brand="Hoshi Stars" home="index.html"></kazoku-top-bar>
 <kazoku-scale-switch value="solar"></kazoku-scale-switch>
@@ -19,11 +22,6 @@ Four packages draw a sky, a solar system, an Earth and a rocket. A reader who mo
 <kazoku-page-footer href="credits.html"></kazoku-page-footer>
 ```
 
-```js
-import { createFamilyClock } from "@johnmorrisdotca/kazoku-ui/clock"; // arrives with the shared scene; until then any object with the clock's four methods will do
-bar.clock = createFamilyClock();
-card.data = { kind: { en: "Planet · gas giant", ja: "惑星・ガス惑星" }, name: { en: "Jupiter", ja: "木星" }, stats: [/* each with a source */] };
-```
 
 The page owns the view, the clock and the data. Every part reports what the reader did, in a `kazoku-*` event, and the page applies it. A part never draws the page's scene. The demo's [interface.html](https://johnmorrisdotca.github.io/kazoku-ui/interface.html) puts them all over a view, [interface-parts.html](https://johnmorrisdotca.github.io/kazoku-ui/interface-parts.html) shows each on its own, and [interface-page.html](https://johnmorrisdotca.github.io/kazoku-ui/interface-page.html) is a reading page.
 
