@@ -39,6 +39,7 @@ does not reach the hundred changes in thirty seconds after which Safari stops a 
 
 - `readParams(search?)` and `readParam(key, search?)`: the parameters of an address (the first of a repeated one).
 - `applyParams(search, changes, defaults?)`: a search string with the changes made (`?a=1` or an empty string), the pure core of every write.
+- `readReadings`, `readingsParams`, `keepReadings`, `parseReadings` and `READINGS_KEY`: the family's readings switch (ふりがな, furigana), `?readings=on` in the address. See the [guide](guides/address-state.md).
 - `createAddressWriter({ delay, host })`: `write(compute)`, `flush()`, `cancel()`. `compute` gets the search string when the write happens, and the latest of calls inside the delay is the one that runs. The view controls write
   their address through this, with the same quarter-second delay as before.
 

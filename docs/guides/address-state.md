@@ -89,6 +89,29 @@ console.log(where.search);
 
 The types are `AddressState`, `AddressStateOptions`, `AddressChange`, `AddressValue`, `AddressHost`, `AddressWriter` and `AddressWriterOptions`; `AddressHost` is the part of `window` a stand-in needs: `location` and `history.replaceState`, with optional `popstate` listeners.
 
+## The readings switch
+
+The family has one spelling for a page's readings switch, the small kana readings beside kanji (ふりがな, furigana): `?readings=on` in the address, and `kazoku-readings` on the device. A package draws its own switch with its display options (not in the view controls, which are for the camera), shows it only where there is kanji to read, and labels it with the interface word `readings`: Readings in English, ふりがな in Japanese (`WORDS` from `@johnmorrisdotca/kazoku-ui/interface`). The readings are off by default and on when the address holds the key.
+
+```js
+import { applyParams, readingsParams, readReadings } from "@johnmorrisdotca/kazoku-ui/address-state";
+import { WORDS } from "@johnmorrisdotca/kazoku-ui/interface";
+
+console.log(readReadings({ search: "?lang=ja&readings=on" }), readReadings({ search: "?lang=ja" }));
+console.log(applyParams("?lang=ja", readingsParams(true)), JSON.stringify(applyParams("?readings=on", readingsParams(false))));
+console.log(WORDS.en.readings, WORDS.ja.readings);
+// true false
+// ?lang=ja&readings=on ""
+// Readings ふりがな
+```
+
+- `readReadings({ search, storage })`: whether the readings start on. The address comes first (`?readings=on`; `?readings=off` says off), then a press the reader made on this device, else off.
+- `readingsParams(on)`: the address change, `{ readings: "on" }` or `{ readings: null }`, for `applyParams` or a state's `setMany`.
+- `keepReadings(on)`: keeps a press of the switch on the device. Keep only a press, so a link someone sent does not change the reader's own choice.
+- `parseReadings(value)` reads an address value, `readingsStorage()` is this browser's localStorage (or nothing where it is blocked), and `READINGS_KEY`, `READINGS_ON` and `READINGS_STORAGE_KEY` are the names.
+
+The choice is written back to the address only while the switch is shown, so a page with no kanji to read gets no `readings` in its links. The first user is hoshi-stars' Chinese sky in Japanese.
+
 ## In the family's parts
 
 The element's own `address` attribute uses the same pieces, with its own keys: `?theme=`, `?lang=`, `?yaw=`, `?tilt=`, `?zoom=`, `?speed=`. Several parts on one page share the address and agree, because every state on the page hears every change. See [View controls](view-controls.md) for the view's keys and `address-keys` to rename them.
