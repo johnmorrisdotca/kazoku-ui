@@ -23,8 +23,13 @@ jobs:
   demo:
     # One job a Playwright project (the four are the same tests at a desk's and a phone's width in Chromium and in WebKit). The desk's Chromium draws the renderer page in software, so it is dealt out to four jobs (`--shard`).
     # 25 minutes: the one demo job ran 14:44 of 15 on main 5af830f and was cancelled on 2026-11-10 (KAZOKU-UI-96).
+    # In Microsoft's Playwright image at the lockfile's Playwright version: the browsers and their system libraries are in it, so the job needs no apt mirror
+    # (down on 2026-11-11 from about 13:50 UTC, which failed every browser job). Move the tag with @playwright/test; .github/actions/playwright warns if they differ.
     name: demo (${{ matrix.project }} ${{ matrix.shard }})
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 25
     strategy:
       fail-fast: false

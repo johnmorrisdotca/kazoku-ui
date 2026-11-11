@@ -4,15 +4,19 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml']
+    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml', '.github/actions/playwright/**']
   pull_request:
-    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml']
+    paths: ['README.md', 'docs/**', 'src/**', 'scripts/docs.mjs', 'scripts/check-readme-examples.mjs', 'CHANGELOG.md', '.github/workflows/docs.yml', '.github/actions/playwright/**']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   docs:
     runs-on: ubuntu-latest
+    # The Playwright image, so the HTML examples' Chromium needs no apt mirror (see the demo job in ci.yml).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
