@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-11
+
 - **The view's own turn is gentler and says what it moves** (KAZOKU-UI-106). Auto-turn now turns at 12 degrees a second at a pace of 1 (one turn in 30 seconds; it was 30, one turn in 12 seconds), for the view controls and for `createViewController` when a page gives no `speed`, and the turn speed buttons offer 0.125, 0.25, 0.5 and 1 (no step faster than the page's own speed unless its `paces` ask). The buttons name what they move and in what unit: "One turn in" over "4 min, 2 min, 1 min, 30 s" (1周 over 4分 … 30秒 in Japanese), and "The view turns once in 30 seconds" to a screen reader, so they cannot be taken for the time speed buttons' 1×. New: `<kazoku-speed-buttons>`'s `format` gives each step words of its own; `TURN_SPEED`, `TURN_PACES` and `turnSeconds` in `/view-controls`. A page that set `speed` keeps its speed; an address with `pace=2` takes the nearest step, 1.
 
 ## [0.32.0] - 2026-11-10
