@@ -210,6 +210,11 @@ export class PageCreditsElement extends HTMLElement {
       a.href = href;
       a.textContent = words.credits;
       a.setAttribute("part", "link");
+      // in someone else's frame the credits page opens in a tab of its own: the site it lives on may refuse to be framed, and the view would go blank
+      if (this.hasAttribute("embed")) {
+        a.target = "_blank";
+        a.rel = "noopener";
+      }
       parts.push(a);
     }
     box.replaceChildren(...parts);
