@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-11
+
 - **The replay bar keeps Play ready under reduced motion** (KAZOKU-UI-104, KAZOKU-UI-98). A reader who asks for reduced motion gets a still view with Play enabled: nothing starts by itself (an address with `play=on`, the `playing` attribute and the property are held back), and the reader's own press starts it. The button used to be disabled unless the element had `user-play`; that attribute is still accepted and now changes nothing. Tests added for reduced motion and for no preference.
 - **The control bar's keyboard test works in WebKit on a Mac** (KAZOKU-UI-103). It focuses each button directly (WebKit on macOS skips buttons on Tab); a separate Chromium-only test checks the Tab order.
 
