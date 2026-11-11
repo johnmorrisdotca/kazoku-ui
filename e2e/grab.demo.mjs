@@ -39,9 +39,21 @@ test("the ground is photographed when the view has stopped changing, not after a
   await ready(page);
   const scene = page.locator("#scene");
   const globe = page.locator("#globe");
-  // The view turns 1.2 s after the act, twice as long as the old fixed wait; the helper waits for the picture to change, then to stop.
-  const late = await movedBy(page, globe, () => scene.evaluate(() => { setTimeout(() => document.querySelector("#controls").set({ yaw: 20 }), 1200); }));
-  expect(late.x, `the turn drew late and the ground moved right (moved ${late.x},${late.y})`).toBeGreaterThan(25);
+  // The first picture must be of a view at rest.
+  await settledPicture(page, globe);
+  // The view turns 1.2 s after the act, twice as long as the old fixed wait; the helper waits for the picture to change, then to stop. The page counts its redraws and says when each came.
+  const late = await movedBy(page, globe, () =>
+    scene.evaluate(() => {
+      const controls = document.querySelector("#controls");
+      const started = window.performance.now();
+      window.__redraws = [];
+      controls.addEventListener("kazoku-viewchange", () => window.__redraws.push(Math.round(window.performance.now() - started)));
+      setTimeout(() => controls.set({ yaw: 20 }), 1200);
+    }),
+  );
+  const redraws = await page.evaluate(() => window.__redraws);
+  expect(redraws, "the page redrew once, for the late turn").toHaveLength(1);
+  expect(late.x, `the turn drew late and the ground moved right (moved ${late.x},${late.y}; the page redrew at ${redraws[0]} ms)`).toBeGreaterThan(25);
   expect(Math.abs(late.y)).toBeLessThan(4);
   // A view that never changes is given up on at the timeout, with the picture it has, so a check can say it did not move.
   const started = Date.now();
