@@ -177,3 +177,23 @@ console.log(embedSnippet("iframe", { package: "p", cdn: "c", tag: "x-y", element
 2. デモの「自分のページに入れる」を`<kazoku-embed-panel>`に置き換えます。古いパネルにあった選択はすべて残し (`options`、`actions`、`picker`、`note`、`credits`)、`generate`と`preview`を埋めます。
 3. 始める前に、古いパネルにあったものを一覧にし、終わったあとでそのすべてが残っているか確かめます。各部品でいちばんよいものの選び方は[調査メモ](../../embed-panel-survey.md)にあります。
 4. kazoku-ui の`check-standard.mjs`を実行します。`embed-panel`の項目は、ファミリーの必須リストに入っています。
+
+## パッケージのビルダーのページ
+
+多くのパッケージにあるビルダーのページ（`builder.html`の「コード」）は、ファミリーの共有ファイル`scripts/family-template.mjs`の`familyEmbedBuilder`で作ります。その元は kazoku-ui の`templates/family-template.mjs`（FAMILY_TEMPLATE_VERSION 2026-11-11）で、各パッケージにそのままコピーします。ビルダーのページにパネルがあると、ビルダーがパネルを埋めます。ページの作り方ごとのタブ（ビルダーの名前のまま：カスタム要素、iframe、ESモジュール、React 19、Vue、Svelte、Angular、HTML、iframe URL）、初期値と異なる選択だけのコード、コピー、選択つきで埋め込みページを開くボタン、異なる選択だけがコードに入るという注記、それにビルダーの設定の`docsHref`、`credits`、`sizes`です。表示中のタブは、これまでどおりアドレスに残ります（`show=`）。パネルのないビルダーのページは、自分のコードの欄をそのまま使うので、パッケージは準備ができたときに移れます。
+
+`builder.html`のコードの欄はパネルになり、ビルダーの2つのボタンはその`actions`スロットに入ります。
+
+```html no-check
+<section class="more family-bld-code" aria-labelledby="bld-code-title">
+  <h2 id="bld-code-title" data-say="codeTitle"></h2>
+  <p data-say="codeText"></p>
+  <kazoku-embed-panel id="bld-embed" data-testid="bld-embed">
+    <button class="fam-button" slot="actions" id="bld-link" type="button" data-say="copyLink" data-testid="bld-link"></button>
+    <button class="fam-button" slot="actions" id="bld-reset" type="button" data-say="startAgain" data-testid="bld-reset"></button>
+  </kazoku-embed-panel>
+  <p class="fam-fine" id="bld-copied" data-testid="bld-copied" aria-live="polite"></p>
+</section>
+```
+
+ページのスクリプトは、ビルダーを組み込む前にパネルを定義します（`import "@johnmorrisdotca/kazoku-ui/embed-panel/define"`、またはサイトにコピーした kazoku-ui の`dist/embed-panel/define.js`）。

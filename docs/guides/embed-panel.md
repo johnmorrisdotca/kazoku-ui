@@ -175,3 +175,23 @@ The tabs are a tab list: Left and Right move between them (round at the ends), H
 2. Replace the demo's "Put it in your page" with `<kazoku-embed-panel>`, keep every choice the old one had (`options`, `actions`, `picker`, `note`, `credits`) and fill `generate` and `preview`.
 3. List what the old panel had before you start and check every item is still there afterwards: the choice of the best part of each in [the survey](../embed-panel-survey.md).
 4. Run kazoku-ui's `check-standard.mjs`: the `embed-panel` item is on the family's must-have list.
+
+## A package's builder page
+
+The family's shared files hold the builder page that most packages have (`builder.html`, "The code"): `familyEmbedBuilder` in `scripts/family-template.mjs`. Its source is kazoku-ui's `templates/family-template.mjs` (FAMILY_TEMPLATE_VERSION 2026-11-11), copied unchanged into each package. When the builder page holds the panel, the builder fills it: a tab for each way a page is made that the maker offers, with the builder's own names (Custom element, iframe, ES module, React 19, Vue, Svelte, Angular, Plain HTML, iframe URL), the code of the choices that differ from the defaults, Copy, Open the embed page with the choices, the note that only differing choices are in the code, and the builder config's `docsHref`, `credits` and `sizes`. The tab shown is kept in the address as before (`show=`). A builder page without the panel keeps its own code section, so a package moves when it is ready.
+
+The code section of `builder.html` becomes the panel, with the builder's two buttons in its `actions` slot:
+
+```html no-check
+<section class="more family-bld-code" aria-labelledby="bld-code-title">
+  <h2 id="bld-code-title" data-say="codeTitle"></h2>
+  <p data-say="codeText"></p>
+  <kazoku-embed-panel id="bld-embed" data-testid="bld-embed">
+    <button class="fam-button" slot="actions" id="bld-link" type="button" data-say="copyLink" data-testid="bld-link"></button>
+    <button class="fam-button" slot="actions" id="bld-reset" type="button" data-say="startAgain" data-testid="bld-reset"></button>
+  </kazoku-embed-panel>
+  <p class="fam-fine" id="bld-copied" data-testid="bld-copied" aria-live="polite"></p>
+</section>
+```
+
+The page's script defines the panel (`import "@johnmorrisdotca/kazoku-ui/embed-panel/define"`, or the site's copy of kazoku-ui's `dist/embed-panel/define.js`) before it mounts the builder.
