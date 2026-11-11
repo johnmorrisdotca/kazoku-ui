@@ -87,7 +87,8 @@
     "./dist/interface/define.js"
   ],
   "bin": {
-    "kazoku-browser-lock": "./dist/testing/cli.js"
+    "kazoku-browser-lock": "./dist/testing/cli.js",
+    "kazoku-browser-queue": "./dist/testing/cli.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

@@ -69,7 +69,7 @@ const PARTS = [
   assert.equal(typeof pure.createSharedRenderer({ load: async () => ({}) }).view, "function");`,
   },
   {
-    name: "testing", pure: ["COUNT_SCRIPT", "GPU_KINDS", "gpuObjects", "readCounts", "canvasSize", "withinPixelBudget", "SOFTWARE_GL_ARGS", "drainGpu", "untilStill", "drawCounts", "checkGestures", "bestShift", "GESTURES", "GESTURE_NAMES", "acquireBrowserLock", "withBrowserLock", "browserLockStatus", "clearBrowserLock"],
+    name: "testing", pure: ["COUNT_SCRIPT", "GPU_KINDS", "gpuObjects", "readCounts", "canvasSize", "withinPixelBudget", "SOFTWARE_GL_ARGS", "drainGpu", "untilStill", "drawCounts", "checkGestures", "bestShift", "GESTURES", "GESTURE_NAMES", "acquireBrowserLock", "withBrowserLock", "browserLockStatus", "browserQueueStatus", "clearBrowserLock", "orderBrowserQueue", "setBrowserPriority"],
     run: `assert.equal(pure.withinPixelBudget({ pixels: 7e6, side: 3000, count: 1 }), false);
   assert.ok(pure.COUNT_SCRIPT.includes("__kazokuCount"));
   assert.ok(pure.SOFTWARE_GL_ARGS.includes("--disable-gpu-rasterization"));

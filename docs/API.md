@@ -6954,10 +6954,10 @@ interface ViewOptions {
 
 ## `@johnmorrisdotca/kazoku-ui/testing`
 
-18 values and 14 types.
+21 values and 17 types.
 
 ```js
-import { acquireBrowserLock, bestShift, browserLockStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, drainGpu, drawCounts, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, readCounts, SOFTWARE_GL_ARGS, untilStill, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+import { acquireBrowserLock, bestShift, browserLockStatus, browserQueueStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, drainGpu, drawCounts, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, orderBrowserQueue, readCounts, setBrowserPriority, SOFTWARE_GL_ARGS, untilStill, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
 ```
 
 ### acquireBrowserLock
@@ -6987,6 +6987,17 @@ function bestShift(before: ArrayLike<number>, after: ArrayLike<number>, w: numbe
 
 ```ts
 function browserLockStatus(options?: Pick<BrowserLockOptions, "maxAgeMs">): BrowserLockStatus;
+```
+
+### browserQueueStatus
+
+*function*. The whole picture: who holds the lock and for how long, the waiters in the order they will be served, the priority if one is set, and a warning when a holder has had
+
+```ts
+function browserQueueStatus(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
+    now?: number;
+    alive?: (pid: number) => boolean;
+}): BrowserQueueStatus;
 ```
 
 ### canvasSize
@@ -7085,12 +7096,28 @@ const GPU_KINDS: readonly ["Buffer", "Texture", "VertexArray", "Program", "Frame
 function gpuObjects(counts: GlCounts): number;
 ```
 
+### orderBrowserQueue
+
+*function*. The order a line is served in: oldest ticket first, and the first ticket whose folder is the `priority` folder (or inside it) moved to the front. Pure: it reads
+
+```ts
+function orderBrowserQueue(tickets: readonly BrowserQueueTicket[], priority?: string | null): BrowserQueueTicket[];
+```
+
 ### readCounts
 
 *function*. The counters now, as a copy.
 
 ```ts
 function readCounts(page: PageLike): Promise<GlCounts>;
+```
+
+### setBrowserPriority
+
+*function*. Put one waiting run first: the oldest waiter whose folder is `cwd` (or inside it) is served before the rest. It does not take the lock from the run that holds it,
+
+```ts
+function setBrowserPriority(cwd: string | null): void;
 ```
 
 ### SOFTWARE_GL_ARGS
@@ -7149,6 +7176,8 @@ interface BrowserLockHolder {
     repo: string;
     cwd: string;
     command: string;
+    /** The npm script that started the run (`test:demo`), when there is one. A holder from an older kazoku-ui has none. */
+    script?: string;
     /** ISO time the lock was taken. */
     startedAt: string;
 }
@@ -7162,7 +7191,7 @@ interface BrowserLockHolder {
 interface BrowserLockOptions {
     /** How often to look again while waiting. 500 ms. */
     pollMs?: number;
-    /** How often to say who is holding it while waiting. 30 000 ms. */
+    /** How often to say who is holding it and how far back in line the run is, while waiting. 60 000 ms. */
     reportMs?: number;
     /** A lock older than this is taken over even if its pid is alive. Three hours. */
     maxAgeMs?: number;
@@ -7183,6 +7212,59 @@ interface BrowserLockStatus {
     holder: BrowserLockHolder | null;
     /** True when the holder's pid is gone or the lock is older than `maxAgeMs`: the next run takes it over. */
     stale: boolean;
+}
+```
+
+### BrowserQueueEntry
+
+*interface*. One waiter in the line, as the status shows it.
+
+```ts
+interface BrowserQueueEntry {
+    /** 1 is next. */
+    place: number;
+    ticket: BrowserQueueTicket;
+    /** Whole minutes since it joined. */
+    waitedMinutes: number;
+    /** True when the priority file put it first. */
+    byPriority: boolean;
+}
+```
+
+### BrowserQueueStatus
+
+*interface*
+
+```ts
+interface BrowserQueueStatus extends BrowserLockStatus {
+    /** Whole minutes the holder has had the lock, or null when it is free. */
+    heldMinutes: number | null;
+    /** The waiters, in the order they are served. Tickets of dead pids are left out. */
+    queue: BrowserQueueEntry[];
+    /** The folder the priority file names, or null. */
+    priority: string | null;
+    /** Lines to show a person: a holder over `LONG_HOLD_MINUTES`, a stale lock. */
+    warnings: string[];
+}
+```
+
+### BrowserQueueTicket
+
+*interface*. A waiting run's place in the line: one small file in the queue folder, next to the lock.
+
+```ts
+interface BrowserQueueTicket {
+    /** Tells this ticket from every other, and from the lock's own token. */
+    token: string;
+    pid: number;
+    /** The package name from the waiter's `package.json`, else the folder name. */
+    repo: string;
+    cwd: string;
+    command: string;
+    /** The npm script that started the run (`test:demo`), when there is one. */
+    script?: string;
+    /** ISO time the run joined the line. The oldest live ticket goes next. */
+    queuedAt: string;
 }
 ```
 

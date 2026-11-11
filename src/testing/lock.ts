@@ -1,9 +1,10 @@
 /// <reference types="node" />
 import { randomUUID } from "node:crypto";
 import { linkSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import process from "node:process";
+import { alive, describeRun, joinQueue, leaveQueue, LONG_HOLD_MINUTES, lockDir, orderBrowserQueue, placeWord, readPriority, readQueue, spendPriority, touchTicket, type BrowserQueueTicket } from "./queue.ts";
+
 
 const ENV = "KAZOKU_BROWSER_LOCK";
 const THREE_HOURS = 3 * 60 * 60 * 1000;
@@ -18,6 +19,8 @@ export interface BrowserLockHolder {
   repo: string;
   cwd: string;
   command: string;
+  /** The npm script that started the run (`test:demo`), when there is one. A holder from an older kazoku-ui has none. */
+  script?: string;
   /** ISO time the lock was taken. */
   startedAt: string;
 }
@@ -25,7 +28,7 @@ export interface BrowserLockHolder {
 export interface BrowserLockOptions {
   /** How often to look again while waiting. 500 ms. */
   pollMs?: number;
-  /** How often to say who is holding it while waiting. 30 000 ms. */
+  /** How often to say who is holding it and how far back in line the run is, while waiting. 60 000 ms. */
   reportMs?: number;
   /** A lock older than this is taken over even if its pid is alive. Three hours. */
   maxAgeMs?: number;
@@ -53,8 +56,6 @@ const skipped = (): boolean => {
   return Boolean(ci) && ci !== "false" && ci !== "0";
 };
 
-const lockDir = (): string => join(process.platform === "darwin" ? join(homedir(), "Library", "Caches") : process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "kazoku-ui");
-
 const lockFile = (): string => join(lockDir(), "browser.lock");
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -65,15 +66,6 @@ function readHolder(file: string): BrowserLockHolder | null {
     return typeof holder.pid === "number" && typeof holder.token === "string" ? holder : null;
   } catch {
     return null;
-  }
-}
-
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
   }
 }
 
@@ -112,11 +104,17 @@ function clean(maxAgeMs: number, force = false): boolean {
   }
 }
 
+const minutesSince = (iso: string, now = Date.now()): number => Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));
+
 /**
  * Take the browser lock, waiting while another run holds it. Only one headless browser should run at a time on a machine: with software GL, two at once make heavy
- * tests time out. The lock is a file in the user's cache folder (`~/Library/Caches/kazoku-ui` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`), made atomically,
- * and a lock whose pid is gone or that is over three hours old is taken over. While it waits it says who holds it, every 30 seconds. The lock is let go on exit, on
- * an error and on SIGINT, SIGTERM and SIGHUP, and a child process that inherits `KAZOKU_BROWSER_LOCK` runs under it without waiting. With `CI` set it does nothing.
+ * tests time out. The lock is a file in the user's cache folder (`~/Library/Caches/kazoku-ui` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`; `KAZOKU_BROWSER_LOCK_DIR`
+ * names another folder), made atomically, and a lock whose pid is gone or that is over three hours old is taken over.
+ *
+ * Waiting runs are served in the order they arrived. Each writes a ticket in the `queue` folder next to the lock, and only the oldest live ticket may take the lock when
+ * it is free; a ticket whose pid is gone is cleared. One waiter can be put first with `setBrowserPriority`. While it waits a run says, once a minute, how far back it is
+ * and who holds the lock. The lock is let go on exit, on an error and on SIGINT, SIGTERM and SIGHUP, and a child process that inherits `KAZOKU_BROWSER_LOCK` runs under
+ * it without waiting. With `CI` set it does nothing. A run on the older lock code, with no queue, still works alongside: it takes the lock whenever it is free.
  *
  * @example
  * const lock = await acquireBrowserLock();
@@ -129,7 +127,7 @@ function clean(maxAgeMs: number, force = false): boolean {
  * }
  */
 export async function acquireBrowserLock(options: BrowserLockOptions = {}): Promise<BrowserLock> {
-  const { pollMs = 500, reportMs = 30_000, maxAgeMs = THREE_HOURS, log = (line: string) => void process.stderr.write(`${line}\n`) } = options;
+  const { pollMs = 500, reportMs = 60_000, maxAgeMs = THREE_HOURS, log = (line: string) => void process.stderr.write(`${line}\n`) } = options;
   if (skipped()) return { release() {} };
   const file = lockFile();
   const inherited = process.env[ENV];
@@ -139,27 +137,63 @@ export async function acquireBrowserLock(options: BrowserLockOptions = {}): Prom
   }
   mkdirSync(lockDir(), { recursive: true });
   const cwd = process.cwd();
-  const holder: BrowserLockHolder = { token: randomUUID(), pid: process.pid, repo: repoName(cwd), cwd, command: process.argv.slice(1).join(" "), startedAt: new Date().toISOString() };
+  const holder: BrowserLockHolder = {
+    token: randomUUID(),
+    pid: process.pid,
+    repo: repoName(cwd),
+    cwd,
+    command: process.argv.slice(1).join(" "),
+    ...(process.env.npm_lifecycle_event ? { script: process.env.npm_lifecycle_event } : {}),
+    startedAt: new Date().toISOString(),
+  };
+  const ticket: BrowserQueueTicket = { token: holder.token, pid: holder.pid, repo: holder.repo, cwd, command: holder.command, ...(holder.script ? { script: holder.script } : {}), queuedAt: holder.startedAt };
   const draft = `${file}.${holder.pid}.${holder.token}`;
+  const leave = (): void => leaveQueue(ticket);
+  joinQueue(ticket);
+  process.on("exit", leave);
   let reported = -Infinity;
-  for (;;) {
-    writeFileSync(draft, JSON.stringify(holder, null, 2));
-    try {
-      linkSync(draft, file);
-      break;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-    } finally {
-      rmSync(draft, { force: true });
+  let touched = Date.now();
+  try {
+    for (;;) {
+      const line = readQueue();
+      let place = line.findIndex((one) => one.token === ticket.token);
+      if (place === -1) {
+        joinQueue(ticket);
+        place = readQueue().findIndex((one) => one.token === ticket.token);
+      }
+      const current = readHolder(file);
+      if (current && isStale(current, maxAgeMs)) {
+        clean(maxAgeMs);
+        continue;
+      }
+      if (!current && place <= 0) {
+        // The oldest live ticket, and the lock is free: take it. Only a run on the older lock code, which does not queue, can have taken it in between.
+        writeFileSync(draft, JSON.stringify({ ...holder, startedAt: new Date().toISOString() }, null, 2));
+        try {
+          linkSync(draft, file);
+          break;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+          clean(maxAgeMs); // a file nobody can read is cleared; a lock someone else just took is left alone
+        } finally {
+          rmSync(draft, { force: true });
+        }
+      } else if (Date.now() - reported >= reportMs) {
+        reported = Date.now();
+        const ahead = current ? `holder ${describeRun(current)} for ${minutesSince(current.startedAt)} min` : "the lock is free for the run ahead";
+        log(`waiting for the browser: ${placeWord(Math.max(place, 0) + 1)} in line, ${ahead}`);
+      }
+      if (Date.now() - touched >= 10_000) {
+        touched = Date.now();
+        touchTicket(ticket);
+      }
+      await sleep(pollMs);
     }
-    const current = readHolder(file);
-    if (!current || isStale(current, maxAgeMs)) clean(maxAgeMs);
-    else if (Date.now() - reported >= reportMs) {
-      reported = Date.now();
-      log(`waiting for the browser lock: held by ${current.repo} pid ${current.pid} since ${new Date(current.startedAt).toLocaleString()}`);
-    }
-    await sleep(pollMs);
+  } finally {
+    process.off("exit", leave);
+    leave();
   }
+  spendPriority(cwd);
   process.env[ENV] = holder.token;
   let released = false;
   const release = (): void => {
@@ -225,4 +259,55 @@ export function clearBrowserLock(options: Pick<BrowserLockOptions, "maxAgeMs"> &
   const { holder } = browserLockStatus(options);
   if (!holder) return false;
   return clean(options.maxAgeMs ?? THREE_HOURS, options.force);
+}
+
+
+/** One waiter in the line, as the status shows it. */
+export interface BrowserQueueEntry {
+  /** 1 is next. */
+  place: number;
+  ticket: BrowserQueueTicket;
+  /** Whole minutes since it joined. */
+  waitedMinutes: number;
+  /** True when the priority file put it first. */
+  byPriority: boolean;
+}
+
+export interface BrowserQueueStatus extends BrowserLockStatus {
+  /** Whole minutes the holder has had the lock, or null when it is free. */
+  heldMinutes: number | null;
+  /** The waiters, in the order they are served. Tickets of dead pids are left out. */
+  queue: BrowserQueueEntry[];
+  /** The folder the priority file names, or null. */
+  priority: string | null;
+  /** Lines to show a person: a holder over `LONG_HOLD_MINUTES`, a stale lock. */
+  warnings: string[];
+}
+
+/**
+ * The whole picture: who holds the lock and for how long, the waiters in the order they will be served, the priority if one is set, and a warning when a holder has had
+ * the lock for more than 45 minutes. It only looks: it clears nothing, so it is safe to run while others are testing.
+ *
+ * @example
+ * const { holder, heldMinutes, queue, warnings } = browserQueueStatus();
+ * console.log(holder ? `${holder.repo} for ${heldMinutes} min` : "free", queue.length, "waiting", warnings);
+ */
+export function browserQueueStatus(options: Pick<BrowserLockOptions, "maxAgeMs"> & { now?: number; alive?: (pid: number) => boolean } = {}): BrowserQueueStatus {
+  const { now = Date.now(), alive: running } = options;
+  const base = browserLockStatus(options);
+  const priority = readPriority();
+  const queue = readQueue({ clean: false, now, ...(running ? { alive: running } : {}) });
+  const oldest = orderBrowserQueue(queue, null)[0];
+  const heldMinutes = base.holder ? minutesSince(base.holder.startedAt, now) : null;
+  const warnings: string[] = [];
+  if (base.holder && base.stale) warnings.push(`the lock is stale (its pid is gone or it is over three hours old): the next run takes it over`);
+  else if (base.holder && heldMinutes !== null && heldMinutes > LONG_HOLD_MINUTES)
+    warnings.push(`${describeRun(base.holder)} has held the browser for ${heldMinutes} min (over ${LONG_HOLD_MINUTES}); look at it, nothing here stops it`);
+  return {
+    ...base,
+    heldMinutes,
+    queue: queue.map((ticket, index) => ({ place: index + 1, ticket, waitedMinutes: minutesSince(ticket.queuedAt, now), byPriority: index === 0 && priority !== null && ticket.token !== oldest?.token })),
+    priority,
+    warnings,
+  };
 }
