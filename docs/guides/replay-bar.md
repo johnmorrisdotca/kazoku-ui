@@ -19,7 +19,7 @@ Play, pause, back to the start and repeat, with the family's speed buttons on th
 
 The speed buttons are the same `<kazoku-speed-buttons>`. `steps` is the list, `speed` is the one that is on, and their address key is `replay-speed` unless `speed-key` says otherwise, so a view's `pace` is left alone. A change is the usual `kazoku-speedchange`.
 
-Reduced motion leaves play off: the button is there and does nothing, and an address that says `play=on` does not start it. Add `user-play` and a reader's own press on Play is honoured even then (nothing starts by itself, and an address that says `play=on` still does not start it), which is what [the family clock](clock.md) needs for a still view with Play ready.
+Reduced motion gives a still view with Play ready: the Play button is enabled, nothing starts by itself (an address that says `play=on`, the `playing` attribute and the `playing` property are held back), and the reader's own press on Play starts it, so a page can keep the rule of [the family clock](clock.md). Up to 0.33 the button was disabled unless the element had `user-play`; that attribute is still accepted and now changes nothing.
 
 ```ts
 import { flagOn, addressKeys } from "@johnmorrisdotca/kazoku-ui/replay-bar";

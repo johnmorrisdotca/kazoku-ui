@@ -2489,7 +2489,7 @@ class ReplayBarElement extends HTMLElement {
     #private;
     static observedAttributes: string[];
     constructor();
-    /** Whether playback is going. Reduced motion keeps this false. */
+    /** Whether playback is going. Reduced motion keeps this false until the reader presses Play. */
     get playing(): boolean;
     set playing(next: boolean);
     /** Whether the page should loop when it reaches the end. */

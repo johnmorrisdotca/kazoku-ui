@@ -1,5 +1,5 @@
 // <kazoku-replay-bar>: play, pause, back to the start, repeat, and the family's speed buttons, in one row. It moves nothing itself.
-// The page hears `kazoku-replay` and applies it, and hears `kazoku-speedchange` from the speed buttons. Reduced motion leaves play off.
+// The page hears `kazoku-replay` and applies it, and hears `kazoku-speedchange` from the speed buttons. Reduced motion holds back what starts by itself; the reader's own press on Play always works.
 import { applyParams, createAddressWriter, readParam } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
@@ -25,7 +25,8 @@ export interface ReplayDetail {
 /**
  * Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
  * `address` (keep play, repeat and the speed in the address), `address-keys` (`play:p,repeat:r`), `speed-key` (the speed's own key, `replay-speed` by default),
- * `user-play` (a reader who asked for reduced motion still gets a Play button that works: nothing starts by itself, but their own press is honoured), `lang`, `theme`.
+ * `user-play` (kept for older pages: it changes nothing now, because a reader who asked for reduced motion always gets a Play button that is ready and works), `lang`, `theme`.
+ * Reduced motion gives a still view with Play ready: `playing`, an address that says `play=on` and a property never start it, and only the reader's own press does.
  */
 export class ReplayBarElement extends HTMLElement {
   static observedAttributes = ["playing", "repeat", "steps", "speed", "lang", "label", "user-play"];
@@ -46,7 +47,7 @@ export class ReplayBarElement extends HTMLElement {
     this.#root = this.attachShadow({ mode: "open" });
   }
 
-  /** Whether playback is going. Reduced motion keeps this false. */
+  /** Whether playback is going. Reduced motion keeps this false until the reader presses Play. */
   get playing(): boolean {
     return this.#playing;
   }
@@ -118,9 +119,9 @@ export class ReplayBarElement extends HTMLElement {
     else this.#paint();
   };
 
-  /** Reduced motion stops anything that starts by itself; with `user-play`, the reader's own press on Play is still honoured. */
+  /** Reduced motion stops anything that starts by itself; the reader's own press on Play is always honoured (`user-play` is kept for older pages and changes nothing). */
   #mayPlay(reason: "user" | "set"): boolean {
-    return !this.#reduced() || (reason === "user" && this.hasAttribute("user-play"));
+    return !this.#reduced() || reason === "user";
   }
 
   #play(next: boolean, reason: "user" | "set"): void {
@@ -221,7 +222,7 @@ export class ReplayBarElement extends HTMLElement {
     if (play) {
       play.textContent = this.#playing ? words.pause : words.play;
       play.setAttribute("aria-pressed", String(this.#playing));
-      play.disabled = this.#reduced() && !this.hasAttribute("user-play");
+      play.disabled = false;
     }
     if (start) start.textContent = words.start;
     if (repeat) {

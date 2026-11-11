@@ -38,7 +38,7 @@ test("play, pause, start and repeat are one row, a finger wide, and play is in t
   expect(errors).toEqual([]);
 });
 
-test("a page opened on the address starts there, and reduced motion leaves play off", async ({ page }) => {
+test("a page opened on the address starts there, and reduced motion holds the start back", async ({ page }) => {
   await page.goto("/replay.html?play=on&repeat=on&replay-speed=60");
   await expect(act(page, "play")).toHaveText("Pause");
   await expect(act(page, "repeat")).toHaveAttribute("aria-pressed", "true");
@@ -47,10 +47,67 @@ test("a page opened on the address starts there, and reduced motion leaves play 
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/replay.html?play=on");
-  await expect(act(page, "play")).toBeDisabled();
+  await expect(act(page, "play")).toBeEnabled();
   await expect(act(page, "play")).toHaveText("Play");
   await expect(bar(page)).not.toHaveAttribute("playing", "");
   expect(new URL(page.url()).searchParams.get("play")).toBe("on");
+});
+
+test("with no preference the bar opens playing when the page asks", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/replay.html?play=on");
+  await expect(act(page, "play")).toBeEnabled();
+  await expect(act(page, "play")).toHaveText("Pause");
+  await expect(bar(page)).toHaveAttribute("playing", "");
+  await expect(page.locator('[data-testid="out"]')).toContainText("Playing");
+  // And with the attribute, no address.
+  await page.goto("/replay.html");
+  await page.evaluate(() => { const fresh = document.createElement("kazoku-replay-bar"); fresh.id = "fresh"; fresh.setAttribute("playing", ""); document.body.append(fresh); });
+  const fresh = () => page.evaluate(() => { const el = document.getElementById("fresh"); return [el.playing, el.shadowRoot.querySelector('[data-act="play"]').textContent, el.shadowRoot.querySelector('[data-act="play"]').disabled]; });
+  await expect.poll(fresh).toEqual([true, "Pause", false]);
+});
+
+test("under reduced motion the view opens still with Play ready, and moves only when the reader presses Play", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/replay.html");
+  await expect(act(page, "play")).toBeEnabled();
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(act(page, "play")).toHaveAttribute("aria-pressed", "false");
+  await expect(bar(page)).not.toHaveAttribute("playing", "");
+  await expect(page.locator('[data-testid="out"]')).toContainText("Paused, at 0.0");
+  // Nothing moves by itself.
+  await page.waitForTimeout(600);
+  await expect(page.locator('[data-testid="out"]')).toContainText("Paused, at 0.0");
+  // The reader's press starts it, and says so.
+  await act(page, "play").click();
+  await expect(act(page, "play")).toHaveText("Pause");
+  await expect(act(page, "play")).toHaveAttribute("aria-pressed", "true");
+  await expect(bar(page)).toHaveAttribute("playing", "");
+  await expect(page.locator('[data-testid="out"]')).toContainText("Playing");
+  await expect(page).toHaveURL(/play=on/);
+  await expect(page.locator('[data-testid="out"]')).not.toContainText("at 0.0");
+  // A second press pauses.
+  await act(page, "play").click();
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(page.locator('[data-testid="out"]')).toContainText("Paused");
+});
+
+test("under reduced motion an address or an attribute that says play does not start it, and user-play changes nothing", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/replay.html?play=on");
+  await expect(act(page, "play")).toBeEnabled();
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(bar(page)).not.toHaveAttribute("playing", "");
+  await bar(page).evaluate((el) => el.setAttribute("user-play", ""));
+  await expect(act(page, "play")).toBeEnabled();
+  await act(page, "play").click();
+  await expect(act(page, "play")).toHaveText("Pause");
+  await bar(page).evaluate((el) => { el.removeAttribute("user-play"); el.playing = false; });
+  await expect(act(page, "play")).toHaveText("Play");
+  // A property set by the page is not the reader: it stays held back.
+  await bar(page).evaluate((el) => { el.playing = true; });
+  await expect(act(page, "play")).toHaveText("Play");
+  await expect(act(page, "play")).toBeEnabled();
 });
 
 test("Japanese labels follow the page", async ({ page }) => {
