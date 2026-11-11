@@ -165,3 +165,36 @@ test("the embed page carries the credit line only, small, and fits a small frame
   // The badge is drawn at its own 320 px, so the page may be wider than a small frame; the credit line must still fit inside it.
   expect(await credits(page).evaluate((el) => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= window.innerWidth && el.shadowRoot.querySelector(".box").scrollWidth <= r.width; })).toBe(true);
 });
+
+test("a credit line in pieces links its licence and its source, by property or by attribute, in either language, and never an unsafe address", async ({ page }) => {
+  await ready(page, "page-frame.html");
+  const embed = page.locator("kazoku-page-credits#embed");
+  await embed.evaluate((element) => {
+    element.credits = {
+      en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "a trick", href: "data:text/html,x" }],
+      ja: ["旗：", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+    };
+  });
+  const links = embed.locator('[part="credit-link"]');
+  await expect(links).toHaveText(["CC BY 2.5"]);
+  await expect(links).toHaveAttribute("href", "https://creativecommons.org/licenses/by/2.5/");
+  await expect(links).toHaveAttribute("target", "_blank");
+  await expect(links).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(embed.locator('[part="text"]')).toContainText("a trick");
+  await page.evaluate(() => {
+    document.documentElement.lang = "ja";
+  });
+  await expect(embed.locator('[part="text"]')).toContainText("旗：CC BY 2.5");
+  // the attribute form, for a page a build writes
+  const line = page.locator("kazoku-page-credits#line");
+  await line.evaluate((element) => {
+    element.setAttribute("credit-parts", JSON.stringify(["Stars: ", { text: "Yale", href: "https://example.org/yale" }, " ", { text: "x", href: "vbscript:msgbox(1)" }]));
+    element.setAttribute("credit-parts-ja", JSON.stringify(["星：", { text: "イェール", href: "https://example.org/yale" }]));
+  });
+  await expect(line.locator('[part="credit-link"]')).toHaveText(["イェール"]);
+  await page.evaluate(() => {
+    document.documentElement.lang = "en";
+  });
+  await expect(line.locator('[part="credit-link"]')).toHaveText(["Yale"]);
+  await expect(line.locator('[part="text"]')).toContainText("Stars: Yale x");
+});

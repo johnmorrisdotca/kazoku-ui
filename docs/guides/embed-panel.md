@@ -61,7 +61,7 @@ panel.credits = [
 ];
 ```
 
-A link is kept only when its address is http, https or on the page's own site; any other address shows as its text. The links are the `credit-link` part, and the credit is never in the code the reader copies.
+A link is kept only when its address is http, https or relative; any other (javascript:, data:) shows as its text. Each opens in a tab of its own (`target="_blank"`, `rel="noopener noreferrer"`), so a credit inside someone else's frame never takes the frame away. The links are the `credit-link` part, and the credit is never in the code the reader copies.
 
 `generate` is the one thing the panel cannot do without: it is the text of the tab shown. `preview` returns the picture (a node), or nothing: the iframe tab then draws the iframe of the text, so a package need only write its live picture. Call `panel.update()` whenever the package's own choices change (a look, a colour, a toggle); the panel reads everything again and rebuilds the picture only when what it shows has changed.
 
@@ -191,7 +191,7 @@ The tabs are a tab list: Left and Right move between them (round at the ends), H
 
 ## A package's builder page
 
-The family's shared files hold the builder page that most packages have (`builder.html`, "The code"): `familyEmbedBuilder` in `scripts/family-template.mjs`. Its source is kazoku-ui's `templates/family-template.mjs` (FAMILY_TEMPLATE_VERSION 2026-11-11), copied unchanged into each package. When the builder page holds the panel, the builder fills it: a tab for each way a page is made that the maker offers, with the builder's own names (Custom element, iframe, ES module, React 19, Vue, Svelte, Angular, Plain HTML, iframe URL), the code of the choices that differ from the defaults, Copy, Open the embed page with the choices, the note that only differing choices are in the code, and the builder config's `docsHref` and `credits`. The panel shows no picture and no size of its own: the builder's preview and its choices (a size among them) are the package's. The tab shown is kept in the address as before (`show=`). A builder page without the panel keeps its own code section, so a package moves when it is ready.
+The family's shared files hold the builder page that most packages have (`builder.html`, "The code"): `familyEmbedBuilder` in `scripts/family-template.mjs`. Its source is kazoku-ui's `templates/family-template.mjs` (FAMILY_TEMPLATE_VERSION 2026-11-11b), copied unchanged into each package. When the builder page holds the panel, the builder fills it: a tab for each way a page is made that the maker offers, with the builder's own names (Custom element, iframe, ES module, React 19, Vue, Svelte, Angular, Plain HTML, iframe URL), the code of the choices that differ from the defaults, Copy, Open the embed page with the choices, the note that only differing choices are in the code, and the builder config's `docsHref` and `credits`. The panel shows no picture and no size of its own: the builder's preview and its choices (a size among them) are the package's. The tab shown is kept in the address as before (`show=`). A builder page without the panel keeps its own code section, so a package moves when it is ready.
 
 The code section of `builder.html` becomes the panel, with the builder's two buttons in its `actions` slot:
 

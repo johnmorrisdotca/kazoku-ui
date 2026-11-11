@@ -4,6 +4,7 @@ export const TAG = "kazoku-page-header";
 export const CREDITS_TAG = "kazoku-page-credits";
 export const FOOTER_TAG = "kazoku-page-footer";
 export { pageProblems, type PageCheckOptions } from "./check.ts";
+export { type CreditPart } from "../shared/credit-parts.ts";
 export { pageCreditsHtml, pageFooterHtml, pageHeaderHtml, type PageCredits, type PageCreditsOptions, type PageFooterOptions, type PageHeaderOptions } from "./html.ts";
 export { samePage } from "./link.ts";
 export { applyPageMeta, pageHeadHtml, watchPageMeta } from "./meta.ts";

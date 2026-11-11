@@ -321,15 +321,35 @@ test("the credit line can link its licence and its source, each on its own, and 
       ", ",
       { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/wiki/File:Flag.svg" },
       " ",
-      { text: "not a link", href: "javascript:alert(1)" },
+      { text: "a", href: "javascript:alert(1)" },
+      { text: "b", href: "JavaScript:alert(1)" },
+      { text: "c", href: "  javascript:alert(1)" },
+      { text: "d", href: "data:text/html,<b>x</b>" },
+      { text: "e", href: "vbscript:msgbox(1)" },
     ];
   });
   const credits = page.locator(`${P} [part="credits"]`);
-  await expect(credits).toHaveText("Credit: Flag: CC BY 2.5, Wikimedia Commons not a link");
+  await expect(credits).toHaveText("Credit: Flag: CC BY 2.5, Wikimedia Commons abcde");
   const links = page.locator(`${P} [part="credit-link"]`);
+  // javascript:, data: and vbscript:, in any case and after spaces, are text, never links
   await expect(links).toHaveText(["CC BY 2.5", "Wikimedia Commons"]);
   await expect(links.nth(0)).toHaveAttribute("href", "https://creativecommons.org/licenses/by/2.5/");
   await expect(links.nth(1)).toHaveAttribute("href", "https://commons.wikimedia.org/wiki/File:Flag.svg");
+  // each opens in a tab of its own, so a credit in someone else's frame never takes the frame away
+  for (const link of await links.all()) {
+    await expect(link).toHaveAttribute("target", "_blank");
+    await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  }
+  // an update that says the same keeps the same links, so a focused one keeps its focus
+  const first = await links.nth(0).elementHandle();
+  await links.nth(0).focus();
+  await panel.evaluate((element) => element.update());
+  expect(await first.evaluate((node) => node.isConnected && node.getRootNode().activeElement === node)).toBe(true);
+  // a function that gives something that is not a list gives no credit, and does not throw
+  await panel.evaluate((element) => {
+    element.credits = () => undefined;
+  });
+  await expect(credits).toBeHidden();
   // the pieces may come from a function of the choices, and a relative address is the page's own site
   await panel.evaluate((element) => {
     element.credits = ({ kind }) => ["Shown as ", { text: kind, href: "NOTICE.html" }];

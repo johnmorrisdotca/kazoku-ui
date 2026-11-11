@@ -61,8 +61,15 @@ The line reads "Hoshi Stars: The 88 constellations" (a full-width colon in Japan
 | Attribute | What it is |
 |---|---|
 | `credits`, `credits-ja` | This page's credit line. |
+| `credit-parts`, `credit-parts-ja` | The line in pieces, as JSON, so a licence and its source can each be a link (below). |
 | `href` | A link to the full credits. |
 | `embed` | The small form. |
+
+The line can link what it names, as CC BY asks for the licence's address: give it in pieces, each a text or `{ text, href }`. In a script, set the element's `credits` (one list, or `{ en, ja }`); in a build, give `pageCreditsHtml` the pieces and it writes them into `credit-parts` and the no-script text, links included. Only an http, https or relative address links; any other shows as its text. Each piece's link is the `credit-link` part and opens in a tab of its own (`rel="noopener noreferrer"`).
+
+```js
+pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/" }] }, { embed: true });
+```
 
 ## A real title and description
 

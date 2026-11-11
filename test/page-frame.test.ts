@@ -89,3 +89,20 @@ test("every page of this package's own demo has the header and the credit line, 
     assert.match(html, /src="frame\.js"/, `${name} loads the elements`);
   }
 });
+
+test("pageCreditsHtml writes a line given in pieces with its links, for the element and without script, and never an unsafe address", () => {
+  const html = pageCreditsHtml(
+    {
+      en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "a trick", href: "JavaScript:alert(1)" }],
+      ja: ["旗：", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+    },
+    { embed: true },
+  );
+  assert.match(html, / credits="Flag: CC BY 2\.5, a trick"/);
+  assert.match(html, / credits-ja="旗：CC BY 2\.5"/);
+  assert.match(html, / credit-parts="\[&quot;Flag: &quot;,\{&quot;text&quot;:&quot;CC BY 2\.5&quot;/);
+  assert.match(html, /<a href="https:\/\/creativecommons\.org\/licenses\/by\/2\.5\/" target="_blank" rel="noopener noreferrer">CC BY 2\.5<\/a>/);
+  assert.doesNotMatch(html, /href="JavaScript/i, "an unsafe address is never a link");
+  assert.match(html, /, a trick<\/p>/);
+  assert.deepEqual(pageProblems(`<!doctype html><title>T</title><meta name="description" content="A sentence about the embedded page."/>${html}`, { embed: true }), []);
+});

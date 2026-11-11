@@ -63,8 +63,15 @@ description: どのデモページにも、メニューを開かなくても見�
 | 属性 | 内容 |
 |---|---|
 | `credits`、`credits-ja` | このページのクレジットの行 |
+| `credit-parts`、`credit-parts-ja` | 行をいくつかの部分に分けたJSON。ライセンスと出典をそれぞれリンクにできます（下を参照） |
 | `href` | 出典の全文へのリンク |
 | `embed` | 小さい形 |
+
+CC BYがライセンスのアドレスを求めるように、行の中の名前をリンクにできます。テキストか`{ text, href }`を並べた部分で渡します。スクリプトでは要素の`credits`に（1つのリスト、または`{ en, ja }`で）入れます。ビルドでは`pageCreditsHtml`に部分を渡すと、`credit-parts`と、スクリプトがないときの文に、リンクごと書き込みます。リンクになるのはhttp、https、または相対アドレスだけで、それ以外はテキストとして表示します。部分のリンクは`credit-link`パーツで、新しいタブで開きます（`rel="noopener noreferrer"`）。
+
+```js
+pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/" }] }, { embed: true });
+```
 
 ## 検索結果に出るタイトルと説明
 

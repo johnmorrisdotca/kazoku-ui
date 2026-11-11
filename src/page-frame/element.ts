@@ -2,6 +2,7 @@
 // link and, when the package has them, a Sheets link; it sits inside the page's own top bar and is not a bar of its own. The credit line is this page's data credits, or one link
 // to them, above the family footer. An embed form of the credit line is the credit only, small. They read the page's `lang` (the language picker writes it on <html>) and say their
 // words again when it changes. They draw nothing of the page.
+import { type CreditPart, creditNodes, creditText, parseCreditParts } from "../shared/credit-parts.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { samePage } from "./link.ts";
@@ -135,15 +136,19 @@ export class PageHeaderElement extends HTMLElement {
 }
 
 /**
- * Attributes: `credits` (this page's credit line, for example "Stars: Yale Bright Star Catalogue, public domain"), `credits-ja`, `href` (a link to the NOTICE or credits page,
+ * Attributes: `credits` (this page's credit line, for example "Stars: Yale Bright Star Catalogue, public domain"), `credits-ja`, `credit-parts` and `credit-parts-ja` (the line in
+ * pieces, as JSON: `["Flag: ", { "text": "CC BY 2.5", "href": "https://creativecommons.org/licenses/by/2.5/" }]`, so a licence and its source can each be a link; only an http,
+ * https or relative address links), `href` (a link to the NOTICE or credits page,
  * labelled "Data and credits"; with a line of credits, the link follows it), `embed` (the small form for a page that sits in someone else's: the credit line only) and `lang`. A line of credits
- * alone is led by "Data and credits:". It is shown always, never in a fold. What is written inside the tag shows until the script loads, and without script. Parts: `box`, `text`, `link`.
+ * alone is led by "Data and credits:". It is shown always, never in a fold. What is written inside the tag shows until the script loads, and without script. Parts: `box`, `text`, `link`,
+ * `credit-link` (a piece's link, which opens in a tab of its own).
  */
 export class PageCreditsElement extends HTMLElement {
-  static observedAttributes = ["credits", "credits-ja", "href", "embed", "lang"];
+  static observedAttributes = ["credits", "credits-ja", "credit-parts", "credit-parts-ja", "href", "embed", "lang"];
 
   #root: ShadowRoot;
   #words: Partial<PageFrameWords> = {};
+  #pieces: Partial<Record<Language, readonly CreditPart[]>> | null = null;
   #stop: (() => void)[] = [];
   #styled = false;
   #ready = false;
@@ -156,6 +161,23 @@ export class PageCreditsElement extends HTMLElement {
   /** Your own words over the family's, for example `{ credits: "Sources" }`. */
   set words(words: Partial<PageFrameWords>) {
     this.#words = words;
+    if (this.#ready) this.#render();
+  }
+
+  /**
+   * The credit line in pieces, over the `credits` attributes: one list for every language, or one for each
+   * (`{ en: [...], ja: [...] }`). A piece is a text or `{ text, href }`; only an http, https or relative address links.
+   *
+   * @example
+   * ```ts
+   * document.querySelector("kazoku-page-credits")!.credits = {
+   *   en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+   *   ja: ["旗：", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }],
+   * };
+   * ```
+   */
+  set credits(pieces: readonly CreditPart[] | Partial<Record<Language, readonly CreditPart[]>> | null) {
+    this.#pieces = pieces === null ? null : Array.isArray(pieces) ? { en: pieces as readonly CreditPart[] } : (pieces as Partial<Record<Language, readonly CreditPart[]>>);
     if (this.#ready) this.#render();
   }
 
@@ -181,7 +203,9 @@ export class PageCreditsElement extends HTMLElement {
   #render(): void {
     const language = languageFor(this);
     const words = wordsFor(language, this.#words);
-    const credits = attributeIn(this, "credits", language).trim();
+    const pieces = this.#pieces?.[language] ?? this.#pieces?.en ?? parseCreditParts(attributeIn(this, "credit-parts", language) || null);
+    const linked = pieces !== null && creditText(pieces).trim() !== "";
+    const credits = linked ? creditText(pieces).trim() : attributeIn(this, "credits", language).trim();
     const href = this.getAttribute("href");
     let box = this.#root.querySelector<HTMLElement>(".box");
     if (box === null) {
@@ -202,7 +226,8 @@ export class PageCreditsElement extends HTMLElement {
         lead.textContent = `${words.credits}${words.colon}`;
         text.append(lead);
       }
-      text.append(credits);
+      if (linked) text.append(...creditNodes(this.ownerDocument, pieces, { part: "credit-link" }));
+      else text.append(credits);
       parts.push(text);
     }
     if (href) {

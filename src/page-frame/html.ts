@@ -1,13 +1,31 @@
 // The header and the credit line as HTML a build writes into the page, so the built file holds the words (and a link to home) before any script runs. The element
 // takes over when its script loads and says the same things again in the reader's language; what is written inside the tag is what shows until then, or without script.
+import { type CreditPart, creditPieces, creditText, safeHref } from "../shared/credit-parts.ts";
 import { escapeHtml, pickText, type PageTexts } from "./text.ts";
 import { wordsFor, type Language, type PageFrameWords } from "./words.ts";
 
-/** What the page says in each language about its credits: the line itself. English is required. */
+/**
+ * What the page says in each language about its credits: the line itself, or its pieces (a text or `{ text, href }`) so a
+ * licence and its source can each be a link (only an http, https or relative address links). English is required.
+ */
 export interface PageCredits {
-  en: string;
-  ja?: string;
+  en: string | readonly CreditPart[];
+  ja?: string | readonly CreditPart[];
 }
+
+/** A line, or its pieces, as text with no links (the `credits` attributes and a screen reader's words). */
+const plain = (line: string | readonly CreditPart[] | undefined): string | undefined => (line === undefined ? undefined : typeof line === "string" ? line : creditText(line));
+/** A line, or its pieces, as HTML: the texts escaped, and links where the address may link, each opening in a tab of its own. */
+const lineHtml = (line: string | readonly CreditPart[]): string =>
+  typeof line === "string"
+    ? escapeHtml(line)
+    : creditPieces(line)
+        .map((part) => {
+          if (typeof part === "string") return escapeHtml(part);
+          const href = safeHref(part.href);
+          return href === null ? escapeHtml(part.text) : `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(part.text)}</a>`;
+        })
+        .join("");
 
 /** Where the links go and how the header is made. */
 export interface PageHeaderOptions {
@@ -61,18 +79,26 @@ export interface PageCreditsOptions {
 }
 
 /**
- * `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both.
+ * `<kazoku-page-credits>` as a string, for a build. Give the page's own credit line, or a `href` to a credits page, or both. A line given
+ * in pieces keeps its links: the `credit-parts` attributes carry them for the element, and the text inside has them too.
  *
  * @example
  * pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue (public domain).", ja: "星：イェール輝星表（パブリックドメイン）。" }, { href: "NOTICE.html" });
+ * pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }] }, { embed: true });
  */
 export function pageCreditsHtml(credits: PageCredits | undefined, options: PageCreditsOptions = {}): string {
   const language = options.language ?? "en";
   const words = wordsFor(language, options.words);
   const line = credits === undefined ? "" : (credits[language] ?? credits.en);
-  const attrs = (credits === undefined ? "" : attribute("credits", credits.en) + attribute("credits-ja", credits.ja)) + attribute("href", options.href) + (options.embed === true ? " embed" : "");
+  const pieces = (value: string | readonly CreditPart[] | undefined): string | undefined => (value === undefined || typeof value === "string" ? undefined : JSON.stringify(creditPieces(value)));
+  const attrs =
+    (credits === undefined
+      ? ""
+      : attribute("credits", plain(credits.en)) + attribute("credits-ja", plain(credits.ja)) + attribute("credit-parts", pieces(credits.en)) + attribute("credit-parts-ja", pieces(credits.ja))) +
+    attribute("href", options.href) +
+    (options.embed === true ? " embed" : "");
   const link = options.href === undefined ? "" : ` <a href="${escapeHtml(options.href)}">${escapeHtml(words.credits)}</a>`;
-  return `<kazoku-page-credits${attrs}><p>${escapeHtml(line)}${link}</p></kazoku-page-credits>`;
+  return `<kazoku-page-credits${attrs}><p>${lineHtml(line)}${link}</p></kazoku-page-credits>`;
 }
 
 /** How the footer is made. */

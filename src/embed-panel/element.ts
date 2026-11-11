@@ -7,6 +7,7 @@ import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { DEFAULT_KINDS, DEFAULT_SIZE, filterItems, groupsOf, KIND_ADDRESS_KEY, nearestSize, parseKinds, parseSizes, type PickItem, SEARCH_FROM, SIZE_ADDRESS_KEY } from "./choices.ts";
 import { EVENT, TAG } from "./index.ts";
+import { type CreditPart, creditNodes, creditText } from "../shared/credit-parts.ts";
 import { STYLES } from "./styles.ts";
 import { kindLabel, languageOf, type Language, type PanelWords, wordsFor } from "./words.ts";
 
@@ -36,25 +37,21 @@ export interface EmbedChangeDetail {
 
 type Text = string | ((context: EmbedContext) => string);
 
-/**
- * One piece of the credit line: a text, or a text that links (a licence, a source's page). A link's `href` is used only
- * where it is http, https or an address on the page's own site; any other is shown as its text.
- */
-export type CreditPart = string | { text: string; href: string };
+export type { CreditPart };
 
-/** The credit line: a text, its pieces (some of them links), or a function of the choices that gives either. */
+/**
+ * The credit line: a text, its pieces (some of them links), or a function of the choices that gives either; a function
+ * that gives anything else gives no credit.
+ *
+ * @example
+ * ```ts
+ * import type { Credits } from "@johnmorrisdotca/kazoku-ui/embed-panel/element";
+ *
+ * const credits: Credits = ({ kind }) => [`${kind}: `, { text: "MIT", href: "https://opensource.org/license/mit" }];
+ * ```
+ */
 export type Credits = string | readonly CreditPart[] | ((context: EmbedContext) => string | readonly CreditPart[]);
 
-/** A link's address when it is http, https or on the page's own site (a relative one resolves there); else null. */
-const safeHref = (href: unknown, base: string): string | null => {
-  if (typeof href !== "string" || href.trim() === "") return null;
-  try {
-    const url = new URL(href, base);
-    return url.protocol === "https:" || url.protocol === "http:" ? href : null;
-  } catch {
-    return null;
-  }
-};
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -94,6 +91,7 @@ export class EmbedPanelElement extends HTMLElement {
   #generate: ((context: EmbedContext) => string) | undefined;
   #preview: ((context: EmbedContext) => Node | undefined) | undefined;
   #credits: Credits = "";
+  #creditsSaid = "";
   #note: Text = "";
   #labels: Record<string, string> = {};
   #words: Partial<PanelWords> = {};
@@ -197,7 +195,14 @@ export class EmbedPanelElement extends HTMLElement {
   /**
    * The credit line shown under the code (and read by a screen reader): a text, its pieces with some of them links (the
    * licence and the source each linked, `["Flag: ", { text: "CC BY 2.5", href }, ", ", { text: "Wikimedia Commons", href }]`),
-   * or a function of the choices that gives either. The credit is the page's, not part of the copied code.
+   * or a function of the choices that gives either. Only an http, https or relative address links, in a tab of its own.
+   * The credit is the page's, not part of the copied code.
+   *
+   * @example
+   * ```ts
+   * const panel = document.querySelector("kazoku-embed-panel")!;
+   * panel.credits = ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }];
+   * ```
    */
   set credits(credits: Credits) {
     this.#credits = credits;
@@ -388,25 +393,7 @@ export class EmbedPanelElement extends HTMLElement {
   #creditParts(): (string | HTMLAnchorElement)[] {
     const given = typeof this.#credits === "function" ? this.#credits({ kind: this.#kind, size: this.#size, preview: false }) : this.#credits;
     const parts = typeof given === "string" ? [given] : given;
-    const out: (string | HTMLAnchorElement)[] = [];
-    for (const part of parts) {
-      if (typeof part === "string") {
-        if (part !== "") out.push(part);
-        continue;
-      }
-      if (typeof part?.text !== "string" || part.text === "") continue;
-      const href = safeHref(part.href, this.ownerDocument.baseURI);
-      if (href === null) {
-        out.push(part.text);
-        continue;
-      }
-      const link = this.ownerDocument.createElement("a");
-      link.href = href;
-      link.textContent = part.text;
-      link.setAttribute("part", "credit-link");
-      out.push(link);
-    }
-    return out.some((one) => typeof one !== "string" || one.trim() !== "") ? out : [];
+    return creditText(parts).trim() === "" ? [] : creditNodes(this.ownerDocument, parts as readonly CreditPart[], { part: "credit-link" });
   }
 
   #build(): void {
@@ -601,8 +588,13 @@ export class EmbedPanelElement extends HTMLElement {
     const note = this.#text(this.#note);
     el["note"]!.textContent = note;
     el["note"]!.hidden = note === "";
+    // the credit's nodes are made again only when what it says changes, so a focused credit link keeps its focus
     const parts = this.#creditParts();
-    el["credits"]!.replaceChildren(...(parts.length === 0 ? [] : [`${words.credits}: `, ...parts]));
+    const said = JSON.stringify([words.credits, parts.map((one) => (typeof one === "string" ? one : [one.textContent, one.getAttribute("href")]))]);
+    if (said !== this.#creditsSaid) {
+      this.#creditsSaid = said;
+      el["credits"]!.replaceChildren(...(parts.length === 0 ? [] : [`${words.credits}: `, ...parts]));
+    }
     el["credits"]!.hidden = parts.length === 0;
     this.#links();
     this.#picture();

@@ -445,7 +445,7 @@ function familyLanguage(options) {
  * (kazoku-ui's embed-panel, defined by the page), gets it filled: one tab for each of the maker's formats with
  * the builder's own names, the code of the choices that differ from the defaults, Copy, "Open the embed page"
  * (the maker's embed page with the choices), the note that only differing choices are in the code, and from
- * the config `docsHref` and `credits` (a text, or a function of { maker, settings, lang }). The panel shows no
+ * the config `docsHref` and `credits` (a text, pieces some of which link, or a function of { maker, settings, lang }). The panel shows no
  * picture and no size of its own: the builder's preview and its choices (a size among them) are the package's. The builder's
  * "Copy a link to this setup" and "Start again" go in the panel's actions slot. A page without the panel keeps
  * its own code section (#bld-formats, #bld-panel, #bld-code, #bld-copy), so a package moves when it is ready.
