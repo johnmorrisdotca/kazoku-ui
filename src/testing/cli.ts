@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /// <reference types="node" />
+import { availableParallelism, loadavg } from "node:os";
 import process from "node:process";
 import { browserLockStatus, browserQueueStatus, clearBrowserLock } from "./lock.ts";
 import { describeRun, setBrowserPriority } from "./queue.ts";
@@ -17,6 +18,8 @@ function show(): number {
   console.log(queue.length ? `waiting, in the order they will be served (${queue.length}):` : "nobody is waiting");
   for (const { place, ticket, waitedMinutes, byPriority } of queue) console.log(`  ${place}. ${describeRun(ticket)}, pid ${ticket.pid}, ${waitedMinutes} min${byPriority ? ", first by priority" : ""}\n     folder: ${ticket.cwd}`);
   if (priority) console.log(`priority: ${priority}${queue.some((one) => one.byPriority) ? "" : " (nobody from there is waiting; it is spent when one takes the lock)"}`);
+  const [one, five, fifteen] = loadavg().map((value) => value.toFixed(1));
+  console.log(`load: ${one} ${five} ${fifteen} (1, 5 and 15 min) on ${availableParallelism()} cores`);
   for (const line of warnings) console.log(`WARNING: ${line}`);
   return holder && !stale ? 1 : 0;
 }

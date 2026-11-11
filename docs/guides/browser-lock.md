@@ -60,7 +60,7 @@ await withBrowserLock(async () => {
 npx kazoku-browser-queue status
 ```
 
-It shows who holds the browser (package, npm script, pid, minutes), the waiting runs in the order they will be served, the priority if one is set, and a `WARNING:` line when a holder has had the lock for more than 45 minutes. It only looks and changes nothing, so it is safe to run at any time. In this repository, `node src/testing/cli.ts status`.
+It shows who holds the browser (package, npm script, pid, minutes), the waiting runs in the order they will be served, the priority if one is set, the machine's load (the 1, 5 and 15 minute averages and the number of cores), and a `WARNING:` line when a holder has had the lock for more than 45 minutes. It only looks and changes nothing, so it is safe to run at any time. In this repository, `node src/testing/cli.ts status`.
 
 ## Put one waiter first
 

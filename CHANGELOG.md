@@ -4,6 +4,7 @@
 
 - **The data door names licences in Japanese** (KAZOKU-UI-105, `templates/data-door.ts`; STANDARD_VERSION 2026-11-11 with the template's new hash). A source's licence may carry `nameJa`, its name in Japanese for a Japanese credit line (`UCAC4の利用条件`); an empty one is refused. Left out, the door translates the plain phrases it knows ("Public domain" パブリックドメイン, and now "Published for use with credit" 出典を示せば利用可) and an identifier such as "CC BY 4.0" stays. A package copies the template again, unchanged; hoshi-stars, chikyu-earth and wakusei-planets each have a branch with the copy.
 - **Embedded credits open in a new tab** (KAZOKU-UI-118). In `<kazoku-page-credits embed>` the credits link now has `target="_blank"` and `rel="noopener"`: inside someone else's frame a click used to load the credits page into the frame itself, and a site that refuses to be framed left the view blank. The full form on a package's own page still opens in place. An e2e checks the target and that a click opens a new tab while the page stays put. Packages take it by raising kazoku-ui.
+- **The browser queue's status shows the machine's load** (KAZOKU-UI-120). `kazoku-browser-queue status` prints a `load:` line, the 1, 5 and 15 minute load averages and the number of cores, beside the holder and the waiting runs, so a slow run can be read against how busy the Mac was. Only the status changes; the queue still serialises browser runs only.
 
 ## [0.37.0] - 2026-11-11
 
