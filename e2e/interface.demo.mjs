@@ -53,6 +53,29 @@ test("icon button: a real button with a name, 44 px, a toggle that says so, and 
   await expect(page.getByTestId("icon-play").locator("button")).toHaveAttribute("aria-label", "再生");
 });
 
+test("control bar: the buttons are in Tab order, Slower first", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "WebKit on a Mac does not Tab to buttons unless the system's keyboard setting says so");
+  await ready(page, "interface-parts.html#bar");
+  const bar = page.getByTestId("bar");
+  // The `data-act` of whichever icon button holds focus, looking through each shadow root.
+  const focused = () => page.evaluate(() => {
+    let node = document.activeElement;
+    while (node) {
+      if (node.dataset?.act) return node.dataset.act;
+      node = node.shadowRoot?.activeElement ?? null;
+    }
+    return null;
+  });
+  await bar.locator('kazoku-icon-button[data-act="slower"] button').focus();
+  expect(await focused()).toBe("slower");
+  for (const next of ["play", "faster"]) {
+    await page.keyboard.press("Tab");
+    expect(await focused()).toBe(next);
+  }
+  await page.keyboard.press("Shift+Tab");
+  expect(await focused()).toBe("play");
+});
+
 test("control bar: the design's order, the clock's two lines, the keyboard, the picker", async ({ page }) => {
   await ready(page, "interface-parts.html#bar");
   const bar = page.getByTestId("bar");
@@ -67,11 +90,11 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   // A view that cannot do one leaves it out and the rest keep their order.
   const small = await page.getByTestId("bar-small").locator("kazoku-icon-button").evaluateAll((els) => els.map((el) => el.dataset.act));
   expect(small).toEqual(["slower", "play", "faster", "now", "layers", "look"]);
-  // Keyboard: Faster, then Slower twice; Play pauses and says so.
+  // Keyboard: Faster, then Play pauses and says so. Each button is focused directly: WebKit on a Mac skips buttons on Tab unless the system says otherwise, so the order is checked on Chromium alone, in its own test.
   await bar.locator('kazoku-icon-button[data-act="faster"] button').focus();
   await page.keyboard.press("Enter");
   await expect(bar.locator(".clock .s")).toHaveText("1 day each second");
-  await page.keyboard.press("Shift+Tab");
+  await bar.locator('kazoku-icon-button[data-act="play"] button').focus();
   await page.keyboard.press("Enter");
   await expect(bar.locator(".clock .s")).toHaveText("Paused");
   await expect(bar.locator('kazoku-icon-button[data-act="play"] button')).toHaveAttribute("aria-label", "Play");
