@@ -116,6 +116,8 @@ test("a body drawn smaller than the least radius has no name, and update says wh
 });
 
 test("at rest nothing is drawn, and fifty changes of look, how many, where and name keep one context and the GPU objects flat", async ({ page }) => {
+  // about 240 presses, each drawing the 4096-pixel band again: under a loaded machine that is longer than the default 30 seconds
+  test.setTimeout(180_000);
   await open(page);
   const rest = await readCounts(page);
   await page.waitForTimeout(1500);
