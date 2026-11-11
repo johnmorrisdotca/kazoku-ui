@@ -1575,10 +1575,10 @@ function defineLanguagePicker(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/address-state`
 
-5 values and 7 types.
+13 values and 8 types.
 
 ```js
-import { applyParams, createAddressState, createAddressWriter, readParam, readParams } from '@johnmorrisdotca/kazoku-ui/address-state';
+import { applyParams, createAddressState, createAddressWriter, keepReadings, parseReadings, READINGS_KEY, READINGS_ON, READINGS_STORAGE_KEY, readingsParams, readingsStorage, readParam, readParams, readReadings } from '@johnmorrisdotca/kazoku-ui/address-state';
 ```
 
 ### applyParams
@@ -1605,6 +1605,64 @@ function createAddressState(options?: AddressStateOptions): AddressState;
 function createAddressWriter(options?: AddressWriterOptions): AddressWriter;
 ```
 
+### keepReadings
+
+*function*. Keeps a reader's press of the switch on the device (`on` or `off`), so their next visit starts the same. Only a press is kept, never a link's choice.
+
+```ts
+function keepReadings(on: boolean): void;
+```
+
+### parseReadings
+
+*function*. Whether an address value means on: the key is there with any value but `off`, `0` or `false` (`?readings`, `?readings=on`). No key is `undefined`.
+
+```ts
+function parseReadings(value: string | null | undefined): boolean | undefined;
+```
+
+### READINGS_KEY
+
+*constant*. The address key: `?readings=on` turns the readings on.
+
+```ts
+const READINGS_KEY = "readings";
+```
+
+### READINGS_ON
+
+*constant*. The value the address is given when the readings are on. Off is no key at all.
+
+```ts
+const READINGS_ON = "on";
+```
+
+### READINGS_STORAGE_KEY
+
+*constant*. The localStorage key for a reader's own press of the switch.
+
+```ts
+const READINGS_STORAGE_KEY = "kazoku-readings";
+```
+
+### readingsParams
+
+*function*. The address change for a choice, for `applyParams` or an address state's `setMany`: `{ readings: "on" }`, or `{ readings: null }` to take it off.
+
+```ts
+function readingsParams(on: boolean): {
+    [READINGS_KEY]: string | null;
+};
+```
+
+### readingsStorage
+
+*constant*. The kept choice from this browser's localStorage, for `readReadings({ search, storage: readingsStorage() })`.
+
+```ts
+const readingsStorage: () => Storage | undefined;
+```
+
 ### readParam
 
 *function*. One parameter of an address' search string, or `null`.
@@ -1619,6 +1677,14 @@ function readParam(key: string, search?: string): string | null;
 
 ```ts
 function readParams(search?: string): Record<string, string>;
+```
+
+### readReadings
+
+*function*. Whether the readings start on: the address first, then a press kept on the device, else off.
+
+```ts
+function readReadings(from?: RememberedReadings): boolean;
 ```
 
 ### AddressChange
@@ -1728,6 +1794,19 @@ interface AddressWriterOptions {
     /** Milliseconds a write waits so that many changes become one: Safari stops a page that changes its address more than a hundred times in thirty seconds. 250 by default; 0 writes at once. */
     delay?: number;
     host?: AddressHost;
+}
+```
+
+### RememberedReadings
+
+*interface*. Where a choice may be read from. A page that keeps nothing passes neither.
+
+```ts
+interface RememberedReadings {
+    /** An address' search string such as `?readings=on`. */
+    search?: string;
+    /** A localStorage-like object. A store that throws is the same as an empty one. */
+    storage?: Pick<Storage, "getItem">;
 }
 ```
 
@@ -4702,6 +4781,7 @@ interface InterfaceWords {
     trail: string;
     searchField: string;
     home: string;
+    readings: string;
     rightNow: string;
     theNumbers: string;
     measure: string;

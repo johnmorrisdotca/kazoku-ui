@@ -91,6 +91,29 @@ console.log(where.search);
 
 型は、`AddressState`、`AddressStateOptions`、`AddressChange`、`AddressValue`、`AddressHost`、`AddressWriter`、`AddressWriterOptions`です。`AddressHost`は、代わりを作るときに必要な`window`の部分で、`location`と`history.replaceState`、それに任意の`popstate`のリスナーです。
 
+## ふりがなのスイッチ
+
+漢字の横に小さくかなで読みを示すふりがなのスイッチには、ファミリーで決まった一つの書き方があります。アドレスでは`?readings=on`、端末の保存では`kazoku-readings`です。スイッチは各パッケージが、ページの表示の設定と一緒に置きます（カメラのための表示の操作には置きません）。読む漢字があるところにだけ出し、ラベルには`@johnmorrisdotca/kazoku-ui/interface`の`WORDS`の`readings`（英語ではReadings、日本語ではふりがな）を使います。最初はオフで、アドレスにこのキーがあればオンです。
+
+```js
+import { applyParams, readingsParams, readReadings } from "@johnmorrisdotca/kazoku-ui/address-state";
+import { WORDS } from "@johnmorrisdotca/kazoku-ui/interface";
+
+console.log(readReadings({ search: "?lang=ja&readings=on" }), readReadings({ search: "?lang=ja" }));
+console.log(applyParams("?lang=ja", readingsParams(true)), JSON.stringify(applyParams("?readings=on", readingsParams(false))));
+console.log(WORDS.en.readings, WORDS.ja.readings);
+// true false
+// ?lang=ja&readings=on ""
+// Readings ふりがな
+```
+
+- `readReadings({ search, storage })`：ふりがなを最初からオンにするかどうか。まずアドレス（`?readings=on`。`?readings=off`ならオフ）、次にユーザーがこの端末でスイッチを押した選択、どちらもなければオフです。
+- `readingsParams(on)`：アドレスへの変更。`{ readings: "on" }`か`{ readings: null }`で、`applyParams`や状態の`setMany`に渡します。
+- `keepReadings(on)`：スイッチを押した選択を端末に保存します。保存するのは押したときだけにしてください。だれかが送ったリンクで、ユーザー自身の選択が変わらないようにするためです。
+- `parseReadings(value)`はアドレスの値を読み、`readingsStorage()`はこのブラウザーのlocalStorage（使えないときは何もなし）を返します。`READINGS_KEY`、`READINGS_ON`、`READINGS_STORAGE_KEY`は名前です。
+
+選択がアドレスに書き戻されるのは、スイッチが出ている間だけです。そのため、読む漢字のないページのリンクには`readings`が入りません。最初に使うのは、hoshi-starsの日本語ページの中国の星空です。
+
 ## ファミリーの部品の中で
 
 要素の`address`属性は、同じ部品を、それぞれのキーで使います。`?theme=`、`?lang=`、`?yaw=`、`?tilt=`、`?zoom=`、`?speed=`です。1ページの複数の部品は、同じアドレスを共有して一致します。ページ上のすべての状態が、すべての変更を聞くからです。ビューのキーと、名前を変える`address-keys`は、[表示の操作](view-controls.md)を参照してください。

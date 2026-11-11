@@ -16,6 +16,8 @@ export interface InterfaceWords {
   languageGroup: string; cultureGroup: string; western: string; japanese: string; chinese: string;
   // The top bar.
   topBar: string; trail: string; searchField: string; home: string;
+  // The readings switch a package puts with its display options (ふりがな, small kana readings beside kanji).
+  readings: string;
   // The reading page.
   rightNow: string; theNumbers: string; measure: string; value: string; comparison: string; related: string; sourceWord: string; tapNote: string;
 }
@@ -30,6 +32,7 @@ export const WORDS: Record<Language, InterfaceWords> = {
     layersTitle: "Layers", dataSources: "Data sources", nonCommercial: "non-commercial", shareAlike: "share-alike",
     languageGroup: "Language", cultureGroup: "Sky culture", western: "Western", japanese: "Japanese", chinese: "Chinese",
     topBar: "Site", trail: "You are here", searchField: "Search", home: "Home",
+    readings: "Readings",
     rightNow: "Right now", theNumbers: "The numbers", measure: "Measure", value: "Value", comparison: "Compared, and source", related: "Related", sourceWord: "source", tapNote: "Tap a number for its source.",
   },
   ja: {
@@ -41,6 +44,7 @@ export const WORDS: Record<Language, InterfaceWords> = {
     layersTitle: "レイヤー", dataSources: "データの出典", nonCommercial: "非営利のみ", shareAlike: "同一条件で共有",
     languageGroup: "言語", cultureGroup: "星座の文化", western: "西洋", japanese: "日本", chinese: "中国",
     topBar: "サイト", trail: "現在の場所", searchField: "検索", home: "ホーム",
+    readings: "ふりがな",
     rightNow: "いま", theNumbers: "数値", measure: "項目", value: "値", comparison: "比較と出典", related: "関連", sourceWord: "出典", tapNote: "数値をタップすると出典が開きます。",
   },
 };

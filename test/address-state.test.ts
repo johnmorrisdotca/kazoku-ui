@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { mock, test } from "node:test";
 
 import { applyParams, createAddressState, createAddressWriter, readParam, readParams, type AddressChange, type AddressHost } from "../src/address-state/address.ts";
+import { keepReadings, parseReadings, READINGS_KEY, READINGS_STORAGE_KEY, readingsParams, readReadings } from "../src/address-state/readings.ts";
+import { WORDS } from "../src/interface/words.ts";
 
 /** A stand-in page: an address, a history that only replaces, and the back button. */
 function page(url = "/p?x=1#top") {
@@ -264,4 +266,36 @@ test("destroy writes what waits and stops listening", () => {
   } finally {
     mock.timers.reset();
   }
+});
+
+test("the readings switch has one spelling: ?readings=on, off by default, the address before a press kept on the device", () => {
+  assert.equal(READINGS_KEY, "readings");
+  assert.equal(parseReadings(null), undefined);
+  assert.equal(parseReadings("on"), true);
+  assert.equal(parseReadings(""), true, "the key with no value is on");
+  for (const off of ["off", "0", "false", "OFF"]) assert.equal(parseReadings(off), false, off);
+  const store = (value: string | null) => ({ getItem: (key: string) => (key === READINGS_STORAGE_KEY ? value : null) });
+  assert.equal(readReadings(), false, "off by default");
+  assert.equal(readReadings({ search: "?readings=on" }), true);
+  assert.equal(readReadings({ search: "?x=1", storage: store("on") }), true, "a press kept on the device");
+  assert.equal(readReadings({ search: "?x=1", storage: store("off") }), false);
+  assert.equal(readReadings({ search: "?readings=off", storage: store("on") }), false, "a link that says off wins");
+  assert.equal(readReadings({ search: "?readings=on", storage: store("off") }), true, "a link that says on wins");
+  assert.equal(readReadings({ storage: { getItem: () => { throw new Error("blocked"); } } }), false, "a store that throws is empty");
+  assert.equal(applyParams("?x=1", readingsParams(true)), "?x=1&readings=on");
+  assert.equal(applyParams("?x=1&readings=on", readingsParams(false)), "?x=1");
+  const kept = new Map<string, string>();
+  const before = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: { setItem: (key: string, value: string) => void kept.set(key, value) } });
+  try {
+    keepReadings(true);
+    assert.equal(kept.get(READINGS_STORAGE_KEY), "on");
+    keepReadings(false);
+    assert.equal(kept.get(READINGS_STORAGE_KEY), "off");
+  } finally {
+    if (before) Object.defineProperty(globalThis, "localStorage", before);
+    else delete (globalThis as { localStorage?: unknown }).localStorage;
+  }
+  assert.equal(WORDS.en.readings, "Readings");
+  assert.equal(WORDS.ja.readings, "ふりがな");
 });
