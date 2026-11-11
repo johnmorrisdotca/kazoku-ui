@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-11
+
 - **The browser lock serves waiters in order** (KAZOKU-UI-101). Waiting runs used to poll, so whoever looked first when the lock freed won, and a run could lose it again and again for hours. Now a waiting run writes a ticket (pid, package, folder, command, time) in a `queue` folder next to the lock, and only the oldest live ticket may take the lock; a ticket of a dead pid, or one not touched for two minutes, is cleared and nothing is killed. `kazoku-browser-queue status` (the same command as `kazoku-browser-lock`) shows the holder with its npm script and minutes, the queue in order, and a warning when a holder has had the lock over 45 minutes; `kazoku-browser-queue first <folder>` puts that folder's oldest waiter next (`first --clear` removes it). A waiting run prints a line a minute: `waiting for the browser: 2nd in line, holder hoshi-stars test:demo for 12 min`. `KAZOKU_BROWSER_LOCK_DIR` moves the lock, queue and priority file. New `browserQueueStatus`, `setBrowserPriority`, `orderBrowserQueue`. A package on the earlier lock code still works alongside, and can jump the line until it takes this version. Guide in English and Japanese.
 
 ## [0.34.0] - 2026-11-11
