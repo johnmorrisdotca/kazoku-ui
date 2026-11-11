@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A pace read from the address is written to the view controls' `pace` attribute** (KAZOKU-UI-135). On a page with `pace="1440"`, a link with `?pace=1` opened on 1× but left the attribute saying 1440, so a page that reads the reader's choice there (as the docs say) had the wrong pace after a reload. The address's pace is now written to the attribute when the controls start, as a press is, and the page's own start stays the value the page set (so 1× is still kept in the address). An e2e.
+
 ## [0.39.0] - 2026-11-11
 
 - **Credit lines can carry links: the embed panel's and the page frame's** (KAZOKU-UI-134). The panel's `credits` also takes its pieces, a text or `{ text, href }`, or a function of the choices that returns them (anything else gives no credit); `<kazoku-page-credits>` takes the same pieces through its `credits` property (one list, or `{ en, ja }`) or the new `credit-parts` and `credit-parts-ja` attributes (JSON), and `pageCreditsHtml` writes them for a build, links in the no-script text too. A licence and its source can each be a link (CC BY asks for the licence's address). Only an http, https or relative address links; javascript:, data:, vbscript: (any case, any leading space) show as text. Each link is the `credit-link` part and opens in a tab of its own (`target="_blank"`, `rel="noopener noreferrer"`), so a credit in someone else's frame never takes the frame away. The panel makes the credit's nodes again only when what it says changes, so a focused link keeps its focus. The rule is one module, `src/shared/credit-parts.ts`, for both. A plain text works as before.
