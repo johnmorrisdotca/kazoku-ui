@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - **Japanese wording, from a native-level read of every label** (KAZOKU-UI-13). View controls: the move buttons say `左へ動かす` and so on (they were `左へ`, the same as the turn buttons), Fit is `全体表示` (the guides and the gestures line already said so), `ズーム倍率 1×、全体表示に戻す` uses 、 in Japanese, the gestures line names the keys `+` and `-` in half width, and Slow, Medium and Fast are `遅い`, `標準`, `速い`. Options window: Collapse is `折りたたむ` (it was `しまう`). Page layout: `ページの幅` and `標準` (it was `ふつう`). Embed panel: Search is `検索`, and the copy fallback reads `コードを選択して、手動でコピーしてください。`. Print: `なまえ：` with a full-width colon, `{row} だんめ、{column} れつめ` and `すみの しるしに そって きります。`. Interface: Slower and Faster are `速度を下げる` and `速度を上げる`, Back to now is `現在の時刻に戻す`, Realistic is `写実的` and a paused clock says `一時停止中`. The clock shows `2026年11月10日 21:14` in Japanese, with a space where English has a dot. Demo pages and the guides follow. `docs/labels.md` holds the new words.
+- The Yale Bright Star Catalogue is `イェール輝星星表` in the source comments, the Japanese data door guide and the data door test, as the demos already had it.
 
 ## [0.41.0] - 2026-11-12
 
