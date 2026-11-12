@@ -3,6 +3,8 @@ import { canvasSize, COUNT_SCRIPT, drainGpu, gpuObjects, readCounts, withinPixel
 
 // The shared 3D renderer on demo/renderer.html: thirty views, one WebGL context. The budgets every 3D package asserts: contexts = 1, draws and frames at rest = 0,
 // the GPU objects flat over a run of changes, and the canvas within budget at 5K.
+// Software drawing on a hosted runner makes a still, or a frame, slow: a test here is given room for it, and waits on the renderer's counts, not on a clock.
+test.describe.configure({ timeout: 90_000 });
 const demo = (page) => page.evaluate(() => window.kazokuDemo.renderer.stats);
 const live = (page, i) => page.evaluate((n) => window.kazokuDemo.views[n].live, i);
 const switchTo = async (page, i) => {
@@ -115,11 +117,13 @@ test("a turning view is drawn at most 30 times a second, whatever the screen's r
   // A slow software frame holds the turn back: wait until it is drawing, then time a window by the page's own clock.
   const first = await demo(page);
   await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 15_000 }).toBeGreaterThan(3);
-  const from = await page.evaluate((n) => ({ at: window.performance.now(), draws: n }), (await demo(page)).draws);
+  // The clock and the renderer's count are read in one call each, so the draws in the window are the ones the seconds belong to (two calls on a loaded runner leave a frame or two between them).
+  const mark = () => page.evaluate(() => ({ at: window.performance.now(), draws: window.kazokuDemo.renderer.stats.draws }));
+  const from = await mark();
   await page.waitForTimeout(3000);
-  const to = await page.evaluate(() => window.performance.now());
-  const draws = (await demo(page)).draws - from.draws;
-  const seconds = (to - from.at) / 1000;
+  const to = await mark();
+  const draws = to.draws - from.draws;
+  const seconds = (to.at - from.at) / 1000;
   // Software drawing may be slower than 30, never faster; the page's frames may come at 60 or more.
   expect(draws).toBeLessThanOrEqual(Math.ceil(30 * seconds) + 1);
   expect(draws).toBeGreaterThan(0);

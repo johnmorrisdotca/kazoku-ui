@@ -5,6 +5,7 @@
 ## [0.43.1] - 2026-11-13
 
 - **The stills byte-budget test waits on the renderer, not on one long call** (KAZOKU-UI-146). On a hosted WebKit runner the test ran out its 30 seconds inside one call that made thirty pictures in a row, and the page was closed under it. The byte count is not what varies: a still's `bytes` is its decoded size, width x height x 4, the same in every browser. What varies is how long the pictures take in software. The test now starts them all, waits on the renderer's own count of pictures made (up to 100 seconds, with the count in the message), and has 150 seconds. It also checks that no still is wider than the side asked for, that each one counts width x height x 4, and that the list adds up to what the renderer reports, so a still twice the size fails.
+- **Three more browser tests no longer fail on a loaded WebKit runner.** The sway test's view had no size, so a turn held for a view nobody can see could stay held; it now has a box in the corner of the window. The 30-a-second test read the clock and the draw count in two calls, so a frame or two fell between them; both come from one call. The renderer tests have 90 seconds, for software drawing on a hosted runner.
 - **The Japanese page-frame guide imports `pageCreditsHtml` in its example.** The English guide already had the line; the Japanese one did not, so the example did not run as written.
 
 ## [0.43.0] - 2026-11-12

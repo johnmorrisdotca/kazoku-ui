@@ -876,7 +876,9 @@ test("sway drifts the picture while the view turns and leaves the angle alone", 
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await ready(page);
   const drifted = await page.evaluate(async () => {
+    // A view with no size cannot be seen, and a turn is held while its view cannot: give it a box in the corner of the window, so it is on screen whatever the page holds.
     const view = document.createElement("div");
+    view.style.cssText = "position:fixed;top:0;left:0;width:160px;height:160px";
     const bar = document.createElement("kazoku-view-controls");
     bar.setAttribute("sway", "gentle");
     bar.setAttribute("autoplay", "");
