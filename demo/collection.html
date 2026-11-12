@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: collection picker</title>
+  <meta name="description" content="Search a list the page passes in, and keep a chosen list you can add to, remove from and reorder." />
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">collection picker</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="collection picker" what-ja="コレクションピッカー" description="Search a list the page passes in, and keep a chosen list you can add to, remove from and reorder." description-ja="ページが渡した一覧を検索し、選んだものを加え、外し、並べ替えられます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a></p>
+  <p class="intro" data-say="intro">Type a name. Add it, then move it or remove it. The line under the picker is the chosen ids, in order.</p>
+  <div class="targets">
+    <section class="target">
+      <kazoku-collection-picker id="picker" data-testid="picker"></kazoku-collection-picker>
+      <output id="out" data-testid="out"></output>
+    </section>
+  </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own list and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の一覧を使い、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="collection.js"></script>
+</body>
+</html>
