@@ -13,7 +13,7 @@ const SAY = {
     helpTurn: "Turn speed chooses how fast it spins.", helpLabels: "Labels show or hide the names.", helpLook: "Look chooses the drawing.",
   },
   ja: {
-    title: "オプションの窓", back: "表示の操作", intro: "ビューの上に浮かぶ、小さな窓です。タイトルをドラッグすると、移動して角に吸い付きます。しまうとチップになります。中身はページが入れます。",
+    title: "オプションの窓", back: "表示の操作", intro: "ビューの上に浮かぶ、小さな窓です。タイトルをドラッグすると、移動して角に吸い付きます。折りたたむとチップになります。中身はページが入れます。",
     planet: "惑星のオプション", ship: "船のオプション",
     turn: "回転の速さ", still: "静止", slow: "ゆっくり", faster: "速く", real: "実時間", labels: "名前", show: "表示", hide: "非表示", look: "見た目", line: "線画", thick: "太線", painted: "彩色",
     variant: "種類", v3: "v3", parts: "部品", together: "組み立て", apart: "分解", engines: "エンジン", lights: "照明", off: "切", lit: "点灯",

@@ -6,7 +6,7 @@ import "./dist/speed-buttons/define.js";
 const $ = (id) => document.getElementById(id);
 const SAY = {
   en: { title: "speed buttons", back: "The view controls", layouts: "Layouts", intro: "One set of buttons for every speed in the family: Auto-turn's in the view controls, a solar system's days a second, a replay's. Press one; it stays on, goes in the address and in the element's value.", turn: "Auto-turn: 0.5×, 1×, 2×", days: "A solar system: days a second", replay: "A replay bar", daysLabel: "Days a second", replayLabel: "Replay speed", turnOut: "Turning at", daysOut: "Time runs at", replayOut: "Playing at", daysUnit: "days a second" },
-  ja: { title: "速さのボタン", back: "表示の操作", layouts: "レイアウト", intro: "ファミリー全体で使う、速さのボタンです。自動回転、太陽系の「1秒あたりの日数」、リプレイで同じものを使います。押すと選んだ状態が残り、アドレスと要素のvalueにも入ります。", turn: "自動回転: 0.5×、1×、2×", days: "太陽系: 1秒あたりの日数", replay: "リプレイバー", daysLabel: "1秒あたりの日数", replayLabel: "リプレイの速さ", turnOut: "回転の速さ", daysOut: "時間の進み", replayOut: "再生の速さ", daysUnit: "日/秒" },
+  ja: { title: "速さのボタン", back: "表示の操作", layouts: "レイアウト", intro: "ファミリー全体で使う、速さのボタンです。自動回転、太陽系の「1秒あたりの日数」、リプレイで同じものを使います。押すと選んだ状態が残り、アドレスと要素のvalueにも入ります。", turn: "自動回転：0.5×、1×、2×", days: "太陽系：1秒あたりの日数", replay: "リプレイバー", daysLabel: "1秒あたりの日数", replayLabel: "リプレイの速さ", turnOut: "回転の速さ", daysOut: "時間の進み", replayOut: "再生の速さ", daysUnit: "日/秒" },
 };
 const say = (key) => SAY[document.documentElement.lang === "ja" ? "ja" : "en"][key];
 const spin = $("spinner");

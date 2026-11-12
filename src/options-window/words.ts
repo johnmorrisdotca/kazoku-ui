@@ -18,7 +18,7 @@ export type Language = "en" | "ja";
 
 export const WORDS: Record<Language, OptionsWords> = {
   en: { group: "Options", collapse: "Collapse", expand: "Open", help: "Help", closeHelp: "Close help" },
-  ja: { group: "オプション", collapse: "しまう", expand: "開く", help: "ヘルプ", closeHelp: "ヘルプを閉じる" },
+  ja: { group: "オプション", collapse: "折りたたむ", expand: "開く", help: "ヘルプ", closeHelp: "ヘルプを閉じる" },
 };
 
 /** Japanese for ja, English for anything else. */

@@ -7,7 +7,7 @@ import { wideCss } from "./dist/wide-layout/index.js";
 const $ = (id) => document.getElementById(id);
 const SAY = {
   en: { title: "wide layout", back: "The view controls", intro: "The Wide button, or the T key, gives the view the page's whole width and moves the side panel below it. Normal puts it back. The choice is kept in the address (?wide=on) and on this device.", size: "Size", drawn: "Drawn", notes: "Notes", note: "The panel is a column beside the view, and a row of boxes below it in Wide. On a phone it is always below.", px: "pixels" },
-  ja: { title: "ワイド表示", back: "表示の操作", intro: "ワイドのボタンか T キーで、ビューがページの幅いっぱいになり、横のパネルがその下に移ります。ふつうに戻すと元の形です。選びは、アドレス（?wide=on）とこの端末に残ります。", size: "大きさ", drawn: "描いた大きさ", notes: "メモ", note: "パネルは、ふつうはビューの横に縦に並び、ワイドではビューの下に横に並びます。スマホでは、いつも下です。", px: "ピクセル" },
+  ja: { title: "ワイド表示", back: "表示の操作", intro: "ワイドのボタンか T キーで、ビューがページの幅いっぱいになり、横のパネルがその下に移ります。標準に戻すと元の形です。選びは、アドレス（?wide=on）とこの端末に残ります。", size: "大きさ", drawn: "描いた大きさ", notes: "メモ", note: "パネルは、ふつうはビューの横に縦に並び、ワイドではビューの下に横に並びます。スマホでは、いつも下です。", px: "ピクセル" },
 };
 const language = () => (document.documentElement.lang === "ja" ? "ja" : "en");
 

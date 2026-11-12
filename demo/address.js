@@ -7,7 +7,7 @@ const $ = (id) => document.getElementById(id);
 const state = createAddressState({ defaults: { size: "m", dots: "off" } });
 const SAY = {
   en: { title: "choices in the address", back: "The view controls", intro: "Change anything. The address changes with it and nothing is added to the history. Copy the address, reload or open it in another tab: the same choices come back.", name: "Name", size: "Size", dots: "Dots", dotsButton: "Show dots", reset: "Reset", now: "The address", plain: "(plain)", anon: "Your name" },
-  ja: { title: "アドレスに残す選択", back: "表示の操作", intro: "何でも変えてみてください。アドレスも変わりますが、履歴は増えません。アドレスをコピーするか、再読み込みするか、別のタブで開くと、同じ選択が戻ります。", name: "名前", size: "大きさ", dots: "点", dotsButton: "点を出す", reset: "元に戻す", now: "いまのアドレス", plain: "（何もなし）", anon: "あなたの名前" },
+  ja: { title: "アドレスに残す選択", back: "表示の操作", intro: "何でも変えてみてください。アドレスも変わりますが、履歴は増えません。アドレスをコピーするか、再読み込みするか、別のタブで開くと、同じ選択が戻ります。", name: "名前", size: "大きさ", dots: "点", dotsButton: "点を出す", reset: "元に戻す", now: "いまのアドレス", plain: "（何もなし）", anon: "お名前" },
 };
 const say = (key) => SAY[document.documentElement.lang === "ja" ? "ja" : "en"][key];
 

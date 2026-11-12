@@ -16,15 +16,15 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `zoomOut` | Zoom out | 縮小 | shukushō, make smaller |
 | `zoomTwo` | Zoom to 2 times | 2倍にする | nibai ni suru, make it 2 times (not shown any more; kept for a page's own `words`) |
 | `zoomIn` | Zoom in | 拡大 | kakudai, make larger |
-| `fit` | Fit | 全体 | zentai, the whole |
+| `fit` | Fit | 全体表示 | zentai hyōji, show the whole |
 | `centre` | Centre | 中央 | chūō, the middle |
 | `pan` | Move the view | 表示を動かす | hyōji o ugokasu, move the view |
-| `panLeft` | Move left | 左へ | hidari e, to the left |
-| `panRight` | Move right | 右へ | migi e, to the right |
-| `panUp` | Move up | 上へ | ue e, up |
-| `panDown` | Move down | 下へ | shita e, down |
+| `panLeft` | Move left | 左へ動かす | hidari e ugokasu, move it to the left |
+| `panRight` | Move right | 右へ動かす | migi e ugokasu, move it to the right |
+| `panUp` | Move up | 上へ動かす | ue e ugokasu, move it up |
+| `panDown` | Move down | 下へ動かす | shita e ugokasu, move it down |
 | `zoomLevel` | Zoom level | ズーム倍率 | zūmu bairitsu, zoom ratio |
-| `zoomReset` | back to Fit | 全体に戻す | zentai ni modosu, put back to the whole |
+| `zoomReset` | back to Fit | 全体表示に戻す | zentai hyōji ni modosu, put back to showing the whole (after the zoom level, joined with 、 in Japanese) |
 | `more` | More | 詳細 | shōsai, details |
 | `speed` | One turn in | 1周 | isshū, one full round (the turn speeds' name: they say how long one turn of the view takes) |
 | `seconds` | {n} s | {n}秒 | {n} byō, {n} seconds (on a turn speed button) |
@@ -36,10 +36,10 @@ The Japanese is written for the interface and has not yet been read by a native 
 | `direction` | Turn direction | 回る向き | mawaru muki, the way it turns (the Left and Right buttons' group) |
 | `turnLeft` | Left | 左へ | hidari e, to the left |
 | `turnRight` | Right | 右へ | migi e, to the right |
-| `slow` | Slow | ゆっくり | yukkuri, slowly |
-| `medium` | Medium | ふつう | futsū, normal |
-| `fast` | Fast | はやい | hayai, fast |
-| `gestures` | Turn: drag, at any zoom. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button, or two fingers. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Keys: the arrows turn, + and - zoom. Front and Fit: double-click when zoomed in, Home or 0. | 回転：どの拡大率でもドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、CtrlまたはCommandを押しながらのドラッグ、Spaceを押しながらのドラッグ、マウスの中ボタンか右ボタン、または2本指のドラッグ。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。キー：矢印で回転、＋と－で拡大と縮小。正面と全体表示：拡大中にダブルクリック、Homeまたは0。 | kaiten, drag. The gesture list a screen reader reads. Not shown. |
+| `slow` | Slow | 遅い | osoi, slow |
+| `medium` | Medium | 標準 | hyōjun, standard |
+| `fast` | Fast | 速い | hayai, fast |
+| `gestures` | Turn: drag, at any zoom. Tilt: drag up or down. Roll: Shift and a drag, or a two-finger twist. Move: the wheel, Shift and the wheel, Ctrl or Command and a drag, Space and a drag, the middle or right button, or two fingers. Zoom: Ctrl, Command or Alt with the wheel, or a pinch. Keys: the arrows turn, + and - zoom. Front and Fit: double-click when zoomed in, Home or 0. | 回転：どの拡大率でもドラッグ。傾き：上下のドラッグ。ロール：Shiftを押しながらのドラッグ、または2本指のひねり。移動：ホイール、Shiftとホイール、CtrlまたはCommandを押しながらのドラッグ、Spaceを押しながらのドラッグ、マウスの中ボタンか右ボタン、または2本指のドラッグ。ズーム：Ctrl、Command、またはAltを押しながらのホイール、あるいはピンチ。キー：矢印で回転、「+」と「-」で拡大と縮小。正面と全体表示：拡大中にダブルクリック、Homeまたは0。 | kaiten, drag. The gesture list a screen reader reads. Not shown. |
 
 ## Theme switch
 
@@ -91,7 +91,7 @@ The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no 
 | Key | English | 日本語 | Reading and meaning |
 |---|---|---|---|
 | `group` | Options | オプション | opushon, options (the window's name when the page gives it none) |
-| `collapse` | Collapse | しまう | shimau, to fold it away |
+| `collapse` | Collapse | 折りたたむ | oritatamu, to fold it up |
 | `expand` | Open | 開く | hiraku, to open |
 | `help` | Help | ヘルプ | herupu, help |
 | `closeHelp` | Close help | ヘルプを閉じる | herupu o tojiru, close the help |
@@ -104,7 +104,7 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 
 | Key | English | 日本語 | Reading and meaning |
 |---|---|---|---|
-| `name` | Name: | なまえ: | namae, name |
+| `name` | Name: | なまえ： | namae, name (with a full-width colon) |
 | `region` | Region | ちいき | chiiki, region |
 | `flag` | Flag | はた | hata, flag |
 | `latitudeBand` | Latitude band | いどの おび | ido no obi, latitude band |
@@ -116,8 +116,8 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 | `address` | Address | アドレス | adoresu, address |
 | `page` | Page {n} of {total} | {n} / {total} ページ | pēji, page |
 | `glue` | Glue strip | のりしろ | norishiro, the strip you glue |
-| `cut` | Cut along the corner marks. Glue each page over the glue strip of the page next to it. | すみの しるしで きります。となりの ページの のりしろに かさねて はります。 | sumi no shirushi de kirimasu, tonari no pēji no norishiro ni kasanete harimasu, cut at the corner marks and glue over the next page's strip |
-| `tileOf` | Row {row}, column {column} | {row} だん め、{column} れつ め | dan me, retsu me, which row and column |
+| `cut` | Cut along the corner marks. Glue each page over the glue strip of the page next to it. | すみの しるしに そって きります。となりの ページの のりしろに かさねて はります。 | sumi no shirushi ni sotte kirimasu, tonari no pēji no norishiro ni kasanete harimasu, cut along the corner marks and glue over the next page's strip |
+| `tileOf` | Row {row}, column {column} | {row} だんめ、{column} れつめ | danme, retsume, which row and column |
 | `button` | Print / save PDF | いんさつ / PDFで ほぞん | insatsu / PDF de hozon, print / save as PDF |
 | `qr` | QR code of the address | アドレスの QRコード | adoresu no QR kōdo, the QR code of the address |
 
@@ -125,9 +125,9 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 
 | Key | English | 日本語 | Reading and meaning |
 |---|---|---|---|
-| `group` | Page layout | ページの広さ | pēji no hirosa, the width of the page |
+| `group` | Page layout | ページの幅 | pēji no haba, the width of the page |
 | `wide` | Wide | ワイド | waido, wide (the button in Normal) |
-| `normal` | Normal | ふつう | futsū, normal (the button in Wide) |
+| `normal` | Normal | 標準 | hyōjun, standard (the button in Wide) |
 
 ## Page frame
 
@@ -147,14 +147,14 @@ The words on a printed sheet. The Japanese is plain, mostly hiragana, for childr
 | `size` | Size | 大きさ | ōkisa, size |
 | `kinds` | How your page is made | ページの作り方 | pēji no tsukurikata, how the page is made |
 | `pick` | What to put in | 入れるもの | ireru mono, the thing to put in |
-| `search` | Search | さがす | sagasu, to look for |
+| `search` | Search | 検索 | kensaku, search |
 | `all` | All | すべて | subete, all |
 | `none` | Nothing matches | 見つかりません | mitsukarimasen, nothing was found |
 | `preview` | Preview | プレビュー | purebyū, preview |
 | `code` | Code | コード | kōdo, code |
 | `copy` | Copy code | コードをコピー | kōdo o kopī, copy the code |
 | `copied` | Copied | コピーしました | kopī shimashita, it was copied |
-| `copyFail` | Select the code and copy it by hand. | コードを選んで、手でコピーしてください。 | kōdo o erande, te de kopī shite kudasai, select the code and copy it by hand |
+| `copyFail` | Select the code and copy it by hand. | コードを選択して、手動でコピーしてください。 | kōdo o sentaku shite, shudō de kopī shite kudasai, select the code and copy it manually |
 | `open` | Open the embed page | 埋め込みページを開く | umekomi pēji o hiraku, open the embed page |
 | `docs` | Read the docs | ドキュメントを読む | dokyumento o yomu, read the documents |
 | `credits` | Credit | クレジット | kurejitto, credit |

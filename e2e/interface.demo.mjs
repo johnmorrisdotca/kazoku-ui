@@ -128,8 +128,8 @@ test("control bar: the design's order, the clock's two lines, the keyboard, the 
   expect(size.r).toBeLessThanOrEqual(page.viewportSize().width + 1);
   // Japanese.
   await lang(page, "ja");
-  await expect(clock.locator(".s")).toHaveText("停止中");
-  await expect(clock.locator(".t")).toHaveText(/年\d+月\d+日 · \d\d:\d\d \S+$/);
+  await expect(clock.locator(".s")).toHaveText("一時停止中");
+  await expect(clock.locator(".t")).toHaveText(/年\d+月\d+日 \d\d:\d\d \S+$/);
 });
 
 test("control bar on a phone: full width, 116 px, the clock on one line over a row of buttons", async ({ page }) => {
@@ -451,7 +451,7 @@ for (const [timezoneId, name, other] of [["America/Denver", "MST", "GMT+9"], ["A
       await page.getByTestId("bar").locator("[data-set]").click();
       await expect(clock.locator(".t")).toHaveText(`4 Jan 2030 · 05:06 ${name === "UTC" ? "UTC" : name}`);
       await lang(page, "ja");
-      await expect(clock.locator(".t")).toHaveText(new RegExp(`^2030年1月4日 · 05:06 .+`));
+      await expect(clock.locator(".t")).toHaveText(new RegExp(`^2030年1月4日 05:06 .+`));
     });
   });
 }
