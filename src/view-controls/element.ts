@@ -386,7 +386,7 @@ export class ViewControlsElement extends HTMLElement {
       // a share of the view's size from above 0 to 4; bare, or anything else, is 0.5 (the middle may go to the edge). Left out, no free pan.
       const share = Number(value);
       c.freePan = value === null ? undefined : share > 0 && share <= 4 ? share : 0.5;
-    }     else if (name === "grab-radius") c.grabRadius = value?.trim() === "fit" ? "fit" : Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
+    } else if (name === "grab-radius") c.grabRadius = value?.trim() === "fit" ? "fit" : Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
     else if (name === "sway") c.sway = parseSway(value);
   }
 

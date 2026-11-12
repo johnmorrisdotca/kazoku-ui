@@ -71,7 +71,10 @@ export interface ViewControllerOptions {
   onChange?: (state: ViewState, info: ChangeInfo) => void;
   /** Animation frames; the browser's requestAnimationFrame by default. A test passes its own. */
   clock?: Clock;
-  /** A hand-held drift while the view is already moving. `off` (the default) draws the state as it is. */
+  /**
+   * A hand-held drift while the view is already moving. `off` (the default) draws the state as it is. With a drift, the state `onChange` gets is the picture to draw, drift and all; the angle is
+   * `controller.state`, which a page that adds up the change between frames must read instead. The last frame of a move is drawn without it.
+   */
   sway?: Sway;
   /** The time in ms, for the drift. A test passes its own; the browser's clock otherwise. */
   now?: () => number;
