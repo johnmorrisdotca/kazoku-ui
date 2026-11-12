@@ -148,7 +148,7 @@ test("the button speaks Japanese, a finger wide, and keeps its state in its name
   await ready(page, "?lang=ja");
   await expect(button(page)).toHaveText("ワイド");
   await button(page).click();
-  await expect(button(page)).toHaveText("ふつう");
+  await expect(button(page)).toHaveText("標準");
   const box = await button(page).boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(47.5);
   expect(box.width).toBeGreaterThanOrEqual(47.5);

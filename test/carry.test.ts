@@ -251,6 +251,26 @@ test("a bound bar is told whether the element is immersive", () => {
   c.unbind();
 });
 
+test("show writes the view the element is already showing and does not call onChange; a bound bar is told", () => {
+  const rig = fakeElement();
+  const seen: number[] = [];
+  const hands = carry(rig, { onChange: (state: { yaw: number }) => seen.push(state.yaw) });
+  hands.show({ yaw: 40, tilt: 12, zoom: 2 });
+  assert.equal(hands.controller.state.yaw, 40);
+  assert.equal(hands.controller.state.tilt, 12);
+  assert.equal(hands.controller.state.zoom, 2);
+  assert.deepEqual(seen, []);
+  assert.equal(rig.events.some((event) => event.type === "kazoku-viewshow"), false);
+  rig.bar(true);
+  hands.show({ yaw: 15, tilt: -8, zoom: 1.5 });
+  const told = rig.events.filter((event) => event.type === "kazoku-viewshow");
+  assert.equal(told.length, 1);
+  assert.deepEqual(told[0]?.detail, { yaw: 15, tilt: -8, zoom: 1.5 });
+  assert.equal(hands.controller.state.yaw, 15);
+  assert.deepEqual(seen, []);
+  hands.unbind();
+});
+
 test("unbind lets every hand go, takes back what it gave, and the controller is done", () => {
   const rig = fakeElement();
   const { controller, unbind } = carry(rig);

@@ -91,11 +91,11 @@ const credit = (id: string, own: boolean, change: Partial<SourceInfo> = {}): Cre
 test("creditLine puts the package's own first, always names the licence and says non-commercial and share-alike", () => {
   const list = [
     credit("survey", false, { licence: { name: "CC BY-NC 3.0 IGO", url: "https://example.org/l", nonCommercial: true }, credit: { en: "A survey", ja: "サーベイ" } }),
-    credit("yale", true, { licence: { name: "Public domain", url: "https://example.org/pd" }, credit: { en: "Yale Bright Star Catalogue", ja: "イェール輝星カタログ" } }),
+    credit("yale", true, { licence: { name: "Public domain", url: "https://example.org/pd" }, credit: { en: "Yale Bright Star Catalogue", ja: "イェール輝星星表" } }),
     credit("sa", false, { licence: { name: "CC BY-SA 4.0", url: "https://example.org/sa", shareAlike: true, nonCommercial: true }, credit: { en: "A share-alike set", ja: "同一条件のデータ" } }),
   ];
   assert.equal(creditLine(list, "en"), "Yale Bright Star Catalogue (Public domain); A survey (CC BY-NC 3.0 IGO; non-commercial); A share-alike set (CC BY-SA 4.0; non-commercial, share-alike).");
-  assert.equal(creditLine(list, "ja"), "イェール輝星カタログ（パブリックドメイン）／サーベイ（CC BY-NC 3.0 IGO、非営利のみ）／同一条件のデータ（CC BY-SA 4.0、非営利のみ、同一条件で共有）");
+  assert.equal(creditLine(list, "ja"), "イェール輝星星表（パブリックドメイン）／サーベイ（CC BY-NC 3.0 IGO、非営利のみ）／同一条件のデータ（CC BY-SA 4.0、非営利のみ、同一条件で共有）");
 });
 
 test("creditLine writes a source once, is empty for none and falls back to English", () => {

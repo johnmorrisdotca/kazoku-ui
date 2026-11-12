@@ -355,9 +355,19 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
 
   // --- out of sight: no frames, then no context ----------------------------------------------------------------------------------------------------------
 
+  /** Whether `host` meets the window. A view with no size, or one scrolled away, is not on screen. */
+  function seen(host: HTMLElement): boolean {
+    const rect = host.getBoundingClientRect?.();
+    const view = host.ownerDocument?.defaultView;
+    if (rect === undefined || view === null || view === undefined) return true;
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    return rect.bottom > 0 && rect.right > 0 && rect.top < view.innerHeight && rect.left < view.innerWidth;
+  }
+
   function watch(v: Internal): void {
     unwatch(v);
-    onScreen = true;
+    // Out of sight until the rect says otherwise. The observer's first answer used to arrive after one frame had already been drawn.
+    onScreen = typeof IntersectionObserver === "function" ? seen(v.host) : true;
     if (typeof ResizeObserver === "function") {
       v.watchers.resize = new ResizeObserver(() => {
         if (!v.live) return;

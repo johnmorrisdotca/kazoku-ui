@@ -92,7 +92,7 @@ test("the paper buttons are a finger wide and the preview fits the screen", asyn
 
 test("the sheet speaks Japanese in plain words", async ({ page }) => {
   await ready(page, "?theme=light&lang=ja");
-  await expect(page.locator(".kazoku-namelabel")).toHaveText("なまえ:");
+  await expect(page.locator(".kazoku-namelabel")).toHaveText("なまえ：");
   await expect(page.locator(".kazoku-pageno")).toHaveText("1 / 1 ページ");
   await expect(page.locator(".kazoku-info dt").first()).toHaveText("ちいき");
   await expect(page.locator(".kazoku-title")).toHaveText("わくせい");

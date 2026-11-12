@@ -83,7 +83,7 @@ export interface PageCreditsOptions {
  * in pieces keeps its links: the `credit-parts` attributes carry them for the element, and the text inside has them too.
  *
  * @example
- * pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue (public domain).", ja: "星：イェール輝星表（パブリックドメイン）。" }, { href: "NOTICE.html" });
+ * pageCreditsHtml({ en: "Stars: Yale Bright Star Catalogue (public domain).", ja: "星：イェール輝星星表（パブリックドメイン）。" }, { href: "NOTICE.html" });
  * pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }] }, { embed: true });
  */
 export function pageCreditsHtml(credits: PageCredits | undefined, options: PageCreditsOptions = {}): string {

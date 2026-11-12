@@ -4,7 +4,7 @@ import { createAddressWriter } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
-import { BAR_EVENT, BAR_MARK, CARRY_EVENT } from "./carry.ts";
+import { BAR_EVENT, BAR_MARK, CARRY_EVENT, SHOW_EVENT } from "./carry.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
 import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, TURN_PACES, TURN_SPEED, type TurnAxis, turnSeconds, zoomText } from "./levels.ts";
@@ -131,6 +131,7 @@ export class ViewControlsElement extends HTMLElement {
   /** The pace the page starts at: its `pace` attribute as the page last set it, unsnapped (a button press writes the attribute too, and is not a start). */
   #startPace: number | undefined;
   #labels: ViewWords = wordsFor("en");
+  #language: Language = "en";
   #said = "";
   #sayTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -717,12 +718,20 @@ export class ViewControlsElement extends HTMLElement {
         this.#ensure().set({});
       };
       element.addEventListener(CARRY_EVENT, carried);
+      const shown = (event: Event): void => {
+        const detail = (event as CustomEvent<Partial<ViewState>>).detail;
+        if (detail === null || typeof detail !== "object") return;
+        this.#ensure().set(detail, true, "show");
+        if (this.#ready) this.#show();
+      };
+      element.addEventListener(SHOW_EVENT, shown);
       element.setAttribute(BAR_MARK, "");
       element.dispatchEvent(new Event(BAR_EVENT));
       const off = this.#ensure().bind(element);
       this.#unbind = () => {
         off();
         element.removeEventListener(CARRY_EVENT, carried);
+        element.removeEventListener(SHOW_EVENT, shown);
         element.removeAttribute(BAR_MARK);
         element.dispatchEvent(new Event(BAR_EVENT));
         this.#carried = DEFAULT_LIMITS;
@@ -745,6 +754,7 @@ export class ViewControlsElement extends HTMLElement {
     const language: Language = languageOf(this.getAttribute("lang") ?? this.closest("[lang]")?.getAttribute("lang") ?? this.ownerDocument.documentElement.lang);
     const words = wordsFor(language, this.#words);
     this.#labels = words;
+    this.#language = language;
     for (const node of this.#root.querySelectorAll<HTMLElement>("[data-w]")) node.textContent = words[node.dataset.w as keyof ViewWords];
     const set = (selector: string, label: string): void => this.#root.querySelector(selector)?.setAttribute("aria-label", label);
     set(".bar", words.group);
@@ -822,7 +832,7 @@ export class ViewControlsElement extends HTMLElement {
       q<HTMLElement>(".zbox").style.setProperty("--pos", String(at));
       if (slider.getAttribute("aria-valuetext") !== zoom) slider.setAttribute("aria-valuetext", zoom);
     }
-    say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
+    say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}${this.#language === "ja" ? "、" : ", "}${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
     const speeds = q<SpeedButtonsElement>("kazoku-speed-buttons");
     const paces = this.#paces();

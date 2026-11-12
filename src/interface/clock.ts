@@ -106,7 +106,7 @@ function partsOf(ms: number, zone: "utc" | "local"): { year: number; month: numb
 const two = (n: number): string => String(n).padStart(2, "0");
 
 /**
- * The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026年11月10日 · 21:14". A moment that is not a date reads "—".
+ * The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026年11月10日 21:14". A moment that is not a date reads "—".
  * @param zone `local` (the default) for the device's own time zone, or `utc`.
  * @param withZone Name the zone after the time: "10 Nov 2026 · 21:14 MST", "UTC".
  * @example
@@ -118,7 +118,7 @@ export function formatMoment(ms: number, language: Language, zone: "utc" | "loca
   const p = partsOf(ms, zone);
   const date = language === "ja" ? `${p.year}年${p.month + 1}月${p.day}日` : `${p.day} ${MONTHS[p.month]} ${p.year}`;
   const name = withZone ? ` ${zoneName(ms, language, zone)}` : "";
-  return `${date} · ${two(p.hour)}:${two(p.minute)}${name}`;
+  return `${date}${language === "ja" ? " " : " · "}${two(p.hour)}:${two(p.minute)}${name}`;
 }
 
 /**

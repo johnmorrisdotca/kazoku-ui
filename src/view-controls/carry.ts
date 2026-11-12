@@ -7,6 +7,8 @@ export const BAR_MARK = "data-kazoku-bar";
 export const BAR_EVENT = "kazoku-viewbar";
 /** While a bar is bound, the element says what its limits are with this event, whenever they may have changed: `detail.limits`, and whether the view is immersive: `detail.immersive`. The bar uses the limits under its own `zoom-min`, `zoom-max`, `tilt-max` and `roll-max`, and follows `immersive` unless the bar itself has that attribute. */
 export const CARRY_EVENT = "kazoku-viewcarry";
+/** The view the element is showing now, so a bound bar keeps it: `detail` is a partial view (`yaw`, `tilt`, `zoom`, and `roll`, `panX`, `panY` when the element has them). The bar takes it and does not send `kazoku-viewchange`. */
+export const SHOW_EVENT = "kazoku-viewshow";
 
 export interface CarryOptions extends Omit<ViewControllerOptions, "onChange"> {
   /** The page's own drawing: apply the state. The element's drag, pinch, wheel and keys all arrive here. */
@@ -20,6 +22,11 @@ export interface ElementControls {
   readonly controller: ViewController;
   /** Change the package's own limits after setup, for a view whose detail changes (map tiles found, a body ridden). The attributes `zoom-min`, `zoom-max`, `tilt-max` and `roll-max` still win. A zoom outside the new limits is moved inside them, and a bar bound to the element hears the new limits (`CARRY_EVENT`). */
   setLimits(limits: Partial<Limits>): void;
+  /**
+   * The view the element is showing now, after it moved itself (a chosen place, not a drag). The controller takes it and `onChange` is not called.
+   * While a bar is bound, the element sends `SHOW_EVENT` and the bar takes the same view, so the bar's next change keeps this yaw and tilt.
+   */
+  show(view: Partial<ViewState>): void;
   /** Let the hands go and destroy the controller. Call it in `disconnectedCallback`. */
   unbind(): void;
 }
@@ -105,6 +112,10 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     setLimits(next) {
       Object.assign(base, next);
       apply();
+    },
+    show(view) {
+      controller.set(view, true, "show");
+      if (element.hasAttribute(BAR_MARK)) element.dispatchEvent(new CustomEvent(SHOW_EVENT, { detail: view }));
     },
     unbind() {
       watch?.disconnect();

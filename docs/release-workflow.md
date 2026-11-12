@@ -54,7 +54,7 @@ jobs:
 | `node-version` | `24` | 22.14 or later. |
 | `install-command` | `pnpm install --frozen-lockfile` | |
 | `check-command` | `pnpm check` | Must pass before anything is published. |
-| `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`): run in headless Chromium that draws in software, before anything is published. Every package with WebGL sets it. |
+| `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`). Chromium is installed first by `.github/actions/playwright` at tag `v0.41.0` (two tries, each cut off, and a failure that says it is the download or the package mirror). The test then runs before anything is published. Every package with WebGL sets it. |
 | `require-ci-workflow` | empty | The file name of the repo's CI workflow (`ci.yml`). When set, the release refuses unless that workflow has succeeded on this exact commit (any completed, successful run of it counts, so a green rerun beats an earlier red one), so no package publishes a red commit. It reads the runs through the REST API; that needs no permission on a public repository, and a private one's `release.yml` also grants `actions: read`. Empty checks nothing. |
 | `github-release` | `false` | Also make a GitHub release with the tarball. |
 
