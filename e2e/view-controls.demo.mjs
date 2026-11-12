@@ -887,7 +887,8 @@ test("sway drifts the picture while the view turns and leaves the angle alone", 
     });
     bar.view = view;
     document.body.append(view, bar);
-    await new Promise((done) => setTimeout(done, 800));
+    // wait for a few auto frames (a slow or throttled browser draws fewer in a fixed time), up to 10 s
+    for (let waited = 0; pictures.length < 4 && waited < 10000; waited += 100) await new Promise((done) => setTimeout(done, 100));
     const angle = bar.state.yaw;
     bar.remove();
     view.remove();
