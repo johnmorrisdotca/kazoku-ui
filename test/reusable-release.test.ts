@@ -119,6 +119,10 @@ test("kazoku-ui's own release asks for it", () => {
   assert.match(readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"), /require-ci-workflow: ci\.yml/);
 });
 
+test("the release job ends at 120 minutes", () => {
+  assert.match(yaml, /release:\n {4}runs-on: ubuntu-latest\n {4}# [^\n]+\n {4}timeout-minutes: 120\n/);
+});
+
 test("the freeze test installs Chromium through the bounded action, not install --with-deps", () => {
   assert.doesNotMatch(yaml, /playwright install --with-deps/);
   assert.match(yaml, /name: Browsers for the freeze test\n {8}if: env\.ON_NPM == 'no' && inputs\.freeze-command != ''\n {8}uses: johnmorrisdotca\/kazoku-ui\/\.github\/actions\/playwright@v0\.41\.0\n {8}with:\n {10}browsers: chromium/);

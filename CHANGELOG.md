@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The release job stops at two hours** (KAZOKU-UI-110). GitHub's own limit is six hours. The job now ends at 120 minutes: twice the slowest release job seen (38 minutes for the whole job on 2026-11-12, so an upper bound on its freeze) plus the 35-minute install worst case, rounded up.
+
 ## [0.41.1] - 2026-11-12
 
 - **A bound bar keeps a view the element shows itself** (KAZOKU-UI-136). `carryControls` returns `show(view)`. It writes that view onto the element's controller and does not call `onChange`. While a bar is bound, the element sends `kazoku-viewshow` (`SHOW_EVENT`) and the bar takes the same yaw, tilt and zoom without sending `kazoku-viewchange`, so the bar's next change no longer snaps back to the old angle.

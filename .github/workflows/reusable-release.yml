@@ -40,6 +40,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # 120 minutes: twice the slowest release job seen (38 minutes for the whole job on 2026-11-12, an upper bound on its freeze) plus the 35-minute install worst case, rounded up. GitHub's own limit is 360.
+    timeout-minutes: 120
     steps:
       - name: Only from main, or from a version tag
         run: |
