@@ -4,6 +4,7 @@ import { linkSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } fr
 import { basename, join } from "node:path";
 import process from "node:process";
 import { alive, describeRun, joinQueue, leaveQueue, LONG_HOLD_MINUTES, lockDir, orderBrowserQueue, placeWord, readPriority, readQueue, spendPriority, touchTicket, type BrowserQueueTicket } from "./queue.ts";
+import { browserSlots, slotsFile, slotsOf, type BrowserSlot, type BrowserSlotKind, type BrowserSlots } from "./slots.ts";
 
 
 const ENV = "KAZOKU_BROWSER_LOCK";
@@ -21,6 +22,10 @@ export interface BrowserLockHolder {
   command: string;
   /** The npm script that started the run (`test:demo`), when there is one. A holder from an older kazoku-ui has none. */
   script?: string;
+  /** Which kind of slot it holds. A holder from an older kazoku-ui has none: a native slot. */
+  kind?: BrowserSlotKind;
+  /** Which slot of its kind, 0 for the first. */
+  slot?: number;
   /** ISO time the lock was taken. */
   startedAt: string;
 }
@@ -34,6 +39,11 @@ export interface BrowserLockOptions {
   maxAgeMs?: number;
   /** Where the waiting line goes. Standard error. */
   log?: (line: string) => void;
+  /**
+   * Which kind of slot to take. `"native"` (the default) is the machine's own browser, one at a time unless the machine says more. `"image"` is a run in the CI image
+   * container, as many at once as the machine's `browser-slots.json` says; with none set up it throws.
+   */
+  kind?: BrowserSlotKind;
 }
 
 /** A taken lock. */
@@ -58,6 +68,8 @@ const skipped = (): boolean => {
 
 const lockFile = (): string => join(lockDir(), "browser.lock");
 
+const holderKind = (holder: { kind?: BrowserSlotKind }): BrowserSlotKind => (holder.kind === "image" ? "image" : "native");
+
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readHolder(file: string): BrowserLockHolder | null {
@@ -81,9 +93,9 @@ const repoName = (cwd: string): string => {
   return basename(cwd);
 };
 
-/** Remove the lock file if it is stale (or `force`), one cleaner at a time so a fresh lock is never removed by mistake. */
-function clean(maxAgeMs: number, force = false): boolean {
-  const mutex = `${lockFile()}.cleaning`;
+/** Remove a slot's lock file if it is stale (or `force`), one cleaner at a time so a fresh lock is never removed by mistake. */
+function clean(file: string, maxAgeMs: number, force = false): boolean {
+  const mutex = `${file}.cleaning`;
   try {
     mkdirSync(mutex);
   } catch {
@@ -95,9 +107,9 @@ function clean(maxAgeMs: number, force = false): boolean {
     return false;
   }
   try {
-    const holder = readHolder(lockFile());
+    const holder = readHolder(file);
     if (!force && holder && !isStale(holder, maxAgeMs)) return false;
-    rmSync(lockFile(), { force: true });
+    rmSync(file, { force: true });
     return true;
   } finally {
     rmSync(mutex, { recursive: true, force: true });
@@ -107,14 +119,19 @@ function clean(maxAgeMs: number, force = false): boolean {
 const minutesSince = (iso: string, now = Date.now()): number => Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));
 
 /**
- * Take the browser lock, waiting while another run holds it. Only one headless browser should run at a time on a machine: with software GL, two at once make heavy
- * tests time out. The lock is a file in the user's cache folder (`~/Library/Caches/kazoku-ui` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`; `KAZOKU_BROWSER_LOCK_DIR`
- * names another folder), made atomically, and a lock whose pid is gone or that is over three hours old is taken over.
+ * Take a browser slot, waiting while the machine's slots of that kind are all held. Only one headless browser should run natively at a time on a machine: with software
+ * GL, two at once make heavy tests time out. The lock is a file in the user's cache folder (`~/Library/Caches/kazoku-ui` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`;
+ * `KAZOKU_BROWSER_LOCK_DIR` names another folder), made atomically, and a lock whose pid is gone or that is over three hours old is taken over.
  *
- * Waiting runs are served in the order they arrived. Each writes a ticket in the `queue` folder next to the lock, and only the oldest live ticket may take the lock when
- * it is free; a ticket whose pid is gone is cleared. One waiter can be put first with `setBrowserPriority`. While it waits a run says, once a minute, how far back it is
- * and who holds the lock. The lock is let go on exit, on an error and on SIGINT, SIGTERM and SIGHUP, and a child process that inherits `KAZOKU_BROWSER_LOCK` runs under
- * it without waiting. With `CI` set it does nothing. A run on the older lock code, with no queue, still works alongside: it takes the lock whenever it is free.
+ * A machine also has slots for runs in the CI image (a container with its CPUs and memory fenced, so several can run at once): `kind: "image"` takes one. How many of each
+ * is in `~/.config/kazoku-ui/browser-slots.json` (`{ "native": 1, "image": 4 }`); without the file a machine has one native slot and no image slots, so nothing changes
+ * until it is set up. The native run and the image runs never wait for each other. See `browserSlots`.
+ *
+ * Waiting runs are served in the order they arrived, each kind in its own line. Each writes a ticket in the `queue` folder next to the lock, and only the oldest live tickets,
+ * as many as there are free slots, may take them; a ticket whose pid is gone is cleared. One waiter can be put first with `setBrowserPriority`. While it waits a run says, once a
+ * minute, how far back it is and who holds the lock. The lock is let go on exit, on an error and on SIGINT, SIGTERM and SIGHUP, and a child process that inherits
+ * `KAZOKU_BROWSER_LOCK` runs under it without waiting. With `CI` set it does nothing. A run on the older lock code, with no queue, still works alongside: it takes the
+ * native slot whenever it is free.
  *
  * @example
  * const lock = await acquireBrowserLock();
@@ -127,13 +144,17 @@ const minutesSince = (iso: string, now = Date.now()): number => Math.max(0, Math
  * }
  */
 export async function acquireBrowserLock(options: BrowserLockOptions = {}): Promise<BrowserLock> {
-  const { pollMs = 500, reportMs = 60_000, maxAgeMs = THREE_HOURS, log = (line: string) => void process.stderr.write(`${line}\n`) } = options;
+  const { pollMs = 500, reportMs = 60_000, maxAgeMs = THREE_HOURS, kind = "native", log = (line: string) => void process.stderr.write(`${line}\n`) } = options;
   if (skipped()) return { release() {} };
-  const file = lockFile();
+  if (kind === "image" && browserSlots().image < 1) {
+    throw new Error(`this machine has no slots for runs in the CI image; set them in ${slotsFile()}, for example {"native": 1, "image": 4}`);
+  }
   const inherited = process.env[ENV];
   if (inherited) {
-    const current = readHolder(file);
-    if (current && current.token === inherited && alive(current.pid)) return { release() {} };
+    for (const slot of [...slotsOf("native"), ...slotsOf("image")]) {
+      const current = readHolder(slot.file);
+      if (current && current.token === inherited && holderKind(current) === kind && alive(current.pid)) return { release() {} };
+    }
   }
   mkdirSync(lockDir(), { recursive: true });
   const cwd = process.cwd();
@@ -144,44 +165,74 @@ export async function acquireBrowserLock(options: BrowserLockOptions = {}): Prom
     cwd,
     command: process.argv.slice(1).join(" "),
     ...(process.env.npm_lifecycle_event ? { script: process.env.npm_lifecycle_event } : {}),
+    ...(kind === "image" ? { kind } : {}),
     startedAt: new Date().toISOString(),
   };
-  const ticket: BrowserQueueTicket = { token: holder.token, pid: holder.pid, repo: holder.repo, cwd, command: holder.command, ...(holder.script ? { script: holder.script } : {}), queuedAt: holder.startedAt };
-  const draft = `${file}.${holder.pid}.${holder.token}`;
+  const ticket: BrowserQueueTicket = {
+    token: holder.token,
+    pid: holder.pid,
+    repo: holder.repo,
+    cwd,
+    command: holder.command,
+    ...(holder.script ? { script: holder.script } : {}),
+    ...(kind === "image" ? { kind } : {}),
+    queuedAt: holder.startedAt,
+  };
   const leave = (): void => leaveQueue(ticket);
   joinQueue(ticket);
   process.on("exit", leave);
   let reported = -Infinity;
   let touched = Date.now();
+  let taken: BrowserSlot | null = null;
   try {
     for (;;) {
-      const line = readQueue();
+      const line = readQueue({ kind });
       let place = line.findIndex((one) => one.token === ticket.token);
       if (place === -1) {
         joinQueue(ticket);
-        place = readQueue().findIndex((one) => one.token === ticket.token);
+        place = readQueue({ kind }).findIndex((one) => one.token === ticket.token);
       }
-      const current = readHolder(file);
-      if (current && isStale(current, maxAgeMs)) {
-        clean(maxAgeMs);
-        continue;
-      }
-      if (!current && place <= 0) {
-        // The oldest live ticket, and the lock is free: take it. Only a run on the older lock code, which does not queue, can have taken it in between.
-        writeFileSync(draft, JSON.stringify({ ...holder, startedAt: new Date().toISOString() }, null, 2));
-        try {
-          linkSync(draft, file);
+      const slots = slotsOf(kind);
+      const free: BrowserSlot[] = [];
+      const held: BrowserLockHolder[] = [];
+      let cleared = false;
+      for (const slot of slots) {
+        const current = readHolder(slot.file);
+        if (current && isStale(current, maxAgeMs)) {
+          clean(slot.file, maxAgeMs);
+          cleared = true;
           break;
-        } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-          clean(maxAgeMs); // a file nobody can read is cleared; a lock someone else just took is left alone
-        } finally {
-          rmSync(draft, { force: true });
         }
+        if (current) held.push(current);
+        else free.push(slot);
+      }
+      if (cleared) continue;
+      if (free.length > 0 && place <= free.length - 1) {
+        // One of the oldest live tickets, and a slot is free for it: take one. Only a run on the older lock code, which does not queue, can have taken the native one in between.
+        for (const slot of free) {
+          const draft = `${slot.file}.${holder.pid}.${holder.token}`;
+          writeFileSync(draft, JSON.stringify({ ...holder, slot: slot.index, startedAt: new Date().toISOString() }, null, 2));
+          try {
+            linkSync(draft, slot.file);
+            taken = slot;
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+            clean(slot.file, maxAgeMs); // a file nobody can read is cleared; a lock someone else just took is left alone
+          } finally {
+            rmSync(draft, { force: true });
+          }
+        }
+        if (taken) break;
       } else if (Date.now() - reported >= reportMs) {
         reported = Date.now();
-        const ahead = current ? `holder ${describeRun(current)} for ${minutesSince(current.startedAt)} min` : "the lock is free for the run ahead";
-        log(`waiting for the browser: ${placeWord(Math.max(place, 0) + 1)} in line, ${ahead}`);
+        const oldest = [...held].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt))[0];
+        const ahead = !oldest
+          ? "the lock is free for the run ahead"
+          : slots.length === 1
+            ? `holder ${describeRun(oldest)} for ${minutesSince(oldest.startedAt)} min`
+            : `${held.length} of ${slots.length} slots held, the longest by ${describeRun(oldest)} for ${minutesSince(oldest.startedAt)} min`;
+        log(`waiting for ${kind === "image" ? "an image slot" : "the browser"}: ${placeWord(Math.max(place, 0) + 1)} in line, ${ahead}`);
       }
       if (Date.now() - touched >= 10_000) {
         touched = Date.now();
@@ -193,7 +244,8 @@ export async function acquireBrowserLock(options: BrowserLockOptions = {}): Prom
     process.off("exit", leave);
     leave();
   }
-  spendPriority(cwd);
+  const file = (taken as BrowserSlot).file;
+  spendPriority(cwd, kind);
   process.env[ENV] = holder.token;
   let released = false;
   const release = (): void => {
@@ -237,7 +289,7 @@ export async function withBrowserLock<T>(fn: () => Promise<T> | T, options?: Bro
 }
 
 /**
- * Who holds the browser lock now, if anyone, and whether it is stale.
+ * Who holds the first native browser lock now, if anyone, and whether it is stale. For every slot, native and image, see `browserSlotStatuses`.
  *
  * @example
  * const { holder, stale } = browserLockStatus();
@@ -249,23 +301,51 @@ export function browserLockStatus(options: Pick<BrowserLockOptions, "maxAgeMs"> 
   return { file, holder, stale: holder ? isStale(holder, options.maxAgeMs ?? THREE_HOURS) : false };
 }
 
+/** One slot as the status shows it. */
+export interface BrowserSlotStatus extends BrowserLockStatus {
+  kind: BrowserSlotKind;
+  /** 0 for the first slot of its kind. */
+  index: number;
+  /** Whole minutes the holder has had the slot, or null when it is free. */
+  heldMinutes: number | null;
+}
+
 /**
- * Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed.
+ * Every slot the machine has, native first and then image, with who holds it. It only looks.
+ *
+ * @example
+ * for (const { kind, index, holder } of browserSlotStatuses()) console.log(kind, index + 1, holder ? holder.repo : "free");
+ */
+export function browserSlotStatuses(options: Pick<BrowserLockOptions, "maxAgeMs"> & { now?: number } = {}): BrowserSlotStatus[] {
+  const { now = Date.now(), maxAgeMs = THREE_HOURS } = options;
+  return [...slotsOf("native"), ...slotsOf("image")].map(({ kind, index, file }) => {
+    const holder = readHolder(file);
+    return { kind, index, file, holder, stale: holder ? isStale(holder, maxAgeMs) : false, heldMinutes: holder ? minutesSince(holder.startedAt, now) : null };
+  });
+}
+
+/**
+ * Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed. Every slot is looked at,
+ * native and image.
  *
  * @example
  * if (clearBrowserLock()) console.log("cleared a stale lock");
  */
 export function clearBrowserLock(options: Pick<BrowserLockOptions, "maxAgeMs"> & { force?: boolean } = {}): boolean {
-  const { holder } = browserLockStatus(options);
-  if (!holder) return false;
-  return clean(options.maxAgeMs ?? THREE_HOURS, options.force);
+  let removed = false;
+  for (const { file, holder } of browserSlotStatuses(options)) {
+    if (holder && clean(file, options.maxAgeMs ?? THREE_HOURS, options.force)) removed = true;
+  }
+  return removed;
 }
 
 
 /** One waiter in the line, as the status shows it. */
 export interface BrowserQueueEntry {
-  /** 1 is next. */
+  /** 1 is next, in the line of its own kind. */
   place: number;
+  /** Which line it waits in. */
+  kind: BrowserSlotKind;
   ticket: BrowserQueueTicket;
   /** Whole minutes since it joined. */
   waitedMinutes: number;
@@ -274,40 +354,52 @@ export interface BrowserQueueEntry {
 }
 
 export interface BrowserQueueStatus extends BrowserLockStatus {
-  /** Whole minutes the holder has had the lock, or null when it is free. */
+  /** Whole minutes the holder of the first native slot has had it, or null when it is free. */
   heldMinutes: number | null;
-  /** The waiters, in the order they are served. Tickets of dead pids are left out. */
+  /** Every slot, native and then image, with its holder. `holder`, `stale` and `file` above are the first native one. */
+  slots: BrowserSlotStatus[];
+  /** How many slots of each kind the machine has (from its `browser-slots.json`). */
+  configured: BrowserSlots;
+  /** The waiters, native line first and then the image line, each in the order it is served. Tickets of dead pids are left out. */
   queue: BrowserQueueEntry[];
-  /** The folder the priority file names, or null. */
+  /** The folder the native priority file names, or null. */
   priority: string | null;
+  /** The folder the image priority file names, or null. */
+  imagePriority: string | null;
   /** Lines to show a person: a holder over `LONG_HOLD_MINUTES`, a stale lock. */
   warnings: string[];
 }
 
 /**
- * The whole picture: who holds the lock and for how long, the waiters in the order they will be served, the priority if one is set, and a warning when a holder has had
- * the lock for more than 45 minutes. It only looks: it clears nothing, so it is safe to run while others are testing.
+ * The whole picture: every slot and who holds it and for how long, the waiters in the order they will be served, the priorities if any is set, and a warning when a holder has
+ * had a slot for more than 45 minutes. It only looks: it clears nothing, so it is safe to run while others are testing.
  *
  * @example
- * const { holder, heldMinutes, queue, warnings } = browserQueueStatus();
- * console.log(holder ? `${holder.repo} for ${heldMinutes} min` : "free", queue.length, "waiting", warnings);
+ * const { slots, queue, warnings } = browserQueueStatus();
+ * for (const { kind, index, holder, heldMinutes } of slots) console.log(kind, index + 1, holder ? `${holder.repo} for ${heldMinutes} min` : "free");
+ * console.log(queue.length, "waiting", warnings);
  */
 export function browserQueueStatus(options: Pick<BrowserLockOptions, "maxAgeMs"> & { now?: number; alive?: (pid: number) => boolean } = {}): BrowserQueueStatus {
   const { now = Date.now(), alive: running } = options;
   const base = browserLockStatus(options);
-  const priority = readPriority();
-  const queue = readQueue({ clean: false, now, ...(running ? { alive: running } : {}) });
-  const oldest = orderBrowserQueue(queue, null)[0];
+  const slots = browserSlotStatuses({ ...options, now });
+  const priority = readPriority("native");
+  const imagePriority = readPriority("image");
+  const queue: BrowserQueueEntry[] = [];
+  for (const kind of ["native", "image"] as const) {
+    const line = readQueue({ clean: false, kind, now, ...(running ? { alive: running } : {}) });
+    const first = readPriority(kind);
+    const oldest = orderBrowserQueue(line, null)[0];
+    line.forEach((ticket, index) => queue.push({ place: index + 1, kind, ticket, waitedMinutes: minutesSince(ticket.queuedAt, now), byPriority: index === 0 && first !== null && ticket.token !== oldest?.token }));
+  }
   const heldMinutes = base.holder ? minutesSince(base.holder.startedAt, now) : null;
   const warnings: string[] = [];
-  if (base.holder && base.stale) warnings.push(`the lock is stale (its pid is gone or it is over three hours old): the next run takes it over`);
-  else if (base.holder && heldMinutes !== null && heldMinutes > LONG_HOLD_MINUTES)
-    warnings.push(`${describeRun(base.holder)} has held the browser for ${heldMinutes} min (over ${LONG_HOLD_MINUTES}); look at it, nothing here stops it`);
-  return {
-    ...base,
-    heldMinutes,
-    queue: queue.map((ticket, index) => ({ place: index + 1, ticket, waitedMinutes: minutesSince(ticket.queuedAt, now), byPriority: index === 0 && priority !== null && ticket.token !== oldest?.token })),
-    priority,
-    warnings,
-  };
+  for (const slot of slots) {
+    if (!slot.holder) continue;
+    const name = slot.kind === "native" && slots.filter((one) => one.kind === "native").length === 1 ? "the lock" : `${slot.kind} slot ${slot.index + 1}`;
+    if (slot.stale) warnings.push(`${name} is stale (its pid is gone or it is over three hours old): the next run takes it over`);
+    else if (slot.heldMinutes !== null && slot.heldMinutes > LONG_HOLD_MINUTES)
+      warnings.push(`${describeRun(slot.holder)} has held ${slot.kind === "native" ? "the browser" : name} for ${slot.heldMinutes} min (over ${LONG_HOLD_MINUTES}); look at it, nothing here stops it`);
+  }
+  return { ...base, heldMinutes, slots, configured: browserSlots(), queue, priority, imagePriority, warnings };
 }

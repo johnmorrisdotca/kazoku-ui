@@ -7360,15 +7360,15 @@ interface ViewOptions {
 
 ## `@johnmorrisdotca/kazoku-ui/testing`
 
-21 values and 17 types.
+27 values and 22 types.
 
 ```js
-import { acquireBrowserLock, bestShift, browserLockStatus, browserQueueStatus, canvasSize, checkGestures, clearBrowserLock, COUNT_SCRIPT, drainGpu, drawCounts, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, orderBrowserQueue, readCounts, setBrowserPriority, SOFTWARE_GL_ARGS, untilStill, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
+import { acquireBrowserLock, bestShift, browserLockStatus, browserQueueStatus, browserSlots, browserSlotStatuses, canvasSize, checkGestures, ciImagePlan, clearBrowserLock, COUNT_SCRIPT, drainGpu, drawCounts, GESTURE_NAMES, GESTURES, GPU_KINDS, gpuObjects, orderBrowserQueue, playwrightVersion, readCounts, runCiImage, setBrowserPriority, slotsFile, SOFTWARE_GL_ARGS, untilStill, withBrowserLock, withinPixelBudget } from '@johnmorrisdotca/kazoku-ui/testing';
 ```
 
 ### acquireBrowserLock
 
-*function*. Take the browser lock, waiting while another run holds it. Only one headless browser should run at a time on a machine: with software GL, two at once make heavy
+*function*. Take a browser slot, waiting while the machine's slots of that kind are all held. Only one headless browser should run natively at a time on a machine: with software
 
 ```ts
 function acquireBrowserLock(options?: BrowserLockOptions): Promise<BrowserLock>;
@@ -7389,7 +7389,7 @@ function bestShift(before: ArrayLike<number>, after: ArrayLike<number>, w: numbe
 
 ### browserLockStatus
 
-*function*. Who holds the browser lock now, if anyone, and whether it is stale.
+*function*. Who holds the first native browser lock now, if anyone, and whether it is stale. For every slot, native and image, see `browserSlotStatuses`.
 
 ```ts
 function browserLockStatus(options?: Pick<BrowserLockOptions, "maxAgeMs">): BrowserLockStatus;
@@ -7397,13 +7397,31 @@ function browserLockStatus(options?: Pick<BrowserLockOptions, "maxAgeMs">): Brow
 
 ### browserQueueStatus
 
-*function*. The whole picture: who holds the lock and for how long, the waiters in the order they will be served, the priority if one is set, and a warning when a holder has had
+*function*. The whole picture: every slot and who holds it and for how long, the waiters in the order they will be served, the priorities if any is set, and a warning when a holder has
 
 ```ts
 function browserQueueStatus(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
     now?: number;
     alive?: (pid: number) => boolean;
 }): BrowserQueueStatus;
+```
+
+### browserSlots
+
+*function*. The slots this machine has, from `~/.config/kazoku-ui/browser-slots.json` (`{ "native": 1, "image": 4 }`). A missing or unreadable file, or a key that is not a number,
+
+```ts
+function browserSlots(): BrowserSlots;
+```
+
+### browserSlotStatuses
+
+*function*. Every slot the machine has, native first and then image, with who holds it. It only looks.
+
+```ts
+function browserSlotStatuses(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
+    now?: number;
+}): BrowserSlotStatus[];
 ```
 
 ### canvasSize
@@ -7422,9 +7440,17 @@ function canvasSize(page: PageLike): Promise<CanvasSize>;
 function checkGestures(page: GesturePage, view: string, options?: GestureOptions): Promise<GestureReport[]>;
 ```
 
+### ciImagePlan
+
+*function*. The plan for one run: the image, the fences, the commands and the script, worked out from the repo's lockfile, `package.json` and the options. It reads files and nothing else.
+
+```ts
+function ciImagePlan(options: CiImageOptions): CiImagePlan;
+```
+
 ### clearBrowserLock
 
-*function*. Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed.
+*function*. Remove a stale browser lock by hand. A lock whose holder is still running stays unless `force` is true. Returns true when a lock file was removed. Every slot is looked at,
 
 ```ts
 function clearBrowserLock(options?: Pick<BrowserLockOptions, "maxAgeMs"> & {
@@ -7510,6 +7536,14 @@ function gpuObjects(counts: GlCounts): number;
 function orderBrowserQueue(tickets: readonly BrowserQueueTicket[], priority?: string | null): BrowserQueueTicket[];
 ```
 
+### playwrightVersion
+
+*function*. The `@playwright/test` version a lockfile pins, or null. Reads `pnpm-lock.yaml`, `package-lock.json` and `yarn.lock`.
+
+```ts
+function playwrightVersion(lockfile: string): string | null;
+```
+
 ### readCounts
 
 *function*. The counters now, as a copy.
@@ -7518,12 +7552,28 @@ function orderBrowserQueue(tickets: readonly BrowserQueueTicket[], priority?: st
 function readCounts(page: PageLike): Promise<GlCounts>;
 ```
 
+### runCiImage
+
+*function*. Run Playwright in CI's own image, in a container with its CPUs and memory fenced, and return Playwright's exit code (2 for a mistake in the options or the repo, 3 when Docker
+
+```ts
+function runCiImage(options: CiImageOptions): Promise<number>;
+```
+
 ### setBrowserPriority
 
 *function*. Put one waiting run first: the oldest waiter whose folder is `cwd` (or inside it) is served before the rest. It does not take the lock from the run that holds it,
 
 ```ts
-function setBrowserPriority(cwd: string | null): void;
+function setBrowserPriority(cwd: string | null, kind?: BrowserSlotKind): void;
+```
+
+### slotsFile
+
+*constant*. Where the machine says how many slots it has: `KAZOKU_BROWSER_SLOTS_FILE`, else `~/.config/kazoku-ui/browser-slots.json`.
+
+```ts
+const slotsFile: () => string;
 ```
 
 ### SOFTWARE_GL_ARGS
@@ -7584,6 +7634,10 @@ interface BrowserLockHolder {
     command: string;
     /** The npm script that started the run (`test:demo`), when there is one. A holder from an older kazoku-ui has none. */
     script?: string;
+    /** Which kind of slot it holds. A holder from an older kazoku-ui has none: a native slot. */
+    kind?: BrowserSlotKind;
+    /** Which slot of its kind, 0 for the first. */
+    slot?: number;
     /** ISO time the lock was taken. */
     startedAt: string;
 }
@@ -7603,6 +7657,11 @@ interface BrowserLockOptions {
     maxAgeMs?: number;
     /** Where the waiting line goes. Standard error. */
     log?: (line: string) => void;
+    /**
+     * Which kind of slot to take. `"native"` (the default) is the machine's own browser, one at a time unless the machine says more. `"image"` is a run in the CI image
+     * container, as many at once as the machine's `browser-slots.json` says; with none set up it throws.
+     */
+    kind?: BrowserSlotKind;
 }
 ```
 
@@ -7627,8 +7686,10 @@ interface BrowserLockStatus {
 
 ```ts
 interface BrowserQueueEntry {
-    /** 1 is next. */
+    /** 1 is next, in the line of its own kind. */
     place: number;
+    /** Which line it waits in. */
+    kind: BrowserSlotKind;
     ticket: BrowserQueueTicket;
     /** Whole minutes since it joined. */
     waitedMinutes: number;
@@ -7643,12 +7704,18 @@ interface BrowserQueueEntry {
 
 ```ts
 interface BrowserQueueStatus extends BrowserLockStatus {
-    /** Whole minutes the holder has had the lock, or null when it is free. */
+    /** Whole minutes the holder of the first native slot has had it, or null when it is free. */
     heldMinutes: number | null;
-    /** The waiters, in the order they are served. Tickets of dead pids are left out. */
+    /** Every slot, native and then image, with its holder. `holder`, `stale` and `file` above are the first native one. */
+    slots: BrowserSlotStatus[];
+    /** How many slots of each kind the machine has (from its `browser-slots.json`). */
+    configured: BrowserSlots;
+    /** The waiters, native line first and then the image line, each in the order it is served. Tickets of dead pids are left out. */
     queue: BrowserQueueEntry[];
-    /** The folder the priority file names, or null. */
+    /** The folder the native priority file names, or null. */
     priority: string | null;
+    /** The folder the image priority file names, or null. */
+    imagePriority: string | null;
     /** Lines to show a person: a holder over `LONG_HOLD_MINUTES`, a stale lock. */
     warnings: string[];
 }
@@ -7669,8 +7736,45 @@ interface BrowserQueueTicket {
     command: string;
     /** The npm script that started the run (`test:demo`), when there is one. */
     script?: string;
+    /** Which kind of slot the run waits for. A ticket from an older kazoku-ui has none, and waits for a native slot. */
+    kind?: BrowserSlotKind;
     /** ISO time the run joined the line. The oldest live ticket goes next. */
     queuedAt: string;
+}
+```
+
+### BrowserSlotKind
+
+*type*. What a browser run asks for. A `native` run uses the machine's own browser (timing tests need the machine to themselves, so there is one native slot unless the
+
+```ts
+type BrowserSlotKind = "native" | "image";
+```
+
+### BrowserSlots
+
+*interface*. How many slots of each kind a machine has.
+
+```ts
+interface BrowserSlots {
+    /** Browser runs on the machine itself at once. At least 1; the default is 1. */
+    native: number;
+    /** Runs in the CI image at once. The default is 0: a machine that has not been set up runs none, and nothing about it changes. */
+    image: number;
+}
+```
+
+### BrowserSlotStatus
+
+*interface*. One slot as the status shows it.
+
+```ts
+interface BrowserSlotStatus extends BrowserLockStatus {
+    kind: BrowserSlotKind;
+    /** 0 for the first slot of its kind. */
+    index: number;
+    /** Whole minutes the holder has had the slot, or null when it is free. */
+    heldMinutes: number | null;
 }
 ```
 
@@ -7684,6 +7788,58 @@ interface CanvasSize {
     pixels: number;
     side: number;
     count: number;
+}
+```
+
+### CiImageOptions
+
+*interface*. What one run in the CI image is asked to do.
+
+```ts
+interface CiImageOptions {
+    /** The folder of the repo. The current folder. */
+    repo?: string;
+    /** CPUs the container may use (`docker --cpus`). 3. */
+    cpus?: number;
+    /** The container's memory, swap included (`docker --memory`, so `8g`, `4096m`). 8g. */
+    memory?: string;
+    /** Playwright's own arguments: `["test", "e2e/a.demo.mjs", "--project=chromium-desk"]`. A first word that is not a Playwright command means `test`. */
+    args: readonly string[];
+    /** Where the container's `test-results` and `playwright-report` are copied to. `test-results/ci-image` in the repo. */
+    out?: string;
+    /** Shell commands that replace the default build (`pnpm build`, then `pnpm site` when there is a `site` script). The install always runs first. */
+    setup?: string;
+    /** A Node major to put in the container (`24`, as CI's `setup-node` has), else the image's own Node. */
+    node?: string;
+    /** Show the plan (image, the container's options and its script) and run nothing. */
+    dryRun?: boolean;
+    /** Where progress goes. Standard error. */
+    log?: (line: string) => void;
+    /** Passed to the slot lock (a test sets `pollMs`). */
+    lock?: Pick<BrowserLockOptions, "pollMs" | "reportMs" | "maxAgeMs">;
+}
+```
+
+### CiImagePlan
+
+*interface*. Everything the command works out before it touches Docker.
+
+```ts
+interface CiImagePlan {
+    /** The image: `mcr.microsoft.com/playwright:v<version>-noble`. */
+    image: string;
+    /** The `@playwright/test` version in the lockfile. */
+    playwright: string;
+    cpus: number;
+    memory: string;
+    /** The package manager the lockfile belongs to. */
+    manager: "pnpm" | "npm";
+    /** The commands run in the container before Playwright, in order. */
+    steps: string[];
+    /** The Playwright arguments, with `test` and `--workers` filled in. */
+    args: string[];
+    /** The shell script the container runs (the Playwright arguments reach it as `"$@"`). */
+    script: string;
 }
 ```
 

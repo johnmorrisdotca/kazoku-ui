@@ -89,6 +89,7 @@
     "./dist/interface/define.js"
   ],
   "bin": {
+    "kazoku-ci-image": "./dist/testing/ci-image-cli.js",
     "kazoku-browser-lock": "./dist/testing/cli.js",
     "kazoku-browser-queue": "./dist/testing/cli.js"
   },

@@ -188,3 +188,5 @@ export async function untilStill<P extends PageLike>(page: P, read: (page: P) =>
 export * from "./gestures.ts";
 export * from "./lock.ts";
 export { orderBrowserQueue, setBrowserPriority, type BrowserQueueTicket } from "./queue.ts";
+export { browserSlots, slotsFile, type BrowserSlotKind, type BrowserSlots } from "./slots.ts";
+export { ciImagePlan, playwrightVersion, runCiImage, type CiImageOptions, type CiImagePlan } from "./ci-image.ts";
