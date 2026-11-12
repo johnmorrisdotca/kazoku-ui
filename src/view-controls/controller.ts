@@ -4,6 +4,9 @@
 import { turnOnlyInSight } from "./sight.ts";
 import { TURN_SPEED, type TurnAxis } from "./levels.ts";
 import { between, clamp, clampPan, type Camera, DEFAULT_LIMITS, dragRoll, dragTurn, eulerFromQuat, type Limits, PAN_STEP, pendulumTilt, type PinchStart, pinchTo, type Point, quatFromEuler, quatIdentity, type Quat, type Size, spinLocal, tumbleRates, WHEEL_GESTURE_MS, wheelMove, wheelZoomFactor, wrapYaw, ZOOMED, zoomAbout } from "./math.ts";
+import { nextSwayGain, swayOffset, type Sway } from "./sway.ts";
+
+export type { Sway };
 
 export interface ViewState extends Camera {
   /** The pose the page should draw. A tumble keeps this continuous when the slider numbers fold at a pole. */
@@ -68,6 +71,10 @@ export interface ViewControllerOptions {
   onChange?: (state: ViewState, info: ChangeInfo) => void;
   /** Animation frames; the browser's requestAnimationFrame by default. A test passes its own. */
   clock?: Clock;
+  /** A hand-held drift while the view is already moving. `off` (the default) draws the state as it is. */
+  sway?: Sway;
+  /** The time in ms, for the drift. A test passes its own; the browser's clock otherwise. */
+  now?: () => number;
 }
 
 export interface ViewController {
@@ -87,6 +94,8 @@ export interface ViewController {
   anchor: Point | undefined;
   keyTilt: KeyTilt;
   stopTurn: boolean;
+  /** A hand-held drift while the view is already moving (`off`, `gentle` or `more`). Can be changed at any time. `off` by default. */
+  sway: Sway;
   /**
    * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
    *
@@ -203,9 +212,40 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   /** A zoomed view, one that may move at any zoom, or an immersive one, takes every touch; at Fit the page may scroll. */
   const touchAction = (): string => (controller.immersive || state.zoom > ZOOMED || isFree() ? "none" : "pan-y");
 
+  let swayGain = 0;
+  let swayAt = 0;
+  const nowOf = options.now ?? ((): number => (typeof performance !== "undefined" ? performance.now() : 0));
+  /** The picture to draw. A drift is added only on a frame the view is already drawing, and never written into `state`. A settled frame is the state itself, so a still picture sits on the angle the reader chose. */
+  const drawn = (final: boolean, reason: string): ViewState => {
+    const reduced = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+    const moving = reason === "auto" || reason === "centre" || reason === "drag" || reason === "pinch" || reason === "slider";
+    if (final || reduced || controller.sway === "off" || !moving) {
+      swayGain = 0;
+      swayAt = 0;
+      return { ...state };
+    }
+    const now = nowOf();
+    const elapsed = swayAt === 0 ? 0 : now - swayAt;
+    swayAt = now;
+    const held = reason === "drag" || reason === "pinch" || reason === "slider";
+    swayGain = nextSwayGain(swayGain, elapsed, held);
+    if (swayGain === 0) return { ...state };
+    const off = swayOffset(now, controller.sway);
+    const g = swayGain;
+    const camera = clampPan({
+      yaw: wrapYaw(state.yaw + off.yaw * g),
+      tilt: clamp(state.tilt + off.tilt * g, -limits.tiltMax, limits.tiltMax),
+      roll: clamp(wrapYaw((state.roll ?? 0) + off.roll * g), -limits.rollMax, limits.rollMax),
+      zoom: state.zoom,
+      panX: state.panX + off.panX * g,
+      panY: state.panY + off.panY * g,
+    }, size(), controller.objectSize, controller.freePan);
+    return { ...state, ...camera, orientation: quatFromEuler(camera.yaw, camera.tilt, camera.roll ?? 0) };
+  };
+
   const emit = (final: boolean, reason: string): void => {
     if (bound !== undefined) bound.style.touchAction = touchAction();
-    options.onChange?.({ ...state }, { final, reason });
+    options.onChange?.(drawn(final, reason), { final, reason });
   };
 
   const stopCentre = (): void => {
@@ -332,6 +372,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     anchor: options.anchor,
     keyTilt: options.keyTilt ?? "drag",
     stopTurn: options.stopTurn ?? false,
+    sway: options.sway ?? "off",
     doublePress: options.doublePress ?? true,
     get immersive() {
       return immersiveOn;

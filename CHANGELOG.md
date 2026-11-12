@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - **A collection picker** (KAZOKU-UI-116). `<kazoku-collection-picker>` searches a list the page passes in (`kind`, `id`, `name`, `group`, `keywords`) and keeps a chosen list the reader can add to, remove from and reorder. The search is one pass over a prepared line, so about 17,000 items stay in the browser's time. `kazoku-collectionchange` carries the ids in order. Labels in English and Japanese.
+- **A view can drift a little while it is already moving** (KAZOKU-UI-127). `sway="gentle"` or `sway="more"` on `<kazoku-view-controls>`, or `sway` on the controller (`off` by default): while the view turns by itself or glides back to the middle, the picture drifts a little in angle, tilt, roll and position, on a few slow waves. The drift is not the angle the bar shows and it is not written to the address. A drag, a pinch or the slider fades it out, and it fades back in afterwards. Reduced motion turns it off. A still view asks for no frame.
 
 ## [0.42.0] - 2026-11-12
 

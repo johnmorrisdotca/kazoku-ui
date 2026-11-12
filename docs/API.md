@@ -28,7 +28,7 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-62 values and 24 types.
+62 values and 25 types.
 
 ```js
 import { between, carryControls, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, DOUBLE_PRESS_EVENT, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, readLimits, SHOW_EVENT, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WIDE, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
@@ -763,6 +763,14 @@ interface Size {
 }
 ```
 
+### Sway
+
+*type*. How strong the drift is. `off` is the default.
+
+```ts
+type Sway = "off" | "gentle" | "more";
+```
+
 ### TumbleSigns
 
 *interface*
@@ -817,6 +825,8 @@ interface ViewController {
     anchor: Point | undefined;
     keyTilt: KeyTilt;
     stopTurn: boolean;
+    /** A hand-held drift while the view is already moving (`off`, `gentle` or `more`). Can be changed at any time. `off` by default. */
+    sway: Sway;
     /**
      * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
      *
@@ -916,6 +926,10 @@ interface ViewControllerOptions {
     onChange?: (state: ViewState, info: ChangeInfo) => void;
     /** Animation frames; the browser's requestAnimationFrame by default. A test passes its own. */
     clock?: Clock;
+    /** A hand-held drift while the view is already moving. `off` (the default) draws the state as it is. */
+    sway?: Sway;
+    /** The time in ms, for the drift. A test passes its own; the browser's clock otherwise. */
+    now?: () => number;
 }
 ```
 

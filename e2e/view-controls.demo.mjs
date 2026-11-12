@@ -871,3 +871,28 @@ test("Space still grabs when the view sits inside a link", async ({ page }) => {
   expect(result.prevented).toBe(true);
   expect(result.cursor).toBe("grab");
 });
+
+test("sway drifts the picture while the view turns and leaves the angle alone", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await ready(page);
+  const drifted = await page.evaluate(async () => {
+    const view = document.createElement("div");
+    const bar = document.createElement("kazoku-view-controls");
+    bar.setAttribute("sway", "gentle");
+    bar.setAttribute("autoplay", "");
+    const pictures = [];
+    bar.addEventListener("kazoku-viewchange", (event) => {
+      const detail = event.detail;
+      if (detail.reason === "auto") pictures.push(detail.yaw);
+    });
+    bar.view = view;
+    document.body.append(view, bar);
+    await new Promise((done) => setTimeout(done, 800));
+    const angle = bar.state.yaw;
+    bar.remove();
+    view.remove();
+    return { angle, picture: pictures.at(-1) ?? null, n: pictures.length };
+  });
+  expect(drifted.n).toBeGreaterThan(2);
+  expect(drifted.picture).not.toBe(drifted.angle);
+});
