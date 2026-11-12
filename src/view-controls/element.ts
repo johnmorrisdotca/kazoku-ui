@@ -4,7 +4,7 @@ import { createAddressWriter } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
-import { BAR_EVENT, BAR_MARK, CARRY_EVENT } from "./carry.ts";
+import { BAR_EVENT, BAR_MARK, CARRY_EVENT, SHOW_EVENT } from "./carry.ts";
 import { createViewController, DEFAULT_IGNORE, type ChangeInfo, type ViewController, type ViewState } from "./controller.ts";
 import { EVENT, TAG } from "./index.ts";
 import { type Direction, type Layout, LEVEL_STORAGE_KEY, type Level, parseAxis, parseDirection, parseLayout, parseLevel, TURN_PACES, TURN_SPEED, type TurnAxis, turnSeconds, zoomText } from "./levels.ts";
@@ -705,12 +705,20 @@ export class ViewControlsElement extends HTMLElement {
         this.#ensure().set({});
       };
       element.addEventListener(CARRY_EVENT, carried);
+      const shown = (event: Event): void => {
+        const detail = (event as CustomEvent<Partial<ViewState>>).detail;
+        if (detail === null || typeof detail !== "object") return;
+        this.#ensure().set(detail, true, "show");
+        if (this.#ready) this.#show();
+      };
+      element.addEventListener(SHOW_EVENT, shown);
       element.setAttribute(BAR_MARK, "");
       element.dispatchEvent(new Event(BAR_EVENT));
       const off = this.#ensure().bind(element);
       this.#unbind = () => {
         off();
         element.removeEventListener(CARRY_EVENT, carried);
+        element.removeEventListener(SHOW_EVENT, shown);
         element.removeAttribute(BAR_MARK);
         element.dispatchEvent(new Event(BAR_EVENT));
         this.#carried = DEFAULT_LIMITS;

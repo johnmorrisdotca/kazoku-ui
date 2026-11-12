@@ -338,6 +338,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     set(next, final = true, reason = "set") {
       const { turning, ...cam } = next;
       take({ ...camera(), ...cam });
+      // "show" is the view telling the controls what it already shows. The page is not told again.
+      if (reason === "show") return;
       if (turning !== undefined && turning !== state.turning) {
         if (turning) controller.play();
         else controller.pause();
@@ -506,20 +508,41 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     };
     const typing = (target: EventTarget | null): boolean => {
       const node = target as Element | null;
-      return node !== null && typeof node.closest === "function" && node.closest("input, textarea, select, [contenteditable='true']") !== null;
+      if (node === null || typeof node.closest !== "function") return false;
+      if (node.closest("input, textarea, select") !== null) return true;
+      const box = node.closest("[contenteditable]");
+      if (box === null) return false;
+      return (box.getAttribute("contenteditable") ?? "").toLowerCase() !== "false";
+    };
+    const dropSpace = (): void => {
+      space = false;
+      showHand();
+    };
+    /** A button, link or text field inside the view: Space belongs to it, even when the event's target is the view and the focus is the control. */
+    const handedTo = (target: EventTarget | null): Element | null => {
+      const node = target as Element | null;
+      const fromTarget = node !== null && typeof node.closest === "function" ? node.closest("button, a, [role='button'], input, textarea, select, [contenteditable]") : null;
+      if (fromTarget !== null && view.contains(fromTarget) && (typing(fromTarget) || fromTarget.closest("button, a, [role='button']") !== null)) return fromTarget;
+      const active = view.ownerDocument.activeElement;
+      if (active === null || !view.contains(active)) return null;
+      if (typing(active) || active.closest("button, a, [role='button']") !== null) return active;
+      return null;
     };
     const onSpace = (e?: KeyboardEvent): void => {
       if (!e || (e.key !== " " && e.key !== "Spacebar")) return;
       if (e.type === "keyup") {
-        space = false;
-        showHand();
+        dropSpace();
         return;
       }
-      if (typing(e.target) || (!over && gesture?.kind !== "pan")) return;
+      if (typing(e.target) || handedTo(e.target) !== null || (!over && gesture?.kind !== "pan")) return;
       space = true;
       showHand();
       e.preventDefault();
     };
+    const onHide = (): void => {
+      if (view.ownerDocument.visibilityState === "hidden") dropSpace();
+    };
+    const onBlur = (): void => dropSpace();
 
     const onDown = (e: PointerEvent): void => {
       if (e.pointerType === "mouse" && e.button > 2) return;
@@ -711,8 +734,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     view.addEventListener("gesturechange", onGesture);
     view.addEventListener("gestureend", onGesture);
     view.addEventListener("keydown", onKey);
-    doc.addEventListener?.("keydown", onSpace);
-    doc.addEventListener?.("keyup", onSpace);
+    doc.addEventListener?.("keydown", onSpace, true);
+    doc.addEventListener?.("keyup", onSpace, true);
+    doc.addEventListener?.("visibilitychange", onHide);
+    doc.defaultView?.addEventListener?.("blur", onBlur);
     view.addEventListener("contextmenu", onMenu);
     view.addEventListener("mousedown", onMouseDown);
     view.style.touchAction = touchAction();
@@ -730,8 +755,10 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       view.removeEventListener("gesturechange", onGesture);
       view.removeEventListener("gestureend", onGesture);
       view.removeEventListener("keydown", onKey);
-      doc.removeEventListener?.("keydown", onSpace);
-      doc.removeEventListener?.("keyup", onSpace);
+      doc.removeEventListener?.("keydown", onSpace, true);
+      doc.removeEventListener?.("keyup", onSpace, true);
+      doc.removeEventListener?.("visibilitychange", onHide);
+      doc.defaultView?.removeEventListener?.("blur", onBlur);
       view.removeEventListener("contextmenu", onMenu);
       view.removeEventListener("mousedown", onMouseDown);
       view.style.touchAction = "";
