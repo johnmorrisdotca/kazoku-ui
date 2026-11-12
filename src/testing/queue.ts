@@ -32,7 +32,11 @@ export const TICKET_MAX_SILENCE_MS = 120_000;
 export const lockDir = (): string =>
   process.env.KAZOKU_BROWSER_LOCK_DIR || join(process.platform === "darwin" ? join(homedir(), "Library", "Caches") : process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "kazoku-ui");
 
-export const queueDir = (): string => join(lockDir(), "queue");
+/**
+ * The folder a kind's tickets are in: `queue` for native runs, as it always was, and `queue-image` for runs in the CI image. They are apart so that a run on an older kazoku-ui,
+ * which reads every ticket in `queue` and knows nothing of kinds, never waits behind an image run.
+ */
+export const queueDir = (kind: BrowserSlotKind = "native"): string => join(lockDir(), kind === "image" ? "queue-image" : "queue");
 
 /** The priority file of a kind: `priority` for native runs (as it always was), `priority-image` for runs in the CI image. */
 export const priorityFile = (kind: BrowserSlotKind = "native"): string => join(lockDir(), kind === "image" ? "priority-image" : "priority");
@@ -89,23 +93,24 @@ const ticketName = (ticket: BrowserQueueTicket): string => `${String(Date.parse(
 
 /** Put a ticket in the queue folder, complete or not at all. Rejoining with the same `queuedAt` keeps the place. */
 export function joinQueue(ticket: BrowserQueueTicket): string {
-  mkdirSync(queueDir(), { recursive: true });
-  const file = join(queueDir(), ticketName(ticket));
-  const draft = join(queueDir(), `.${ticket.pid}-${ticket.token}.tmp`);
+  const dir = queueDir(ticketKind(ticket));
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, ticketName(ticket));
+  const draft = join(dir, `.${ticket.pid}-${ticket.token}.tmp`);
   writeFileSync(draft, JSON.stringify(ticket, null, 2));
   renameSync(draft, file);
   return file;
 }
 
 export function leaveQueue(ticket: BrowserQueueTicket): void {
-  rmSync(join(queueDir(), ticketName(ticket)), { force: true });
+  rmSync(join(queueDir(ticketKind(ticket)), ticketName(ticket)), { force: true });
 }
 
 /** Let the queue know this waiter is still there. */
 export function touchTicket(ticket: BrowserQueueTicket): void {
   const now = new Date();
   try {
-    utimesSync(join(queueDir(), ticketName(ticket)), now, now);
+    utimesSync(join(queueDir(ticketKind(ticket)), ticketName(ticket)), now, now);
   } catch {
     // cleared by someone; the waiter notices and rejoins
   }
@@ -134,27 +139,29 @@ export function readPriority(kind: BrowserSlotKind = "native"): string | null {
 /** The live tickets in the order they are served, each kind's line on its own (a native run never waits behind an image run, nor the other way round). A ticket whose pid is gone, or that has been silent too long, is not live, and with `clean` its file is removed. */
 export function readQueue(options: ReadQueueOptions = {}): BrowserQueueTicket[] {
   const { alive: running = alive, clean = true, kind, now = Date.now(), maxSilenceMs = TICKET_MAX_SILENCE_MS } = options;
-  let names: string[] = [];
-  try {
-    names = readdirSync(queueDir());
-  } catch {
-    return [];
-  }
   const live: BrowserQueueTicket[] = [];
-  for (const name of names) {
-    if (!name.endsWith(".json")) continue;
-    const file = join(queueDir(), name);
-    let ticket: BrowserQueueTicket | null = null;
-    let silent = false;
+  for (const of of kind ? [kind] : (["native", "image"] as const)) {
+    let names: string[] = [];
     try {
-      const parsed = JSON.parse(readFileSync(file, "utf8")) as BrowserQueueTicket;
-      if (typeof parsed.pid === "number" && typeof parsed.token === "string" && typeof parsed.queuedAt === "string" && !Number.isNaN(Date.parse(parsed.queuedAt))) ticket = parsed;
-      silent = now - statSync(file).mtimeMs > maxSilenceMs;
+      names = readdirSync(queueDir(of));
     } catch {
-      // unreadable: treated as dead below
+      continue;
     }
-    if (ticket && !silent && running(ticket.pid)) live.push(ticket);
-    else if (clean) rmSync(file, { force: true });
+    for (const name of names) {
+      if (!name.endsWith(".json")) continue;
+      const file = join(queueDir(of), name);
+      let ticket: BrowserQueueTicket | null = null;
+      let silent = false;
+      try {
+        const parsed = JSON.parse(readFileSync(file, "utf8")) as BrowserQueueTicket;
+        if (typeof parsed.pid === "number" && typeof parsed.token === "string" && typeof parsed.queuedAt === "string" && !Number.isNaN(Date.parse(parsed.queuedAt))) ticket = parsed;
+        silent = now - statSync(file).mtimeMs > maxSilenceMs;
+      } catch {
+        // unreadable: treated as dead below
+      }
+      if (ticket && !silent && running(ticket.pid) && ticketKind(ticket) === of) live.push(ticket);
+      else if (clean) rmSync(file, { force: true });
+    }
   }
   const line = (of: BrowserSlotKind): BrowserQueueTicket[] => orderBrowserQueue(live.filter((ticket) => ticketKind(ticket) === of), readPriority(of));
   return kind ? line(kind) : [...line("native"), ...line("image")];

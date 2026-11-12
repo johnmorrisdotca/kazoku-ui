@@ -1,8 +1,8 @@
 /// <reference types="node" />
 import { spawn, spawnSync, type SpawnSyncReturns } from "node:child_process";
-import { existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readdirSync, readFileSync, rmSync, rmdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import process from "node:process";
 import { acquireBrowserLock, type BrowserLock, type BrowserLockOptions } from "./lock.ts";
 import { alive } from "./queue.ts";
@@ -24,7 +24,7 @@ export interface CiImageOptions {
   memory?: string;
   /** Playwright's own arguments: `["test", "e2e/a.demo.mjs", "--project=chromium-desk"]`. A first word that is not a Playwright command means `test`. */
   args: readonly string[];
-  /** Where the container's `test-results` and `playwright-report` are copied to. `test-results/ci-image` in the repo. */
+  /** The folder the container's `test-results` and `playwright-report` are copied into. By default a folder of its own for each run, `test-results/ci-image/<time>-<pid>` in the repo (the newest ten are kept), so runs side by side never overwrite each other. */
   out?: string;
   /** Shell commands that replace the default build (`pnpm build`, then `pnpm site` when there is a `site` script). The install always runs first. */
   setup?: string;
@@ -213,8 +213,8 @@ export function parseCiImageArgs(argv: readonly string[]): CiImageCommandLine {
 export const CI_IMAGE_USAGE = `usage: kazoku-ci-image [--cpus 3] [--memory 8g] [--out dir] [--setup "cmd"] [--node 24] [--dry-run] -- <playwright arguments>
   runs Playwright in the image CI runs in (mcr.microsoft.com/playwright:v<version>-noble, the version in the lockfile), in a container fenced to --cpus and --memory,
   after installing from the lockfile and building (pnpm build, and pnpm site when there is a site script; --setup "cmd" replaces the build).
-  It takes one of the machine's image slots first (${slotsFile()}); with none set up it stops. The container's test-results are copied to --out
-  (test-results/ci-image), its exit code is this command's, and it is removed at the end.
+  It takes one of the machine's image slots first (${slotsFile()}); with none set up it stops. The container's test-results and playwright-report are copied into --out
+  (a folder for each run under test-results/ci-image), its exit code is this command's, and it is removed at the end.
   example: kazoku-ci-image -- test e2e/renderer.demo.mjs --project=chromium-desk`;
 
 type Docker = (args: readonly string[], input?: string) => SpawnSyncReturns<string>;
@@ -242,12 +242,12 @@ export function removeOrphanContainers(run: Docker = docker, running: (pid: numb
   return removed;
 }
 
-/** The files CI would see: what git tracks and what it does not ignore, that still exist. Without git, everything but `node_modules`, `.git`, `dist`, `site` and the results. */
+/** The files CI would see: what git tracks and what it does not ignore, that still exist, but never a `.env*` file. Without git, everything but `node_modules`, `.git`, `dist`, `site` and the results. */
 function repoFiles(repo: string): string[] | null {
   const listed = spawnSync("git", ["-C", repo, "ls-files", "-z", "--cached", "--others", "--exclude-standard"], { encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
   if (listed.status !== 0) return null;
   return listed.stdout.split("\0").filter((name) => {
-    if (!name) return false;
+    if (!name || basename(name).startsWith(".env")) return false; // secrets stay on the Mac
     try {
       lstatSync(join(repo, name));
       return true;
@@ -257,19 +257,46 @@ function repoFiles(repo: string): string[] | null {
   });
 }
 
-/** Put the repo into the container's /work as a tar stream: no bind mount, so the Mac's node_modules never reach Linux. */
+/** Put the repo into the container's /work as a tar stream: no bind mount, so the Mac's node_modules never reach Linux. The tar is made whole first, so a failure of tar is seen, not half a repo in the container. */
 function copyRepoIn(repo: string, name: string): { ok: boolean; files: number | null; error: string } {
   const files = repoFiles(repo);
   const scratch = mkdtempSync(join(tmpdir(), "kazoku-ci-image-"));
   try {
     const mac = process.platform === "darwin" ? ["--no-xattrs", "--no-acls", "--no-mac-metadata"] : [];
+    const archive = join(scratch, "repo.tar");
     const tarArgs = files
-      ? (writeFileSync(join(scratch, "files"), files.join("\0") + "\0"), ["-C", repo, "-cf", "-", ...mac, "--null", "-T", join(scratch, "files")])
-      : ["-C", repo, "-cf", "-", ...mac, "--exclude=node_modules", "--exclude=./.git", "--exclude=./dist", "--exclude=./site", "--exclude=./test-results", "--exclude=./playwright-report", "."];
-    const pack = spawnSync("sh", ["-c", `tar "$@" | ${quote(dockerBinary())} cp - ${quote(name)}:/work`, "sh", ...tarArgs], { env: { ...process.env, COPYFILE_DISABLE: "1" }, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-    return { ok: pack.status === 0, files: files ? files.length : null, error: `${pack.stderr}`.trim() };
+      ? (writeFileSync(join(scratch, "files"), files.join("\0") + "\0"), ["-C", repo, "-cf", archive, ...mac, "--null", "-T", join(scratch, "files")])
+      : ["-C", repo, "-cf", archive, ...mac, "--exclude=node_modules", "--exclude=.env*", "--exclude=./.git", "--exclude=./dist", "--exclude=./site", "--exclude=./test-results", "--exclude=./playwright-report", "."];
+    const pack = spawnSync("tar", tarArgs, { env: { ...process.env, COPYFILE_DISABLE: "1" }, encoding: "utf8" });
+    if (pack.status !== 0) return { ok: false, files: null, error: `tar failed: ${pack.stderr}`.trim() };
+    const input = openSync(archive, "r");
+    try {
+      const copy = spawnSync(dockerBinary(), ["cp", "-", `${name}:/work`], { stdio: [input, "ignore", "pipe"], encoding: "utf8" });
+      return { ok: copy.status === 0, files: files ? files.length : null, error: `${copy.stderr}`.trim() };
+    } finally {
+      closeSync(input);
+    }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+/** Remove a folder only if nothing is in it. */
+function removeIfEmpty(dir: string): void {
+  try {
+    rmdirSync(dir);
+  } catch {
+    // not empty, or not there
+  }
+}
+
+/** Keep the newest `keep` run folders in `dir`, and remove the older ones. */
+function pruneRuns(dir: string, keep: number): void {
+  try {
+    const runs = readdirSync(dir).sort(); // `<time>-<pid>` names sort oldest first
+    for (const old of runs.slice(0, Math.max(0, runs.length - keep))) rmSync(join(dir, old), { recursive: true, force: true });
+  } catch {
+    // nothing there yet
   }
 }
 
@@ -324,7 +351,9 @@ export async function runCiImage(options: CiImageOptions): Promise<number> {
   };
   const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
   for (const signal of signals) process.on(signal, onSignal);
-  const out = resolve(options.out ?? join(repo, "test-results", "ci-image"));
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "").replace("T", "-");
+  const runs = join(repo, "test-results", "ci-image");
+  const out = resolve(options.out ?? join(runs, `${stamp}-${process.pid}`));
   try {
     const orphans = removeOrphanContainers();
     if (orphans) log(`kazoku-ci-image: removed ${orphans} container${orphans === 1 ? "" : "s"} left by runs that were stopped`);
@@ -355,11 +384,15 @@ export async function runCiImage(options: CiImageOptions): Promise<number> {
       child.on("exit", (status) => done(status ?? 1));
     });
     // `docker start -a` returns the container's own exit code (Playwright's, as the script ends with it).
-    rmSync(out, { recursive: true, force: true });
     const results: string[] = [];
-    for (const [from, to] of [["test-results", out], ["playwright-report", `${out}-report`]] as const) {
-      if (docker(["cp", `${name}:/work/${from}/.`, to]).status === 0) results.push(to);
+    for (const from of ["test-results", "playwright-report"] as const) {
+      const to = join(out, from);
+      mkdirSync(to, { recursive: true });
+      if (docker(["cp", `${name}:/work/${from}/.`, to]).status === 0 && readdirSync(to).length > 0) results.push(to);
+      else removeIfEmpty(to);
     }
+    removeIfEmpty(out);
+    if (!options.out) pruneRuns(runs, 10);
     log(`kazoku-ci-image: playwright exited with ${code}${results.length ? `; copied ${results.join(" and ")}` : ""}`);
     return code;
   } finally {

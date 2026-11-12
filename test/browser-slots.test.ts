@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, beforeEach, test } from "node:test";
@@ -402,7 +402,7 @@ test("kazoku-ci-image creates a fenced container, holds a slot while it runs, re
   assert.match(calls, /^cp - kazoku-ci-\d+-\w+:\/work$/m);
   assert.match(calls, /^rm -f -v deadbeef$/m, "a container left by a killed run was removed");
   assert.match(calls, /^rm -f -v kazoku-ci-\d+-\w+$/m, "and the run's own is removed at the end");
-  assert.match(calls, /^cp kazoku-ci-\d+-\w+:\/work\/test-results\/\. .*test-results\/ci-image$/m, "the results are copied out");
+  assert.match(calls, /^cp kazoku-ci-\d+-\w+:\/work\/test-results\/\. .*test-results\/ci-image\/\d{8}-\d{6}-\d+\/test-results$/m, "the results are copied out, into a folder of this run's own");
   assert.match(result.out, /playwright exited with 7/);
   assert.equal(held("image"), 0, "the slot is let go");
 });
@@ -431,6 +431,107 @@ test("kazoku-ci-image --dry-run prints the plan and runs nothing", async () => {
   assert.match(result.out, /image: mcr\.microsoft\.com\/playwright:v1\.64\.1-noble/);
   assert.match(result.out, /pnpm install --frozen-lockfile/);
   assert.equal(existsSync(log), false, "docker was not called");
+});
+
+test("an old-style native ticket gets the free lock while an older image ticket waits: the two kinds have their own queue folders", async () => {
+  slots(1, 1);
+  joinQueue(ticket({ token: "image-ahead", kind: "image", queuedAt: "2020-01-01T00:00:00.000Z" }));
+  const nativeNames = existsSync(join(cache, "kazoku-ui", "queue")) ? readdirSync(join(cache, "kazoku-ui", "queue")) : [];
+  assert.deepEqual(nativeNames, [], "the image ticket is not in the folder a run on an older kazoku-ui reads");
+  assert.equal(readdirSync(join(cache, "kazoku-ui", "queue-image")).filter((name) => name.endsWith(".json")).length, 1);
+  // What a run on the older code writes: a native ticket with no kind, newer than the image ticket.
+  const old = run(`const l = await lock.acquireBrowserLock({ pollMs: 20 }); console.log("got-slot"); await new Promise((r) => setTimeout(r, 60000)); l.release();`, folder("old-style"));
+  await old.printed("got-slot");
+  assert.equal(held("native"), 1, "the native run took the free lock at once");
+  const written = readdirSync(join(cache, "kazoku-ui", "queue"));
+  assert.deepEqual(written, [], "its ticket went when it took the lock");
+  joinQueue(ticket({ token: "legacy", pid: process.pid, queuedAt: "2026-11-10T10:00:00.000Z" }));
+  const legacy = readdirSync(join(cache, "kazoku-ui", "queue")).map((name) => JSON.parse(readFileSync(join(cache, "kazoku-ui", "queue", name), "utf8")) as BrowserQueueTicket);
+  assert.equal(legacy[0]?.kind, undefined, "a native ticket carries no kind, as before");
+  assert.deepEqual(readQueue({ kind: "native", clean: false }).map((one) => one.token), ["legacy"], "an image ticket is not ahead of it");
+  assert.deepEqual(readQueue({ kind: "image", clean: false }).map((one) => one.token), ["image-ahead"]);
+  assert.deepEqual(readQueue({ clean: false }).map((one) => one.token), ["legacy", "image-ahead"], "without a kind: the native line, then the image line");
+  old.child.kill("SIGKILL");
+  await old.done;
+});
+
+test("when the image count is lowered under a held high slot, that slot still counts against the limit", async () => {
+  slots(1, 4);
+  mkdirSync(join(cache, "kazoku-ui"), { recursive: true });
+  writeFileSync(slotFile("image", 3), JSON.stringify({ token: "high", pid: process.pid, repo: "high", cwd: "/", command: "x", kind: "image", slot: 3, startedAt: new Date().toISOString() }));
+  slots(1, 2);
+  assert.equal(slotsOf("image").length, 4, "the held slot above the limit is still looked at");
+  const one = holder("image", "one");
+  await one.printed("held");
+  const two = waiter("image", "two");
+  await two.printed("waiting for an image slot: 1st in line, 2 of 2 slots held");
+  assert.doesNotMatch(two.output(), /got-slot/, "the third would be a third run under a limit of 2");
+  rmSync(slotFile("image", 3));
+  await two.printed("got-slot");
+  assert.equal((await two.done).code, 0);
+  one.child.kill("SIGKILL");
+  await one.done;
+});
+
+test("kazoku-ci-image leaves .env files and ignored files out of the copy, in a git repo and without one", async () => {
+  slots(1, 1);
+  const { bin } = fakeDocker();
+  const dir = join(bin, "..");
+  const list = async (repo: string): Promise<string[]> => {
+    const result = await command(["--", "test"], { KAZOKU_DOCKER: bin }, repo, imageCli);
+    assert.equal(result.code, 0, result.out);
+    return await new Promise<string[]>((resolve) => {
+      const lister = spawn("tar", ["-tf", join(dir, "stdin.tar")]);
+      let out = "";
+      lister.stdout.on("data", (chunk: Buffer) => (out += chunk));
+      lister.on("exit", () => resolve(out.split("\n").map((name) => name.replace(/^\.\//, "")).filter((name) => name && !name.endsWith("/"))));
+    });
+  };
+  const plain = fakeRepo();
+  writeFileSync(join(plain, ".env"), "SECRET=1");
+  mkdirSync(join(plain, "sub"));
+  writeFileSync(join(plain, "sub", ".env.local"), "SECRET=2");
+  const files = await list(plain);
+  assert.deepEqual(files.filter((name) => name.includes(".env") || name.includes("node_modules")), []);
+  assert.ok(files.includes("spec.mjs"));
+  const repo = fakeRepo();
+  writeFileSync(join(repo, ".gitignore"), "ignored.txt\nnode_modules/\n");
+  writeFileSync(join(repo, "ignored.txt"), "x");
+  writeFileSync(join(repo, ".env.production"), "SECRET=3");
+  writeFileSync(join(repo, "untracked.mjs"), "x");
+  const git = (...args: string[]) => spawnSync("git", ["-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { encoding: "utf8" });
+  git("init", "-q");
+  git("add", "package.json", "pnpm-lock.yaml", "spec.mjs", ".gitignore");
+  git("commit", "-q", "-m", "x");
+  const gitFiles = (await list(repo)).sort();
+  assert.deepEqual(gitFiles, [".gitignore", "package.json", "pnpm-lock.yaml", "spec.mjs", "untracked.mjs"]);
+});
+
+test("kazoku-ci-image stops, and says so, when the tar of the repo fails, rather than run on half a copy", async () => {
+  slots(1, 1);
+  const { bin, log } = fakeDocker();
+  const repo = fakeRepo();
+  writeFileSync(join(repo, "locked.txt"), "x");
+  chmodSync(join(repo, "locked.txt"), 0o000);
+  try {
+    const result = await command(["--", "test"], { KAZOKU_DOCKER: bin }, repo, imageCli);
+    assert.equal(result.code, 1, result.out);
+    assert.match(result.out, /could not copy the repo into the container: tar failed/);
+    assert.doesNotMatch(readFileSync(log, "utf8"), /^start /m, "the container never started");
+    assert.match(readFileSync(log, "utf8"), /^rm -f -v kazoku-ci-/m, "and was removed");
+  } finally {
+    chmodSync(join(repo, "locked.txt"), 0o644);
+  }
+});
+
+test("two runs of one repo copy their results to folders of their own", async () => {
+  slots(1, 2);
+  const { bin, log } = fakeDocker();
+  const repo = fakeRepo();
+  await Promise.all([command(["--", "test"], { KAZOKU_DOCKER: bin }, repo, imageCli), command(["--", "test"], { KAZOKU_DOCKER: bin }, repo, imageCli)]);
+  const dests = [...readFileSync(log, "utf8").matchAll(/^cp kazoku-ci-\S+:\/work\/test-results\/\. (\S+)$/gm)].map((match) => match[1]);
+  assert.equal(dests.length, 2);
+  assert.notEqual(dests[0], dests[1]);
 });
 
 test("removeOrphanContainers removes only containers whose run is gone", () => {

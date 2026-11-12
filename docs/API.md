@@ -7805,7 +7805,7 @@ interface CiImageOptions {
     memory?: string;
     /** Playwright's own arguments: `["test", "e2e/a.demo.mjs", "--project=chromium-desk"]`. A first word that is not a Playwright command means `test`. */
     args: readonly string[];
-    /** Where the container's `test-results` and `playwright-report` are copied to. `test-results/ci-image` in the repo. */
+    /** The folder the container's `test-results` and `playwright-report` are copied into. By default a folder of its own for each run, `test-results/ci-image/<time>-<pid>` in the repo (the newest ten are kept), so runs side by side never overwrite each other. */
     out?: string;
     /** Shell commands that replace the default build (`pnpm build`, then `pnpm site` when there is a `site` script). The install always runs first. */
     setup?: string;

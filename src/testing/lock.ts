@@ -207,9 +207,13 @@ export async function acquireBrowserLock(options: BrowserLockOptions = {}): Prom
         else free.push(slot);
       }
       if (cleared) continue;
-      if (free.length > 0 && place <= free.length - 1) {
+      // The machine's count is the limit. A slot above it that a run still holds (the count was lowered under it) counts as held, so the runs never exceed the limit.
+      const limit = browserSlots()[kind];
+      const usable = free.filter((slot) => slot.index < limit);
+      const room = Math.min(usable.length, Math.max(0, limit - held.length));
+      if (room > 0 && place <= room - 1) {
         // One of the oldest live tickets, and a slot is free for it: take one. Only a run on the older lock code, which does not queue, can have taken the native one in between.
-        for (const slot of free) {
+        for (const slot of usable) {
           const draft = `${slot.file}.${holder.pid}.${holder.token}`;
           writeFileSync(draft, JSON.stringify({ ...holder, slot: slot.index, startedAt: new Date().toISOString() }, null, 2));
           try {
@@ -229,9 +233,9 @@ export async function acquireBrowserLock(options: BrowserLockOptions = {}): Prom
         const oldest = [...held].sort((a, b) => Date.parse(a.startedAt) - Date.parse(b.startedAt))[0];
         const ahead = !oldest
           ? "the lock is free for the run ahead"
-          : slots.length === 1
+          : limit === 1
             ? `holder ${describeRun(oldest)} for ${minutesSince(oldest.startedAt)} min`
-            : `${held.length} of ${slots.length} slots held, the longest by ${describeRun(oldest)} for ${minutesSince(oldest.startedAt)} min`;
+            : `${held.length} of ${limit} slots held, the longest by ${describeRun(oldest)} for ${minutesSince(oldest.startedAt)} min`;
         log(`waiting for ${kind === "image" ? "an image slot" : "the browser"}: ${placeWord(Math.max(place, 0) + 1)} in line, ${ahead}`);
       }
       if (Date.now() - touched >= 10_000) {

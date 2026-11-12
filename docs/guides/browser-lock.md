@@ -56,9 +56,9 @@ npx kazoku-ci-image --cpus 4 --memory 12g -- test --project=webkit-desk --shard=
 1. It reads the `@playwright/test` version from the lockfile and uses `mcr.microsoft.com/playwright:v<version>-noble`, pulled once.
 2. It takes an image slot (below), waiting if they are all held.
 3. It starts a container with `--ipc=host`, `--cpus` and `--memory` (swap included, so the fence holds), `CI=true`, and a named volume `kazoku-ci-cache` that keeps the package store between runs.
-4. It copies the repo in as a tar stream of the files git tracks or would not ignore. The Mac's `node_modules` and `dist` never go in, and nothing is bind-mounted, so Linux installs its own.
+4. It copies the repo in as a tar stream of the files git tracks or would not ignore, made whole before it is sent, so a failed tar stops the run instead of leaving half a repo. The Mac's `node_modules`, `dist` and every `.env*` file never go in, and nothing is bind-mounted, so Linux installs its own.
 5. In the container it installs pnpm at the `packageManager` version, runs `pnpm install --frozen-lockfile`, builds (`pnpm build`, then `pnpm site` when there is a `site` script; a `site` script that builds first is not built twice), and runs `pnpm exec playwright` with your arguments. `--setup "cmd"` replaces the build; `--node 24` puts that Node in, as CI's `setup-node` does, where the image's own Node differs.
-6. It copies `test-results` to `test-results/ci-image` (and `playwright-report` beside it), returns Playwright's exit code, and removes the container, also on Ctrl-C and on a kill. A container left by a run that was killed outright is removed by the next run.
+6. It copies `test-results` and `playwright-report` into a folder of this run's own, `test-results/ci-image/<time>-<pid>` (the newest ten are kept; `--out dir` names another), so runs side by side never overwrite each other's results, returns Playwright's exit code, and removes the container, also on Ctrl-C and on a kill. A container left by a run that was killed outright is removed by the next run.
 
 Playwright's first word may be left out (`-- e2e/a.demo.mjs` means `test e2e/a.demo.mjs`), and `--workers` is half the container's CPUs unless you give one. If Docker is not running the command says so (exit 3) and takes no slot. `--dry-run` prints the image, the container's options and the script, and runs nothing.
 
@@ -90,13 +90,13 @@ The two kinds do not wait for each other: a native run holds its slot while up t
 
 - **The file.** `browser.lock` (the first native slot; image slots are `browser.image-1.lock` and on) in `kazoku-ui` inside the user's cache folder: `~/Library/Caches` on a Mac, else `$XDG_CACHE_HOME` or `~/.cache`. It holds the holder's pid, package name, folder, command, npm script and start time as JSON. `KAZOKU_BROWSER_LOCK_DIR` names another folder for the lock, the queue and the priority file together; tests of the lock itself use it so they never touch the real one.
 - **Atomic.** The file is written complete and then hard-linked into place, so exactly one of two runs that arrive together gets it, and nobody reads a half-written file.
-- **The queue.** A run that finds the lock held does not poll for it against the others. It writes a ticket (pid, package, folder, command, time) in the `queue` folder next to the lock, and only the oldest live ticket may take the lock when it is free. Whoever polls faster gains nothing. The ticket goes when the run takes the lock or ends.
+- **The queue.** A run that finds the lock held does not poll for it against the others. It writes a ticket (pid, package, folder, command, time) in the `queue` folder next to the lock (`queue-image` for runs in the CI image), and only the oldest live ticket may take the lock when it is free. Whoever polls faster gains nothing. The ticket goes when the run takes the lock or ends.
 - **Waiting.** Once a minute the waiting run prints where it stands: `waiting for the browser: 2nd in line, holder hoshi-stars test:demo for 12 min`.
 - **Dead runs clear themselves.** A ticket whose pid is gone, or that has not been touched for two minutes (a waiting run touches it every ten seconds), is removed by the next run that looks. A lock whose pid is gone, or that is over three hours old, is taken over. Nothing is ever killed.
 - **Let go** on a normal exit, on an error, and on SIGINT, SIGTERM and SIGHUP.
 - **One process tree.** The holder puts a token in `KAZOKU_BROWSER_LOCK`. A child that inherits it (a Playwright worker, a script a script starts) is let in at once and never lets the lock go.
 - **CI.** With the `CI` variable set the lock does nothing: a CI job is one machine and one run.
-- **Older versions.** A package still on the earlier lock code (no queue) works alongside. It takes the lock whenever it is free, so it can jump the line; it never breaks the lock or the tickets. It joins the queue when its package takes this version.
+- **Older versions.** A package still on the earlier lock code (no queue) works alongside. It takes the lock whenever it is free, so it can jump the line; it never breaks the lock or the tickets. It joins the queue when its package takes this version. A run on a version from before the image slots reads only the `queue` folder, where native runs' tickets are, and sees no image slots: runs in the CI image keep their tickets in `queue-image`, so they never stand in front of it, and it never waits for them.
 
 ## See it
 
