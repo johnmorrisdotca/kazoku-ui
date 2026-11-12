@@ -24,7 +24,7 @@ Run by hand from main (Actions → Release → Run workflow), or by pushing a `v
 1. Refuses to run from any branch but `main` (or a version tag).
 2. Checks that a pushed tag equals `v` plus `package.json`'s version, and that an existing `v<version>` tag is on this commit.
 3. Asks npm whether `name@version` is already published. If it is, it skips the install, the check and the publish.
-4. With `require-ci-workflow`, refuses a commit whose CI has not succeeded. Then runs the repo's check script, and then its freeze test when it names one (`freeze-command`).
+4. With `require-ci-workflow`, looks up that workflow's runs for this exact commit, on any branch. A successful run skips the check and the freeze. The release still builds, because the published files are not in git and the publish step ignores scripts. When no passing run is found, or the runs cannot be read, the check and the freeze still run. With the input empty, they always run.
 5. Tags `v<version>` if the tag is missing (this also repairs a version that is on npm but untagged).
 6. `npm publish --access public --provenance --ignore-scripts` by trusted publishing: no token, no secret.
 7. With `github-release: true`, makes a GitHub release with the packed tarball (notes from the repo's `scripts/release-notes.mjs` when it has one, else generated).
@@ -57,7 +57,7 @@ jobs:
 | `install-command` | `pnpm install --frozen-lockfile` | |
 | `check-command` | `pnpm check` | Must pass before anything is published. |
 | `freeze-command` | empty | A package with live 3D sets its freeze test here (`pnpm test:freeze`). Chromium is installed first by `.github/actions/playwright` at tag `v0.41.0` (two tries, each cut off, and a failure that says it is the download or the package mirror). The test then runs before anything is published. Every package with WebGL sets it. |
-| `require-ci-workflow` | empty | The file name of the repo's CI workflow (`ci.yml`). When set, the release refuses unless that workflow has succeeded on this exact commit (any completed, successful run of it counts, so a green rerun beats an earlier red one), so no package publishes a red commit. It reads the runs through the REST API; that needs no permission on a public repository, and a private one's `release.yml` also grants `actions: read`. Empty checks nothing. |
+| `require-ci-workflow` | empty | The file name of the repo's CI workflow (`ci.yml`). When a successful run of it exists for this exact commit (any branch; a green rerun beats an earlier red one), the check and the freeze are skipped. The release still builds what the tarball ships. When no passing run is found, the check and the freeze run. Empty always runs them. It reads the runs through the REST API; that needs no permission on a public repository, and a private one's `release.yml` also grants `actions: read`. |
 | `github-release` | `false` | Also make a GitHub release with the tarball. |
 
 It expects pnpm with a `packageManager` field in `package.json` (the `pnpm/action-setup` step reads it). A repo on npm needs a variant; ask before copying.
