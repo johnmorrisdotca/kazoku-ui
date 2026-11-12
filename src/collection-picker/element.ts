@@ -87,6 +87,8 @@ export class CollectionPickerElement extends HTMLElement {
   }
 
   #mount(): void {
+    // built once: a picker moved to another place on the page keeps its field and its list, not a second copy of them
+    if (this.#root.querySelector(".field")) return;
     const doc = this.ownerDocument;
     const field = doc.createElement("div");
     field.className = "field";
@@ -125,9 +127,11 @@ export class CollectionPickerElement extends HTMLElement {
       const id = button?.getAttribute("data-id");
       const act = button?.getAttribute("data-act");
       if (!id || !act) return;
+      const at = this.#ids.indexOf(id);
       if (act === "remove") this.#change(removeId(this.#ids, id));
       else if (act === "up") this.#change(moveId(this.#ids, id, -1));
       else if (act === "down") this.#change(moveId(this.#ids, id, 1));
+      this.#refocus(act, id, at);
     });
   }
 
@@ -150,6 +154,20 @@ export class CollectionPickerElement extends HTMLElement {
       this.#active = -1;
       this.#paintSuggestions();
     }
+  }
+
+  /** The rows were drawn again: keep a keyboard where it was. A moved item keeps its button (or the other way, at an end); a removed one gives way to the row now in its place, or the field. */
+  #refocus(act: string, id: string, at: number): void {
+    const row = (one: string, which: string): HTMLButtonElement | null => this.#root.querySelector<HTMLButtonElement>(`.rows button[data-id="${CSS.escape(one)}"][data-act="${which}"]`);
+    let next: HTMLButtonElement | null = null;
+    if (act === "remove") {
+      const there = this.#ids[Math.min(at, this.#ids.length - 1)];
+      next = there === undefined ? null : row(there, "remove");
+    } else {
+      next = row(id, act);
+      if (next?.disabled) next = row(id, act === "up" ? "down" : "up");
+    }
+    (next ?? (this.#root.querySelector("input") as HTMLInputElement)).focus();
   }
 
   #mark(buttons: Element[]): void {
@@ -211,12 +229,15 @@ export class CollectionPickerElement extends HTMLElement {
     if (found.length === 0) {
       const note = doc.createElement("li");
       note.className = "quiet";
+      note.setAttribute("role", "presentation");
       note.textContent = words.empty;
       list.append(note);
       return;
     }
     found.forEach((item, i) => {
       const row = doc.createElement("li");
+      // the options belong to the listbox: the row is only a holder
+      row.setAttribute("role", "presentation");
       const button = doc.createElement("button");
       button.type = "button";
       button.id = `s${i}`;
@@ -255,17 +276,19 @@ export class CollectionPickerElement extends HTMLElement {
       const label = this.ownerDocument.createElement("span");
       label.className = "name";
       label.textContent = name;
-      row.append(label, this.#act("up", id, words.up, i === 0), this.#act("down", id, words.down, i === this.#ids.length - 1), this.#act("remove", id, words.remove, false));
+      row.append(label, this.#act("up", id, words.up, name, i === 0), this.#act("down", id, words.down, name, i === this.#ids.length - 1), this.#act("remove", id, words.remove, name, false));
       rows.append(row);
     });
   }
 
-  #act(act: string, id: string, name: string, off: boolean): HTMLButtonElement {
+  /** A row's button: its word on it, and for a screen reader the word and the item (`Remove Mars`), so a list of rows is not a run of the same three words. */
+  #act(act: string, id: string, word: string, item: string, off: boolean): HTMLButtonElement {
     const button = this.ownerDocument.createElement("button");
     button.type = "button";
     button.dataset.act = act;
     button.dataset.id = id;
-    button.textContent = name;
+    button.textContent = word;
+    button.setAttribute("aria-label", `${word} ${item}`);
     button.disabled = off;
     return button;
   }

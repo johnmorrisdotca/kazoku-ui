@@ -36,3 +36,34 @@ test("the labels are Japanese when the page is", async ({ page }) => {
   await box(page).fill("火星");
   await expect(shadow(page, "#suggestions button")).toHaveText("火星 · 惑星");
 });
+
+test("a row's buttons name their item, a keyboard keeps its place through a move and a remove, and a picker moved on the page is still one", async ({ page }) => {
+  const errors = await ready(page);
+  for (const name of ["mars", "vega"]) {
+    await box(page).fill(name);
+    await page.keyboard.press("Enter");
+  }
+  await expect(page.locator("#out")).toHaveText("mars, vega");
+  await expect(shadow(page, 'button[data-id="mars"][data-act="remove"]')).toHaveAccessibleName(/^Remove Mars/);
+  // vega up with the keyboard: vega's button still has the focus (its Up is now at the top and off, so its Down)
+  await shadow(page, 'button[data-id="vega"][data-act="up"]').focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#out")).toHaveText("vega, mars");
+  const focused = () => page.locator("kazoku-collection-picker").evaluate((el) => { const a = el.shadowRoot.activeElement; return a ? `${a.getAttribute("data-id")} ${a.getAttribute("data-act")}` : null; });
+  expect(await focused()).toBe("vega down");
+  // remove vega: the row now in its place (mars) has the focus
+  await shadow(page, 'button[data-id="vega"][data-act="remove"]').focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#out")).toHaveText("mars");
+  expect(await focused()).toBe("mars remove");
+  // the options are the listbox's own: their rows are only holders
+  await box(page).fill("ve");
+  expect(await shadow(page, "#suggestions > li").evaluateAll((rows) => rows.every((row) => row.getAttribute("role") === "presentation"))).toBe(true);
+  // moved to another place on the page, it is still one field and one list
+  const counts = await page.locator("kazoku-collection-picker").evaluate((el) => {
+    document.body.append(el);
+    return { fields: el.shadowRoot.querySelectorAll(".field").length, lists: el.shadowRoot.querySelectorAll(".chosen").length };
+  });
+  expect(counts).toEqual({ fields: 1, lists: 1 });
+  expect(errors).toEqual([]);
+});
