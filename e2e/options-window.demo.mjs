@@ -113,7 +113,7 @@ test("on a phone the card is a sheet at the bottom", async ({ page }, testInfo) 
 test("Japanese labels follow the page", async ({ page }) => {
   await page.goto("/options.html");
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
-  await expect(win(page).locator('[data-act="fold"]')).toHaveAttribute("aria-label", "しまう");
+  await expect(win(page).locator('[data-act="fold"]')).toHaveAttribute("aria-label", "折りたたむ");
   await expect(win(page).locator('[data-act="help"]')).toHaveAttribute("aria-label", "ヘルプ");
   await page.locator("#win").locator('[data-act="help"]').click();
   await expect(win(page)).toContainText("ひねり");

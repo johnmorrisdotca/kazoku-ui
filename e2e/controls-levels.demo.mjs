@@ -431,7 +431,7 @@ test("the labels are English or Japanese", async ({ page }) => {
   await expect(speed(page, 0.5)).toHaveText("1分");
   await expect(speed(page, 1)).toHaveAttribute("aria-label", "30秒で1周します");
   await expect(page.locator(`${BAR} kazoku-speed-buttons [role="group"]`)).toHaveAttribute("aria-label", "1周");
-  await expect(button(page, "level")).toHaveAttribute("aria-label", "ズーム倍率 1×, 全体に戻す");
+  await expect(button(page, "level")).toHaveAttribute("aria-label", "ズーム倍率 1×、全体表示に戻す");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 

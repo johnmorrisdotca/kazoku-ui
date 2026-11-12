@@ -36,9 +36,9 @@ export const WORDS: Record<Language, InterfaceWords> = {
     rightNow: "Right now", theNumbers: "The numbers", measure: "Measure", value: "Value", comparison: "Compared, and source", related: "Related", sourceWord: "source", tapNote: "Tap a number for its source.",
   },
   ja: {
-    slower: "ゆっくり", play: "再生", pause: "一時停止", faster: "速く", now: "現在に戻す", place: "現在地", layers: "レイヤー", look: "見た目", flight: "自由飛行", close: "閉じる", search: "検索", menu: "メニュー",
-    lookLine: "線画", lookRealistic: "写実", lookPainted: "絵画風",
-    controlBar: "時刻と表示の操作", clockButton: "日付と時刻を変える", pickerTitle: "日付と時刻を設定", pickerField: "日付と時刻", pickerSet: "設定", pickerCancel: "キャンセル", paused: "停止中", realTime: "実時間", backwards: "逆向き",
+    slower: "速度を下げる", play: "再生", pause: "一時停止", faster: "速度を上げる", now: "現在の時刻に戻す", place: "現在地", layers: "レイヤー", look: "見た目", flight: "自由飛行", close: "閉じる", search: "検索", menu: "メニュー",
+    lookLine: "線画", lookRealistic: "写実的", lookPainted: "絵画風",
+    controlBar: "時刻と表示の操作", clockButton: "日付と時刻を変える", pickerTitle: "日付と時刻を設定", pickerField: "日付と時刻", pickerSet: "設定", pickerCancel: "キャンセル", paused: "一時停止中", realTime: "実時間", backwards: "逆向き",
     scale: "スケール", surface: "地表", moons: "衛星", solar: "太陽系", stars: "恒星", galaxy: "銀河",
     card: "この天体について", everyNumber: "すべての数値は", everyNumberLink: "出典", everyNumberTail: "にリンクしています。", source: "出典", noValue: "値なし", computed: "表示中の時刻で計算",
     layersTitle: "レイヤー", dataSources: "データの出典", nonCommercial: "非営利のみ", shareAlike: "同一条件で共有",

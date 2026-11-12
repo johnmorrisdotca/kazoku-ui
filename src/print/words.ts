@@ -28,8 +28,8 @@ export const WORDS: Record<Language, PrintWords> = {
     page: "Page {n} of {total}", glue: "Glue strip", cut: "Cut along the corner marks. Glue each page over the glue strip of the page next to it.", tileOf: "Row {row}, column {column}", button: "Print / save PDF", qr: "QR code of the address",
   },
   ja: {
-    name: "なまえ:", region: "ちいき", flag: "はた", latitudeBand: "いどの おび", season: "きせつ", level: "レベル", language: "ことば", version: "バージョン", date: "ひづけ", address: "アドレス",
-    page: "{n} / {total} ページ", glue: "のりしろ", cut: "すみの しるしで きります。となりの ページの のりしろに かさねて はります。", tileOf: "{row} だん め、{column} れつ め", button: "いんさつ / PDFで ほぞん", qr: "アドレスの QRコード",
+    name: "なまえ：", region: "ちいき", flag: "はた", latitudeBand: "いどの おび", season: "きせつ", level: "レベル", language: "ことば", version: "バージョン", date: "ひづけ", address: "アドレス",
+    page: "{n} / {total} ページ", glue: "のりしろ", cut: "すみの しるしに そって きります。となりの ページの のりしろに かさねて はります。", tileOf: "{row} だんめ、{column} れつめ", button: "いんさつ / PDFで ほぞん", qr: "アドレスの QRコード",
   },
 };
 

@@ -77,7 +77,7 @@ test("Faster and Slower walk the ladder and keep the direction", () => {
 test("the moment reads the way the design shows it, and goes to and from the picker", () => {
   const ms = Date.UTC(2026, 10, 10, 21, 14);
   assert.equal(formatMoment(ms, "en", "utc"), "10 Nov 2026 · 21:14");
-  assert.equal(formatMoment(ms, "ja", "utc"), "2026年11月10日 · 21:14");
+  assert.equal(formatMoment(ms, "ja", "utc"), "2026年11月10日 21:14");
   assert.equal(formatMoment(Number.NaN, "en", "utc"), "—");
   assert.equal(formatMoment(ms, "en", "utc", true), "10 Nov 2026 · 21:14 UTC");
   assert.equal(zoneName(ms, "ja", "utc"), "UTC");

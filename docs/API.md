@@ -4188,7 +4188,7 @@ const FONTS: {
 
 ### formatMoment
 
-*function*. The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026`年`11`月`10`日` · 21:14". A moment that is not a date reads "—".
+*function*. The moment as the clock shows it: "10 Nov 2026 · 21:14", in Japanese "2026`年`11`月`10`日` 21:14". A moment that is not a date reads "—".
 
 ```ts
 function formatMoment(ms: number, language: Language, zone?: "utc" | "local", withZone?: boolean): string;

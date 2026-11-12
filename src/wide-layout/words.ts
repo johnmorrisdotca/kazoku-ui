@@ -12,7 +12,7 @@ export type Language = "en" | "ja";
 
 export const WORDS: Record<Language, WideWords> = {
   en: { group: "Page layout", wide: "Wide", normal: "Normal" },
-  ja: { group: "ページの広さ", wide: "ワイド", normal: "ふつう" },
+  ja: { group: "ページの幅", wide: "ワイド", normal: "標準" },
 };
 
 /** The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else. */

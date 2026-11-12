@@ -248,7 +248,7 @@ test("the labels are English or Japanese", async ({ page }) => {
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
   await expect(button(page, "front")).toHaveText("正面");
   await expect(button(page, "play")).toHaveAttribute("aria-label", "自動回転");
-  await expect(button(page, "fit")).toHaveText("全体");
+  await expect(button(page, "fit")).toHaveText("全体表示");
   await expect(page.locator(`${BAR} [data-g="zoom"]`)).toHaveAttribute("aria-label", "ズーム");
   // Nothing wider than the screen in Japanese either.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);

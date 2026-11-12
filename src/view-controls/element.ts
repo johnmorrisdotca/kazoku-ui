@@ -129,6 +129,7 @@ export class ViewControlsElement extends HTMLElement {
   /** The pace the page starts at: its `pace` attribute as the page last set it, unsnapped (a button press writes the attribute too, and is not a start). */
   #startPace: number | undefined;
   #labels: ViewWords = wordsFor("en");
+  #language: Language = "en";
   #said = "";
   #sayTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -739,6 +740,7 @@ export class ViewControlsElement extends HTMLElement {
     const language: Language = languageOf(this.getAttribute("lang") ?? this.closest("[lang]")?.getAttribute("lang") ?? this.ownerDocument.documentElement.lang);
     const words = wordsFor(language, this.#words);
     this.#labels = words;
+    this.#language = language;
     for (const node of this.#root.querySelectorAll<HTMLElement>("[data-w]")) node.textContent = words[node.dataset.w as keyof ViewWords];
     const set = (selector: string, label: string): void => this.#root.querySelector(selector)?.setAttribute("aria-label", label);
     set(".bar", words.group);
@@ -816,7 +818,7 @@ export class ViewControlsElement extends HTMLElement {
       q<HTMLElement>(".zbox").style.setProperty("--pos", String(at));
       if (slider.getAttribute("aria-valuetext") !== zoom) slider.setAttribute("aria-valuetext", zoom);
     }
-    say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}, ${words.zoomReset}`);
+    say(q('[data-b="level"]'), `${words.zoomLevel} ${zoom}${this.#language === "ja" ? "、" : ", "}${words.zoomReset}`);
     this.#sayZoom(`${words.zoomLevel} ${zoom}`);
     const speeds = q<SpeedButtonsElement>("kazoku-speed-buttons");
     const paces = this.#paces();
