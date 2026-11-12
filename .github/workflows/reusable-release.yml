@@ -27,7 +27,7 @@ on:
         type: string
         default: ""
       require-ci-workflow:
-        description: "The file name of the repo's CI workflow (for example `ci.yml`). When a successful run of it exists for this exact commit, the check and the freeze are skipped and the release builds, tags and publishes. When no passing run is found, the check and the freeze still run. Empty (the default) always runs them. Reading the runs needs no permission on a public repository; a private one's caller must also grant `actions: read`."
+        description: "The file name of the repo's CI workflow (for example `ci.yml`). When a successful run of it exists for this exact commit, the check and the freeze are skipped and the release builds, tags and publishes. A failed (or timed out) run with no green one refuses, as before: no package publishes a red commit. When no run has finished, one was cancelled, or the runs cannot be read, the check and the freeze still run. Empty (the default) always runs them. Reading the runs needs no permission on a public repository; a private one's caller must also grant `actions: read`."
         type: string
         default: ""
       github-release:
@@ -62,7 +62,8 @@ jobs:
           CODE="$(ask -H "Authorization: Bearer $GH_TOKEN" || true)"
           # A token without `actions: read` may be refused where a public repository's runs are open to anyone: ask again without it.
           [ "$CODE" = 200 ] || CODE="$(ask || true)"
-          # A passing run on this commit, on any branch, means the check and the freeze already happened. Anything else still runs them.
+          # A passing run on this commit, on any branch, means the check and the freeze already happened: they are skipped. A red run (failed or timed out) with no green one refuses, as
+          # it always did: no package publishes a red commit. No run yet, one still going, a cancelled one, or runs that cannot be read: the check and the freeze run here.
           if [ "$CODE" != 200 ]; then
             echo "SKIP_REPEAT=no" >> "$GITHUB_ENV"
             echo "Could not read the runs of $CI_WORKFLOW (HTTP $CODE). A private repository's release.yml needs actions: read in its permissions. The check and the freeze still run."
@@ -73,6 +74,10 @@ jobs:
           if [ "$(jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | length' "$RUNS")" -ge 1 ]; then
             echo "SKIP_REPEAT=yes" >> "$GITHUB_ENV"
             echo "$CI_WORKFLOW has succeeded on $GITHUB_SHA. The check and the freeze are not run again."
+          elif [ "$(jq '[.workflow_runs[] | select(.status == "completed" and (.conclusion == "failure" or .conclusion == "timed_out"))] | length' "$RUNS")" -ge 1 ]; then
+            rm -f "$RUNS"
+            echo "::error::$CI_WORKFLOW failed on $GITHUB_SHA. Fix it (or rerun it to green), then run the release again."
+            exit 1
           else
             echo "SKIP_REPEAT=no" >> "$GITHUB_ENV"
             echo "No passing run of $CI_WORKFLOW on $GITHUB_SHA. The check and the freeze still run."

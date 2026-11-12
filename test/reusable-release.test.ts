@@ -1,5 +1,6 @@
 // The shared release workflow's "CI has succeeded on this commit" step (the `require-ci-workflow` input): its shell is taken out of the
-// YAML and run with a stand-in `curl`. A green run sets SKIP_REPEAT=yes. A red, a missing, an unreadable or a still-running answer sets SKIP_REPEAT=no, and the check and the freeze still run.
+// YAML and run with a stand-in `curl`. A green run sets SKIP_REPEAT=yes. A red run (failed or timed out) with no green one refuses. A missing, a cancelled, an unreadable or a still-running
+// answer sets SKIP_REPEAT=no, and the check and the freeze still run.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -96,8 +97,17 @@ test("a green rerun counts even when an earlier run of the same commit was red",
   assert.match(r.env, /^SKIP_REPEAT=yes$/m);
 });
 
-test("a red commit still runs the check and the freeze", () => {
-  const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", "failure")] } }]);
+test("a red commit is refused, as before: no package publishes a red commit", () => {
+  for (const conclusion of ["failure", "timed_out"]) {
+    const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", conclusion)] } }]);
+    assert.equal(r.status, 1, `${conclusion}: ${r.out}`);
+    assert.match(r.out, /::error::ci\.yml failed on abc123/);
+    assert.doesNotMatch(r.env, /SKIP_REPEAT/);
+  }
+});
+
+test("a cancelled run proves nothing: the check and the freeze run", () => {
+  const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", "cancelled")] } }]);
   assert.equal(r.status, 0, r.out);
   assert.match(r.env, /^SKIP_REPEAT=no$/m);
   assert.match(r.out, /No passing run of ci\.yml on abc123/);
