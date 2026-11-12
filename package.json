@@ -1,6 +1,6 @@
 {
   "name": "@johnmorrisdotca/kazoku-ui",
-  "version": "0.40.1",
+  "version": "0.40.2",
   "description": "Kazoku UI 家族, the family's shared interface parts as their own versioned package: view controls for any 3D or zoomable view (angle, tilt, auto-turn, zoom about the pointer, pan, touch, address state) a light, dark and auto theme switch, a language picker, choices kept in the address, a save-as-image button and one set of speed buttons (0.5×, 1×, 2× or your own steps) and the \"Put it in your page\" embed panel (a compact picker, sizes, HTML, ES module, React, Vue, Angular, Svelte and iframe tabs, a picture that fits its box, Copy), each a framework-free custom element and a plain controller. Zero dependencies; the shared 3D renderer takes three.js as an optional peer.",
   "keywords": [
     "view-controls",

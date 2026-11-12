@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.40.2] - 2026-11-12
+
 - **Safari's trackpad pinch no longer zooms the whole page** (KAZOKU-UI-140). Safari sends a pinch as `gesturestart`, `gesturechange` and `gestureend`, not as Ctrl and the wheel, and the view did not take them. They are now prevented over a bound view, and the gesture's scale zooms the view about the fingers (a touch pinch, which the pointer events already carry, is only prevented; a `gesturechange` with no `gesturestart` does nothing). Ctrl or Command and the wheel (Chrome's pinch) was already the view's at every zoom and is unchanged. Guide in English and Japanese, and e2e tests.
 - Japanese wording in the address state and view controls guides, from the Japanese review of 0.40.1: the readings switch's list of values, the turn held by a hand, Centre, the zoom readout and the wheel at the zoom's limits, `data-level` and the `zoom-slider` part. The words are the guides' own from here on: 上限 and 下限 for the zoom's limits (端 only for the edges of a move), 絵 for a picture, 指定がない for a value not given.
 
