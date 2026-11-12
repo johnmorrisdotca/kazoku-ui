@@ -152,6 +152,13 @@ const PARTS = [
   assert.equal(Math.round(pure.bodyLabelFacing(0, -5, 0) * 180 / Math.PI), 90);
   assert.equal(pure.BODY_LABEL_FONT, "Michroma");`,
   },
+  {
+    name: "menu", tag: "kazoku-menu", cls: "MenuElement", define: "defineMenu",
+    pure: ["parseWhich", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.parseWhich("resources"), "resources");
+  assert.equal(pure.parseWhich(null), "settings");
+  assert.equal(pure.TAG, "kazoku-menu");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";

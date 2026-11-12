@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **One Settings button opens the page's own controls** (KAZOKU-UI-85). `<kazoku-menu>` is a 48 px button. `which="resources"` names the other menu. The page puts its language picker, theme switch and links inside, and they keep their own address and store. Escape, Close, or a press outside closes it. On a phone the panel is a sheet from the bottom.
+
 ## [0.42.0] - 2026-11-12
 
 - **A double press can be switched off, or taken by the page** (KAZOKU-UI-121). A double-click or a double tap still zooms to 2× about that point and back to 1×. `double-press="off"` on `<kazoku-view-controls>` or on an element that carries the controls, or `doublePress: false` to `carryControls`, or `doublePress = false` on the controller, leaves the zoom alone. Before the built-in step the view fires `kazoku-doublepress` (`DOUBLE_PRESS_EVENT`), which can be cancelled; `detail` is `{ x, y, zoom, next }`. `preventDefault` skips the built-in step, so a page can use its own stops instead of replacing `zoomAt`. A later change of `zoom-min` does not put a hand-set value back.

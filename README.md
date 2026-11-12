@@ -465,6 +465,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [The view controller and its arithmetic](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/view-controller.md) | The controller without the element |
 | [An element that carries the controls](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/element-controls.md) | One call that gives a package's own element the hands, and the zoom range |
 | [Theme switch](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/theme-switch.md) | Light, Dark and Auto |
+| [A settings menu](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/menu.md) | One button for the page's own controls |
 | [Language picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/language-picker.md) | Each language in its own name |
 | [Address state](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/address-state.md) | Choices kept in the link |
 | [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
