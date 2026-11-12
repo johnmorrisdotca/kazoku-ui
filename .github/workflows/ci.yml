@@ -10,11 +10,11 @@ on:
         description: "With simulate_main_push: look for a green run on this commit instead (a dry run: the heavy jobs are skipped and the summary says what a push would do). Empty: this commit, and the heavy jobs follow the answer."
         type: string
         default: ""
-# A dry run of the lookup (lookup_sha) is named so, and the lookup never counts it: it skips the heavy jobs and ends green, which is not a green run of the commit.
-run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.lookup_sha != '' && 'CI (dry run of the skip lookup)' || '' }}
   push:
     branches: [main]
   pull_request:
+# A dry run of the lookup (lookup_sha) is named so, and the lookup never counts it: it skips the heavy jobs and ends green, which is not a green run of the commit.
+run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.lookup_sha != '' && 'CI (dry run of the skip lookup)' || '' }}
 permissions:
   contents: read
   actions: read
