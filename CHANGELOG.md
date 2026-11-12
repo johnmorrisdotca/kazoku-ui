@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-11-13
+
+- **The stills byte-budget test waits on the renderer, not on one long call** (KAZOKU-UI-146). On a hosted WebKit runner the test ran out its 30 seconds inside one call that made thirty pictures in a row, and the page was closed under it. The byte count is not what varies: a still's `bytes` is its decoded size, width x height x 4, the same in every browser. What varies is how long the pictures take in software. The test now starts them all, waits on the renderer's own count of pictures made (up to 100 seconds, with the count in the message), and has 150 seconds. It also checks that no still is wider than the side asked for, that each one counts width x height x 4, and that the list adds up to what the renderer reports, so a still twice the size fails.
+- **The Japanese page-frame guide imports `pageCreditsHtml` in its example.** The English guide already had the line; the Japanese one did not, so the example did not run as written.
+
 ## [0.43.0] - 2026-11-12
 
 - **A collection picker** (KAZOKU-UI-116). `<kazoku-collection-picker>` searches a list the page passes in (`kind`, `id`, `name`, `group`, `keywords`) and keeps a chosen list the reader can add to, remove from and reorder. The search is one pass over a prepared line, so about 17,000 items stay in the browser's time. `kazoku-collectionchange` carries the ids in order. Labels in English and Japanese.
