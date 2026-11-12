@@ -759,3 +759,87 @@ test("Safari's page-zoom gestures over the view are prevented, and their scale z
   expect(await sent("gesturechange", 2)).toBe(true);
   expect((await stateOf(page)).zoom).toBe(max);
 });
+
+test("Space is let go when the window blurs or the tab hides", async ({ page }) => {
+  await ready(page);
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const cursor = () => page.locator("#scene").evaluate((el) => el.style.cursor);
+  const down = () => page.evaluate(() => document.dispatchEvent(new window.KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true })));
+  await down();
+  await expect.poll(cursor).toBe("grab");
+  await page.evaluate(() => window.dispatchEvent(new window.FocusEvent("blur")));
+  await expect.poll(cursor).toBe("");
+  await down();
+  await expect.poll(cursor).toBe("grab");
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new window.Event("visibilitychange"));
+  });
+  await expect.poll(cursor).toBe("");
+});
+
+test("Space still types in an editable and still presses a focused button inside the view", async ({ page }) => {
+  await ready(page);
+  await page.locator("#scene").evaluate((scene) => {
+    const note = document.createElement("div");
+    note.id = "note";
+    note.setAttribute("contenteditable", "");
+    note.textContent = "a";
+    note.tabIndex = 0;
+    const plain = document.createElement("div");
+    plain.id = "plain";
+    plain.setAttribute("contenteditable", "plaintext-only");
+    plain.textContent = "b";
+    plain.tabIndex = 0;
+    const button = document.createElement("button");
+    button.id = "go";
+    button.type = "button";
+    button.textContent = "Go";
+    button.addEventListener("click", () => { window.__clicks = (window.__clicks ?? 0) + 1; });
+    scene.append(note, plain, button);
+  });
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const held = async (id) => {
+    await page.locator(`#${id}`).focus();
+    return page.locator(`#${id}`).evaluate((el) => {
+      const event = new window.KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+      el.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+  };
+  const cursor = () => page.locator("#scene").evaluate((el) => el.style.cursor);
+  expect(await held("note")).toBe(false);
+  expect(await held("plain")).toBe(false);
+  expect(await cursor()).toBe("");
+  await page.locator("#go").focus();
+  expect(await held("go")).toBe(false);
+  expect(await cursor()).toBe("");
+  await page.keyboard.press("Space");
+  expect(await page.evaluate(() => window.__clicks ?? 0)).toBe(1);
+  expect(await cursor()).toBe("");
+});
+
+test("Space still grabs when the view sits inside a link", async ({ page }) => {
+  await ready(page);
+  await page.locator("#scene").evaluate((scene) => {
+    const link = document.createElement("a");
+    link.id = "wrap";
+    link.href = "#kept";
+    scene.parentElement.insertBefore(link, scene);
+    link.append(scene);
+    scene.tabIndex = 0;
+    scene.focus();
+  });
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const result = await page.locator("#scene").evaluate((el) => {
+    const event = new window.KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    el.dispatchEvent(event);
+    return { prevented: event.defaultPrevented, cursor: el.style.cursor, focused: document.activeElement === el };
+  });
+  expect(result.focused).toBe(true);
+  expect(result.prevented).toBe(true);
+  expect(result.cursor).toBe("grab");
+});

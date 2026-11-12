@@ -278,3 +278,20 @@ test("three.js is not fetched until a view first goes live, and then only once",
   const once = new Set(asked).size;
   expect(asked.length).toBe(once);
 });
+
+test("a view focused out of sight draws nothing until it is scrolled into view", async ({ page }) => {
+  await ready(page);
+  await quiet(page);
+  const before = { stats: (await demo(page)).draws, gl: (await readCounts(page)).draws };
+  await page.evaluate(() => {
+    const host = document.querySelector('[data-testid="host-20"]');
+    host.style.marginTop = "4000px";
+    window.scrollTo(0, 0);
+  });
+  await page.evaluate(() => window.kazokuDemo.focusView(window.kazokuDemo.views[20]));
+  await page.evaluate(() => new Promise((done) => window.requestAnimationFrame(() => window.requestAnimationFrame(done))));
+  expect({ stats: (await demo(page)).draws, gl: (await readCounts(page)).draws }).toEqual(before);
+  await page.locator('[data-testid="host-20"]').scrollIntoViewIfNeeded();
+  await expect.poll(async () => (await demo(page)).draws, { timeout: 30_000 }).toBeGreaterThan(before.stats);
+  await expect.poll(() => live(page, 20)).toBe(true);
+});
