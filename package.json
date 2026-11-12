@@ -87,7 +87,8 @@
     "./dist/wide-layout/define.js",
     "./dist/page-frame/define.js",
     "./dist/interface/define.js",
-    "./dist/collection-picker/define.js"
+    "./dist/collection-picker/define.js",
+    "./dist/menu/define.js"
   ],
   "bin": {
     "kazoku-ci-image": "./dist/testing/ci-image-cli.js",
@@ -132,6 +133,21 @@
       "types": "./dist/theme-switch/define.d.ts",
       "import": "./dist/theme-switch/define.js",
       "default": "./dist/theme-switch/define.js"
+    },
+    "./menu": {
+      "types": "./dist/menu/index.d.ts",
+      "import": "./dist/menu/index.js",
+      "default": "./dist/menu/index.js"
+    },
+    "./menu/element": {
+      "types": "./dist/menu/element.d.ts",
+      "import": "./dist/menu/element.js",
+      "default": "./dist/menu/element.js"
+    },
+    "./menu/define": {
+      "types": "./dist/menu/define.d.ts",
+      "import": "./dist/menu/define.js",
+      "default": "./dist/menu/define.js"
     },
     "./language-picker": {
       "types": "./dist/language-picker/index.d.ts",

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: settings menu</title>
+  <meta name="description" content="One button that opens a panel of the page's own controls, and a sheet from the bottom on a phone." />
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub">settings menu</span></h1>
+    <div class="tools">
+      <kazoku-menu data-testid="settings">
+        <kazoku-theme-switch address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+      </kazoku-menu>
+      <kazoku-menu which="resources" data-testid="resources">
+        <a href="https://github.com/johnmorrisdotca/kazoku-ui">GitHub</a>
+      </kazoku-menu>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="settings menu" what-ja="設定メニュー" description="One button that opens a panel of the page's own controls, and a sheet from the bottom on a phone." description-ja="ページ自身の操作を開くボタンが1つです。スマホでは下から出るシートになります。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro"><a href="index.html">The view controls</a></p>
+  <p id="out" data-testid="out"></p>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="menu.js"></script>
+</body>
+</html>

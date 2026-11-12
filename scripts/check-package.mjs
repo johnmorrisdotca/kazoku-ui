@@ -158,6 +158,13 @@ const PARTS = [
     run: `assert.deepEqual(pure.searchItems(pure.indexItems([{ kind: "body", id: "m", name: "Mars" }]), "mar").map((item) => item.id), ["m"]);
   assert.deepEqual(pure.addId(["a"], "b"), ["a", "b"]);`,
   },
+  {
+    name: "menu", tag: "kazoku-menu", cls: "MenuElement", define: "defineMenu",
+    pure: ["parseWhich", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.parseWhich("resources"), "resources");
+  assert.equal(pure.parseWhich(null), "settings");
+  assert.equal(pure.TAG, "kazoku-menu");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";

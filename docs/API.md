@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker", "menu"];
 ```
 
 ### Part
@@ -1365,6 +1365,161 @@ import { defineThemeSwitch } from '@johnmorrisdotca/kazoku-ui/theme-switch/defin
 
 ```ts
 function defineThemeSwitch(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/menu`
+
+6 values and 3 types.
+
+```js
+import { EVENT, languageOf, parseWhich, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/menu';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-menutoggle";
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### parseWhich
+
+*function*. `resources` names the resources menu. Anything else, including a missing value, names Settings.
+
+```ts
+function parseWhich(value: string | null | undefined): MenuWhich;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-menu";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, MenuWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<MenuWords>) => MenuWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### MenuWhich
+
+*type*. Which menu the button names. Anything else is Settings.
+
+```ts
+type MenuWhich = "settings" | "resources";
+```
+
+### MenuWords
+
+*interface*
+
+```ts
+interface MenuWords {
+    settings: string;
+    resources: string;
+    close: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/menu/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, MenuElement, TAG } from '@johnmorrisdotca/kazoku-ui/menu/element';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-menutoggle";
+```
+
+### MenuElement
+
+*class*. Attributes: `which` (`settings`, the default, or `resources`: which word the button says), `lang` (`en` or `ja`; else the page's), `open` (the panel starts open).
+
+```ts
+class MenuElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** Whether the panel is open. Setting it opens or closes without a pointer. */
+    get open(): boolean;
+    set open(next: boolean);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-menu";
+```
+
+### MenuToggleDetail
+
+*interface*. What the `kazoku-menutoggle` event carries in `detail`.
+
+```ts
+interface MenuToggleDetail {
+    /** Whether the panel is open after the change. */
+    open: boolean;
+    /** `settings` or `resources`. */
+    which: MenuWhich;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/menu/define`
+
+1 value and 0 types.
+
+```js
+import { defineMenu } from '@johnmorrisdotca/kazoku-ui/menu/define';
+```
+
+### defineMenu
+
+*function*
+
+```ts
+function defineMenu(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/language-picker`
