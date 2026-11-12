@@ -70,6 +70,8 @@ description: どのデモページにも、メニューを開かなくても見�
 CC BYがライセンスのアドレスを求めるように、行の中の名前をリンクにできます。テキストか`{ text, href }`を並べた部分で渡します。スクリプトでは要素の`credits`に（1つのリスト、または`{ en, ja }`で）入れます。ビルドでは`pageCreditsHtml`に部分を渡すと、`credit-parts`と、スクリプトがないときの文に、リンクごと書き込みます。リンクになるのはhttp、https、または相対アドレスだけで、それ以外はテキストとして表示します。部分のリンクは`credit-link`パーツで、新しいタブで開きます（`rel="noopener noreferrer"`）。
 
 ```js
+import { pageCreditsHtml } from "@johnmorrisdotca/kazoku-ui/page-frame";
+
 pageCreditsHtml({ en: ["Flag: ", { text: "CC BY 2.5", href: "https://creativecommons.org/licenses/by/2.5/" }, ", ", { text: "Wikimedia Commons", href: "https://commons.wikimedia.org/" }] }, { embed: true });
 ```
 
