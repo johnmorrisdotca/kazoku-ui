@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.40.1] - 2026-11-11
+
 - **The README is shorter** (64,126 characters, past `docs:check`'s 64,000; npm cuts at 65,536). Its view controls section keeps the summary, the gestures, the layouts picture, the plain HTML example, the event and the essential attributes, and links the guides for the rest; what only the README said (Centre's move, the readout's announcement, the wheel at the end of the zoom, `data-level`, the `zoom-slider` part) is now in the view controls guide, in English and Japanese. The event's `reason` lists `centre`. The README is now 45,915 characters.
 - **The direction, the axis and the tilt and roll directions from the address are written to their attributes** (KAZOKU-UI-137), as the pace is since 0.40.0 (KAZOKU-UI-135). A page opened with `?direction=left&axis=tilt` turned left about the tilt but its `direction` and `axis` attributes still said the page's start, so a page that reads them saw the wrong choice. They are now written when the controls start, marked as the element's own write, so the page's start stays its own (Right on the angle is still the start and leaves the address). One helper writes every such choice. The page's own start is kept apart from the attribute: a change of `speed` once worked the start out again from `direction`, which by then could hold the reader's choice (a press, or now the address), so the reader's choice became the page's start; the page's own `direction` is now remembered as the page set it. `left`, `right` and the axes are read in any case and with spaces round them, as `readings` is, and a value that is neither is not written. Guides in English and Japanese, the README, and e2e tests for each.
 
