@@ -852,7 +852,7 @@ test("sway drifts the picture while the view turns and leaves the angle alone", 
     const bar = document.createElement("kazoku-view-controls");
     bar.setAttribute("sway", "gentle");
     bar.setAttribute("autoplay", "");
-    const pictures: number[] = [];
+    const pictures = [];
     bar.addEventListener("kazoku-viewchange", (event) => {
       const detail = event.detail;
       if (detail.reason === "auto") pictures.push(detail.yaw);
