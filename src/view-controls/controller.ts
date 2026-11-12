@@ -658,14 +658,17 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     // Safari's trackpad pinch is not a Ctrl and wheel event but gesturestart, gesturechange and gestureend, and Safari zooms the whole page unless each is prevented. `scale` is the pinch's size since it started, so the view zooms to
     // the zoom it had at the start times the scale, about the fingers' middle. A finger pinch on a touch screen also makes these events (iOS) beside its pointer events, which already zoom the view, so then they are only prevented.
     let gestureZoom = 1;
+    let gestureStarted = false;
     const onGesture = (e: Event): void => {
       e.preventDefault();
       if (e.type === "gesturestart") {
         gestureZoom = state.zoom;
+        gestureStarted = true;
         return;
       }
+      if (e.type === "gestureend") gestureStarted = false;
       const { scale, clientX, clientY } = e as Event & { scale?: number; clientX?: number; clientY?: number };
-      if (e.type !== "gesturechange" || gesture?.kind === "pinch" || typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return;
+      if (e.type !== "gesturechange" || !gestureStarted || gesture?.kind === "pinch" || typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return;
       grab();
       controller.zoomAt(gestureZoom * scale, typeof clientX === "number" && typeof clientY === "number" ? { x: clientX, y: clientY } : undefined);
     };

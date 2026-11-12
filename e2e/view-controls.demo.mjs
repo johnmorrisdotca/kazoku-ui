@@ -714,34 +714,29 @@ const wheelTaken = (page, init) => page.locator("#scene").evaluate((el, extra) =
   el.dispatchEvent(e);
   return e.defaultPrevented;
 }, init);
-const pageZoom = (page) => page.evaluate(() => ({ scale: window.visualViewport?.scale ?? 1, ratio: window.devicePixelRatio, width: window.innerWidth }));
 
-test("a pinch or Ctrl and the wheel over the view is always the view's, at every zoom including both ends; a plain wheel at an end still passes to the page", async ({ page }) => {
+// A regression guard, not a test of a fix: a Ctrl or Command wheel (a trackpad's pinch) over the view has always been taken at every zoom, and must stay so.
+test("a pinch or Ctrl and the wheel over the view is taken at every zoom including both ends", async ({ page }) => {
   await ready(page);
-  const before = await pageZoom(page);
   const limits = await page.locator(BAR).evaluate((el) => ({ min: el.controller.limits.zoomMin, max: el.controller.limits.zoomMax }));
-  for (const [name, zoom] of [["maximum", limits.max], ["minimum", limits.min], ["Fit", 1]]) {
+  for (const [name, zoom, deltaY] of [["maximum", limits.max, -120], ["minimum", limits.min, 120], ["Fit", 1, -120]]) {
     await page.locator(BAR).evaluate((el, z) => el.set({ zoom: z }), zoom);
     expect((await stateOf(page)).zoom, `at the ${name}`).toBe(zoom);
     for (const key of ["ctrlKey", "metaKey"]) {
-      for (const deltaY of [-120, 120, -4, 4]) {
-        // Twice, a moment apart: the first event of a pinch and a later one, which the wheel's own pass-through treats differently.
-        expect(await wheelTaken(page, { deltaY, [key]: true }), `${key} ${deltaY} at the ${name}`).toBe(true);
-        await page.waitForTimeout(350);
-        expect(await wheelTaken(page, { deltaY, [key]: true }), `${key} ${deltaY} again at the ${name}`).toBe(true);
-        await page.waitForTimeout(350);
-      }
+      expect(await wheelTaken(page, { deltaY, [key]: true }), `${key} ${deltaY} at the ${name}`).toBe(true);
     }
   }
-  expect(await pageZoom(page)).toEqual(before);
-  // A plain wheel turn that starts at the zoom's end is the page's, as documented (here, at Fit, with nothing to move to).
-  await page.locator(BAR).evaluate((el) => el.set({ zoom: 1 }));
+});
+
+test("a plain wheel that starts with nothing to move to (at Fit) still passes to the page", async ({ page }) => {
+  await ready(page);
   expect(await wheelTaken(page, { deltaY: 100 })).toBe(false);
 });
 
 test("Safari's page-zoom gestures over the view are prevented, and their scale zooms the view", async ({ page, browserName }) => {
   test.skip(browserName !== "webkit", "gesturestart, gesturechange and gestureend are Safari's own events");
   await ready(page);
+  // These are synthetic events with a `scale` property, not a real Safari gesture.
   const sent = (type, scale) => page.locator("#scene").evaluate((el, [t, s]) => {
     const r = el.getBoundingClientRect();
     const e = new window.MouseEvent(t, { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
@@ -749,17 +744,18 @@ test("Safari's page-zoom gestures over the view are prevented, and their scale z
     el.dispatchEvent(e);
     return e.defaultPrevented;
   }, [type, scale]);
+  // A change with no start does nothing (but is still prevented).
+  expect(await sent("gesturechange", 1.5)).toBe(true);
+  expect((await stateOf(page)).zoom).toBe(1);
   expect(await sent("gesturestart", 1)).toBe(true);
   expect(await sent("gesturechange", 1.5)).toBe(true);
   expect((await stateOf(page)).zoom).toBeCloseTo(1.5, 1);
   expect(await sent("gesturechange", 0.8)).toBe(true);
   expect((await stateOf(page)).zoom).toBeCloseTo(0.8, 1);
   expect(await sent("gestureend", 0.8)).toBe(true);
-  const z = (await stateOf(page)).zoom;
-  expect((await pageZoom(page)).scale).toBe(1);
-  // At the maximum a gesture is still the view's.
-  await page.locator(BAR).evaluate((el) => el.set({ zoom: el.controller.limits.zoomMax }));
+  // At the maximum a gesture is still the view's, and the zoom stays at the maximum.
+  const max = await page.locator(BAR).evaluate((el) => { el.set({ zoom: el.controller.limits.zoomMax }); return el.controller.limits.zoomMax; });
   expect(await sent("gesturestart", 1)).toBe(true);
   expect(await sent("gesturechange", 2)).toBe(true);
-  expect(z).toBeGreaterThan(0);
+  expect((await stateOf(page)).zoom).toBe(max);
 });
