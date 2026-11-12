@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.41.0] - 2026-11-12
+
+- **Browser runs in CI's own Playwright image, several at once** (KAZOKU-UI-139, KAZOKU-UI-141). `kazoku-ci-image [--cpus 3] [--memory 8g] -- <playwright arguments>` (also `kazoku-browser-queue ci-image`, and `runCiImage` from `/testing`) runs Playwright in `mcr.microsoft.com/playwright:v<lockfile version>-noble` in a container fenced to its CPUs and memory: the repo's files are copied in (never the Mac's `node_modules`), it installs from the lockfile, builds as CI does, runs Playwright, copies `test-results` out (into a folder of each run's own), returns the exit code and removes the container. The queue gains slots: one native slot as before, plus image slots set in `~/.config/kazoku-ui/browser-slots.json` (`{ "native": 1, "image": 4 }`; without the file a machine has no image slots and nothing changes). Each kind has its own line and its own ticket folder (`queue`, `queue-image`), so a run on an older kazoku-ui never waits behind an image run; a slot above a lowered count that is still held counts against the limit; `.env*` files are never copied in; a failed tar stops the run. `status` shows every slot and its holder, `first <folder> --image` puts one image waiter first, and a dead holder frees its slot. `acquireBrowserLock({ kind: "image" })`, `browserSlots`, `browserSlotStatuses`. Guide in English and Japanese, the agent template's line, and tests.
+
 ## [0.40.2] - 2026-11-12
 
 - **Safari's trackpad pinch no longer zooms the whole page** (KAZOKU-UI-140). Safari sends a pinch as `gesturestart`, `gesturechange` and `gestureend`, not as Ctrl and the wheel, and the view did not take them. They are now prevented over a bound view, and the gesture's scale zooms the view about the fingers (a touch pinch, which the pointer events already carry, is only prevented; a `gesturechange` with no `gesturestart` does nothing). Ctrl or Command and the wheel (Chrome's pinch) was already the view's at every zoom and is unchanged. Guide in English and Japanese, and e2e tests.
