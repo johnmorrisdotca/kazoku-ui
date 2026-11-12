@@ -228,15 +228,36 @@ test("out of sight no frame is asked for, and after a while the context is let g
   await drainGpu(page);
 });
 
+// What a still costs is not what the encoder makes of it: `bytes` is its decoded size, width x height x 4, so it is the same in every browser. What can differ is
+// how long thirty-odd pictures take one at a time on a hosted runner drawing in software. So the test starts them all, waits on the renderer's own count of pictures
+// made (with a limit of its own, and the count in the message if it is hit), and gives the whole test room for that wait.
+const STILL_SIDE = 320;
+const STILL_BUDGET = 1_500_000;
 test("the stills stay within their byte budget, and a view whose still was let go makes it again", async ({ page }) => {
-  await ready(page, "?stills=1500000");
-  const made = await page.evaluate(async () => {
-    for (const view of window.kazokuDemo.views) await view.showStill();
-    return window.kazokuDemo.renderer.stats;
+  test.setTimeout(150_000);
+  await ready(page, `?stills=${STILL_BUDGET}`);
+  const wanted = await page.evaluate(() => {
+    window.kazokuDemoShots = Promise.allSettled(window.kazokuDemo.views.map((view) => view.showStill()));
+    return window.kazokuDemo.views.length;
   });
-  expect(made.stills.bytes).toBeLessThanOrEqual(1_500_000);
-  expect(made.stills.count).toBeLessThan(10);
-  expect(made.snapshots).toBeGreaterThanOrEqual(30);
+  await expect.poll(async () => (await demo(page)).snapshots, { timeout: 100_000, message: "pictures made so far" }).toBeGreaterThanOrEqual(wanted);
+  await page.evaluate(() => window.kazokuDemoShots);
+  const made = await page.evaluate(() => {
+    const renderer = window.kazokuDemo.renderer;
+    const kept = renderer.stills.keys().map((key) => renderer.stills.get(key)).map(({ width, height, bytes }) => ({ width, height, bytes }));
+    return { stats: renderer.stats, kept };
+  });
+  // The list stays within its budget, and what it counts is the pictures' own size: none is bigger than the side asked for, and each costs width x height x 4.
+  expect(made.stats.stills.bytes).toBeLessThanOrEqual(STILL_BUDGET);
+  expect(made.kept.length).toBe(made.stats.stills.count);
+  expect(made.kept.length).toBeGreaterThanOrEqual(2);
+  expect(made.kept.length).toBeLessThan(10);
+  for (const still of made.kept) {
+    expect(Math.max(still.width, still.height)).toBeLessThanOrEqual(STILL_SIDE);
+    expect(still.bytes).toBe(still.width * still.height * 4);
+  }
+  expect(made.kept.reduce((sum, still) => sum + still.bytes, 0)).toBe(made.stats.stills.bytes);
+  expect(made.stats.snapshots).toBeGreaterThanOrEqual(wanted);
   const again = await page.evaluate(async () => {
     const view = window.kazokuDemo.views[1];
     const had = window.kazokuDemo.renderer.stills.get(view.item.key) !== undefined;
