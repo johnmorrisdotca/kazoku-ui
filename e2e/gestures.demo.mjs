@@ -8,3 +8,11 @@ test("every gesture of the view controls changes the demo's view, and the pictur
   await page.waitForFunction(() => customElements.get("kazoku-view-controls") !== undefined);
   await checkGestures(page, "#scene", { controls: "#controls" });
 });
+
+test("an immersive bar takes the plain wheel as a zoom and a finger drag as a tip", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.waitForFunction(() => customElements.get("kazoku-view-controls") !== undefined);
+  await page.locator("#controls").evaluate((el) => el.setAttribute("immersive", ""));
+  await checkGestures(page, "#scene", { controls: "#controls", immersive: true });
+});

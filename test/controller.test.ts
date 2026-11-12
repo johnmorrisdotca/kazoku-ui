@@ -366,6 +366,17 @@ test("a plain wheel moves a zoomed view and leaves Fit to the page; it never tur
   assert.equal(view.state.yaw, 0);
 });
 
+test("immersive ignores a sideways wheel that has no deltaY", () => {
+  const { view } = make({ immersive: true });
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  let stopped = false;
+  hands.wheel({ deltaX: -40, deltaY: 0, timeStamp: 1000, preventDefault: () => { stopped = true; } });
+  assert.equal(stopped, false, "a sideways-only wheel is not taken");
+  assert.equal(view.state.zoom, 1, "it is not a zoom");
+  assert.equal(view.state.panX, 0, "and it is not a move");
+});
+
 test("immersive: a plain wheel zooms about the pointer, a finger drag tips, and Shift and the wheel still moves", () => {
   const { view } = make({ immersive: true });
   const hands = fakeBound();

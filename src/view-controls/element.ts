@@ -103,6 +103,8 @@ export class ViewControlsElement extends HTMLElement {
   #unbind: (() => void) | undefined;
   /** The limits of a view that carries its own controls, which this bar's attributes win over; the defaults otherwise. */
   #carried: Limits = DEFAULT_LIMITS;
+  /** The bound element's own `immersive`, from `CARRY_EVENT`. The bar's attribute still counts on its own. */
+  #carriedImmersive = false;
   #words: Partial<ViewWords> = {};
   #ready = false;
   #sliderHeld = 0;
@@ -373,7 +375,7 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "key-tilt") c.keyTilt = value === "wheel" ? "wheel" : "drag";
     else if (name === "stop-turn") c.stopTurn = value !== null;
     else if (name === "double-press") c.doublePress = (value ?? "").trim().toLowerCase() !== "off";
-    else if (name === "immersive") c.immersive = value !== null;
+    else if (name === "immersive") this.#applyImmersive();
     else if (name === "tilt-step") c.tiltStep = Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
     else if (name === "object-size") {
       const [w, h] = (value ?? "").trim().split(/[\s,x]+/).map(Number);
@@ -669,6 +671,11 @@ export class ViewControlsElement extends HTMLElement {
     if (speeds?.format) speeds.format = (step) => this.#turnTime(step);
   }
 
+  /** Immersive when this bar says so, or when the element it is bound to says so. */
+  #applyImmersive(): void {
+    this.#ensure().immersive = this.hasAttribute("immersive") || this.#carriedImmersive;
+  }
+
   #limits(): void {
     const c = this.#ensure();
     Object.assign(c.limits, readLimits((name) => this.getAttribute(name), this.#carried));
@@ -702,8 +709,11 @@ export class ViewControlsElement extends HTMLElement {
     if (element !== undefined) {
       // A package element that carries the controls itself stands down while this bar is bound to it.
       const carried = (event: Event): void => {
-        this.#carried = (event as CustomEvent<{ limits: Limits }>).detail.limits;
+        const detail = (event as CustomEvent<{ limits: Limits; immersive?: boolean }>).detail;
+        this.#carried = detail.limits;
+        this.#carriedImmersive = detail.immersive === true;
         this.#limits();
+        this.#applyImmersive();
         this.#ensure().set({});
       };
       element.addEventListener(CARRY_EVENT, carried);
@@ -716,7 +726,9 @@ export class ViewControlsElement extends HTMLElement {
         element.removeAttribute(BAR_MARK);
         element.dispatchEvent(new Event(BAR_EVENT));
         this.#carried = DEFAULT_LIMITS;
+        this.#carriedImmersive = false;
         this.#limits();
+        this.#applyImmersive();
       };
     }
     this.#watch();

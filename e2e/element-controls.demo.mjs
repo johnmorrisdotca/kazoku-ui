@@ -178,6 +178,53 @@ test("a bar for an element with limits in code takes them, and the bar's own att
   await expect(view(page, "coded")).not.toHaveAttribute("data-kazoku-bar", "");
 });
 
+test("a bar bound to an immersive element zooms on a plain wheel and does not scroll the page", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => { document.body.style.minHeight = "400vh"; });
+  await view(page, "barred").evaluate((el) => el.setAttribute("immersive", ""));
+  await expect.poll(() => view(page, "barred").evaluate((el) => el.style.touchAction)).toBe("none");
+  await view(page, "barred").scrollIntoViewIfNeeded();
+  const at = await centreOf(page, "barred");
+  const top = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.wheel(0, 120);
+  expect(await page.evaluate(() => window.scrollY)).toBe(top);
+  expect((await read(page, "barred")).zoom).toBeLessThan(1);
+});
+
+test("an element's immersive and double-press attributes can be switched while it is showing", async ({ page }) => {
+  await ready(page);
+  const wheel = (deltaY) => view(page, "plain").evaluate((el, dy) => {
+    const r = el.getBoundingClientRect();
+    const event = new WheelEvent("wheel", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, deltaY: dy, bubbles: true, cancelable: true });
+    const taken = !el.dispatchEvent(event);
+    return { taken, zoom: Number(el.dataset.zoom), touch: el.style.touchAction, attr: el.hasAttribute("immersive") };
+  }, deltaY);
+  await view(page, "plain").evaluate((el) => el.setAttribute("immersive", ""));
+  const zoomed = await wheel(-120);
+  expect(zoomed.attr).toBe(true);
+  expect(zoomed.taken).toBe(true);
+  expect(zoomed.zoom).toBeGreaterThan(1);
+  await view(page, "plain").evaluate((el) => el.removeAttribute("immersive"));
+  await view(page, "plain").focus();
+  await page.keyboard.press("0");
+  await expect.poll(async () => (await read(page, "plain")).zoom).toBe(1);
+  // A wheel within one turn of the last still belongs to that turn. Wait it out, then the plain wheel is the page's again.
+  await page.waitForTimeout(400);
+  const released = await wheel(120);
+  expect(released).toMatchObject({ attr: false, taken: false, touch: "pan-y", zoom: 1 });
+  await view(page, "plain").evaluate((el) => el.setAttribute("double-press", "off"));
+  const at = await centreOf(page, "plain");
+  await page.mouse.click(at.x, at.y);
+  await page.mouse.click(at.x, at.y);
+  await page.waitForTimeout(400);
+  expect((await read(page, "plain")).zoom).toBe(1);
+  await view(page, "plain").evaluate((el) => el.removeAttribute("double-press"));
+  await page.mouse.click(at.x, at.y);
+  await page.mouse.click(at.x, at.y);
+  await expect.poll(async () => (await read(page, "plain")).zoom).toBe(2);
+});
+
 test("an element that leaves the page lets its hands go, and a moved element gets them again", async ({ page }) => {
   await ready(page);
   await view(page, "limited").evaluate((el) => { window.keep = el; el.remove(); });

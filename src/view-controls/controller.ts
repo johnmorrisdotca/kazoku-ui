@@ -87,9 +87,19 @@ export interface ViewController {
   anchor: Point | undefined;
   keyTilt: KeyTilt;
   stopTurn: boolean;
-  /** A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time. */
+  /**
+   * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
+   *
+   * @example
+   * controller.doublePress = false;
+   */
   doublePress: boolean;
-  /** A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time. */
+  /**
+   * A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time.
+   *
+   * @example
+   * controller.immersive = true;
+   */
   immersive: boolean;
   tiltStep: number;
   /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
@@ -141,7 +151,14 @@ const positive = (value: unknown): number | undefined => (typeof value === "numb
 
 const browserClock = (): Clock => ({ request: (callback) => globalThis.requestAnimationFrame(callback), cancel: (id) => globalThis.cancelAnimationFrame(id) });
 
-/** Fired on the view before a double press zooms. Cancel it to keep the zoom and do your own. */
+/**
+ * Fired on the view before a double press zooms. Cancel it to keep the zoom and do your own.
+ *
+ * @example
+ * scene.addEventListener("kazoku-doublepress", (event) => {
+ *   event.preventDefault();
+ * });
+ */
 export const DOUBLE_PRESS_EVENT = "kazoku-doublepress";
 
 export function createViewController(options: ViewControllerOptions = {}): ViewController {
@@ -658,13 +675,14 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       const now = Number.isFinite(e.timeStamp) ? e.timeStamp : 0;
       const continuing = now - wheelTaken < WHEEL_GESTURE_MS && now >= wheelTaken;
       const asked = wheelMove(e, view.getBoundingClientRect().height || 800);
+      // A sideways-only wheel has no deltaY. It is not a zoom: immersive used to call zoomAt with a factor of 1.
+      if (!asked.zoom && controller.immersive && !e.shiftKey && e.deltaY === 0) return;
       // Immersive: the plain wheel zooms about the pointer. Shift still moves sideways, and Ctrl, Command and Alt still zoom.
       const zooming = asked.zoom || (controller.immersive && !e.shiftKey);
       if (zooming) {
         const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
         const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
         const own = pinch || controller.immersive;
-        if (own) e.preventDefault();
         if (!own && atEnd && !continuing) return;
         e.preventDefault();
         wheelTaken = now;

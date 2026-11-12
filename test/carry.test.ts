@@ -198,6 +198,59 @@ test("while a bar is bound the element says its limits: its attributes over the 
   assert.deepEqual(said(first), [DEFAULT_LIMITS], "a bar that was there first hears it when the element starts");
 });
 
+test("immersive comes from the option or the attribute, and a later limit change does not wipe a value set by hand", () => {
+  const fromOption = fakeElement();
+  const opted = carry(fromOption, { immersive: true });
+  assert.equal(opted.controller.immersive, true);
+  opted.unbind();
+  const fromAttr = fakeElement({ immersive: "" });
+  const marked = carry(fromAttr);
+  assert.equal(marked.controller.immersive, true);
+  marked.unbind();
+  const plain = fakeElement();
+  const hands = carry(plain);
+  assert.equal(hands.controller.immersive, false);
+  hands.controller.immersive = true;
+  hands.setLimits({ zoomMax: 10 });
+  assert.equal(hands.controller.immersive, true, "zoom-max does not reset a hand-set immersive");
+  hands.unbind();
+});
+
+test("double-press=\"off\" and doublePress: false leave a double press off, and a limit change keeps a hand-set value", () => {
+  const off = fakeElement({ "double-press": "off" });
+  const a = carry(off);
+  assert.equal(a.controller.doublePress, false);
+  a.unbind();
+  const asked = fakeElement();
+  const b = carry(asked, { doublePress: false });
+  assert.equal(b.controller.doublePress, false);
+  b.controller.doublePress = true;
+  b.setLimits({ zoomMin: 0.5 });
+  assert.equal(b.controller.doublePress, true, "a limit change does not reset a hand-set doublePress");
+  b.unbind();
+  const on = fakeElement({ "double-press": "" });
+  const c = carry(on, { doublePress: false });
+  assert.equal(c.controller.doublePress, true, "an attribute that is there, and not off, asks for it");
+  c.unbind();
+});
+
+test("a bound bar is told whether the element is immersive", () => {
+  const said = (rig: ReturnType<typeof fakeElement>) => rig.events.filter((e) => e.type === "kazoku-viewcarry").map((e) => e.detail.immersive);
+  const plain = fakeElement();
+  const a = carry(plain);
+  plain.bar(true);
+  assert.equal(said(plain).at(-1), false);
+  a.unbind();
+  const full = fakeElement({ immersive: "", "data-kazoku-bar": "" });
+  carry(full).unbind();
+  assert.deepEqual(said(full), [true], "a bar that was there first hears it when the element starts");
+  const opted = fakeElement();
+  const c = carry(opted, { immersive: true });
+  opted.bar(true);
+  assert.equal(said(opted).at(-1), true);
+  c.unbind();
+});
+
 test("unbind lets every hand go, takes back what it gave, and the controller is done", () => {
   const rig = fakeElement();
   const { controller, unbind } = carry(rig);

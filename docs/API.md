@@ -804,9 +804,19 @@ interface ViewController {
     anchor: Point | undefined;
     keyTilt: KeyTilt;
     stopTurn: boolean;
-    /** A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time. */
+    /**
+     * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
+     *
+     * @example
+     * controller.doublePress = false;
+     */
     doublePress: boolean;
-    /** A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time. */
+    /**
+     * A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time.
+     *
+     * @example
+     * controller.immersive = true;
+     */
     immersive: boolean;
     tiltStep: number;
     /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
