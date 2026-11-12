@@ -36,7 +36,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
   const { on = true, limits, ...rest } = options;
   const base = { ...DEFAULT_LIMITS, ...limits };
   const get = (name: string): string | null => element.getAttribute(name);
-  const controller = createViewController({ ...rest, limits: readLimits(get, base) });
+    const controller = createViewController({ ...rest, immersive: rest.immersive === true || element.hasAttribute("immersive"), limits: readLimits(get, base) });
   let off: (() => void) | undefined;
   let gaveTab = false;
   let gaveBlock = false;
@@ -54,6 +54,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
 
   const apply = (): void => {
     Object.assign(controller.limits, readLimits(get, base));
+    controller.immersive = rest.immersive === true || element.hasAttribute("immersive");
     const { zoom } = controller.state;
     const { zoomMin, zoomMax } = controller.limits;
     if (zoom < zoomMin || zoom > zoomMax) controller.set({ zoom: Math.min(zoomMax, Math.max(zoomMin, zoom)) });
@@ -77,7 +78,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
   };
 
   const watch = typeof MutationObserver === "function" ? new MutationObserver(apply) : undefined;
-  watch?.observe(element, { attributes: true, attributeFilter: ["controls", "zoom-min", "zoom-max", "tilt-max", "roll-max", BAR_MARK] });
+  watch?.observe(element, { attributes: true, attributeFilter: ["controls", "immersive", "zoom-min", "zoom-max", "tilt-max", "roll-max", BAR_MARK] });
   element.addEventListener(BAR_EVENT, apply);
   apply();
 

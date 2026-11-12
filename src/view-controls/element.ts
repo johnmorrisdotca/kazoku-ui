@@ -91,11 +91,11 @@ const HTML = `
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself moves),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
- * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `free-pan` (the view moves at any zoom, zoomed out too, by up to this share of its size either way; bare is 0.5, for a 3D space whose zoom is far below 1), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
+ * `stop-turn` (a press, the wheel or a key on the view stops the automatic turn), `double-press` (`off` leaves a double-click or a double tap alone; otherwise the view fires a cancelable `kazoku-doublepress` and then zooms to 2× and back), `immersive` (a plain wheel zooms about the pointer, and a finger drag turns and tips instead of scrolling), `tilt-step` (round a drag's tilt to a multiple of this many degrees), `object-size` (`w,h`: the object's size at Fit in pixels when it is smaller than the view, so a pan keeps a quarter of it in view), `free-pan` (the view moves at any zoom, zoomed out too, by up to this share of its size either way; bare is 0.5, for a 3D space whose zoom is far below 1), `grab-radius` (exact grab: the on-screen radius of the piece in pixels, or `fit`; a drag then keeps the touched point under the pointer), `flat` (the view cannot turn), `tilt-max`, `zoom-min`, `zoom-max`, `address` (keep the choices in the page's address), `address-keys` (`yaw:a,tilt:b`), `theme` (light
  * or dark), `overlay` (sit over the bottom of a positioned parent).
  */
 export class ViewControlsElement extends HTMLElement {
-  static observedAttributes = ["for", "lang", "yaw", "tilt", "roll", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "free-pan", "speed", "direction", "tilt-direction", "roll-direction", "axis", "pace", "paces", "controls", "layout", "flat", "tilt-max", "roll-max", "zoom-min", "zoom-max", "address-keys"];
+  static observedAttributes = ["for", "lang", "yaw", "tilt", "roll", "zoom", "fit-scale", "ignore", "anchor", "key-tilt", "stop-turn", "double-press", "immersive", "tilt-step", "grab-radius", "object-size", "free-pan", "speed", "direction", "tilt-direction", "roll-direction", "axis", "pace", "paces", "controls", "layout", "flat", "tilt-max", "roll-max", "zoom-min", "zoom-max", "address-keys"];
 
   #root: ShadowRoot;
   #controller: ViewController | undefined;
@@ -260,7 +260,7 @@ export class ViewControlsElement extends HTMLElement {
     if (axis !== undefined) this.#writeAttribute("axis", axis === "angle" ? null : axis);
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
-    for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "free-pan"]) this.#option(name);
+    for (const name of ["key-tilt", "stop-turn", "double-press", "immersive", "tilt-step", "grab-radius", "object-size", "free-pan"]) this.#option(name);
     if (this.hasAttribute("anchor")) this.#option("anchor");
     const fitScale = Number(this.getAttribute("fit-scale"));
     if (this.hasAttribute("fit-scale")) c.setFitScale(fitScale);
@@ -312,7 +312,7 @@ export class ViewControlsElement extends HTMLElement {
     } else if (name === "zoom") c.setStartZoom(this.#startZoom());
     else if (name === "fit-scale") c.setFitScale(Number(value));
     else if (name === "ignore") c.ignore = value ?? DEFAULT_IGNORE;
-    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
+    else if (name === "anchor" || name === "key-tilt" || name === "stop-turn" || name === "double-press" || name === "immersive" || name === "tilt-step" || name === "grab-radius" || name === "object-size") this.#option(name);
     else if (name === "free-pan") {
       this.#option(name);
       if (this.#ready) this.#show();
@@ -372,6 +372,8 @@ export class ViewControlsElement extends HTMLElement {
       c.anchor = x !== undefined && y !== undefined && Number.isFinite(x) && Number.isFinite(y) ? { x, y } : undefined;
     } else if (name === "key-tilt") c.keyTilt = value === "wheel" ? "wheel" : "drag";
     else if (name === "stop-turn") c.stopTurn = value !== null;
+    else if (name === "double-press") c.doublePress = (value ?? "").trim().toLowerCase() !== "off";
+    else if (name === "immersive") c.immersive = value !== null;
     else if (name === "tilt-step") c.tiltStep = Number(value) > 0 && Number.isFinite(Number(value)) ? Number(value) : 0;
     else if (name === "object-size") {
       const [w, h] = (value ?? "").trim().split(/[\s,x]+/).map(Number);
