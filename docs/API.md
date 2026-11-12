@@ -2607,7 +2607,7 @@ const EVENT = "kazoku-replay";
 
 ### ReplayBarElement
 
-*class*. Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
+*class*. Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `no-repeat` (no Repeat button, and a repeat is never reported), `back-label` (the back-to-the-start button's own words), `steps` and `speed` (handed to the speed buttons),
 
 ```ts
 class ReplayBarElement extends HTMLElement {

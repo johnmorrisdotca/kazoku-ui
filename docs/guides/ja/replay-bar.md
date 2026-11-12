@@ -19,6 +19,8 @@ description: 再生、一時停止、最初に戻る、くり返しのボタン�
 
 `kazoku-replay`イベントは`{ action, playing, repeat, reason }`を持ちます。`action`は`play`、`pause`、`start`、`repeat`のどれかです。`playing`と`repeat`は属性で、`address`があると`play=on`、`repeat=on`としてアドレスに残ります。`address-keys="play:p,repeat:r"`で名前を変えられます。
 
+`no-repeat`があると、繰り返しのボタンは出ず、繰り返しは知らされません。`back-label`は、最初に戻るボタンの文言です。なければ、英語では Start、日本語では「最初へ」です。
+
 速さのボタンは同じ`<kazoku-speed-buttons>`です。`steps`が速さの一覧、`speed`が選ばれている速さです。アドレスのキーは`speed-key`で変えない限り`replay-speed`なので、ビューの`pace`には触りません。変わったときは、いつもの`kazoku-speedchange`イベントが出ます。
 
 「動きを減らす」設定のときは、止まった表示で、再生が使える状態になります。再生ボタンは押せて、自動では何も始まりません（アドレスの`play=on`、`playing`属性、`playing`プロパティは受け付けても始めません）。読む人が自分で再生を押したときに始まるので、[ファミリーの時計](clock.md)の決まりをページが守れます。0.33までは、`user-play`がないと再生ボタンが押せませんでした。この属性は今も受け付けますが、もう何も変えません。
