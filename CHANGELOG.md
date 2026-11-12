@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A view can drift a little while it is already moving** (KAZOKU-UI-127). `sway="gentle"` or `sway="more"` on `<kazoku-view-controls>`, or `sway` on the controller (`off` by default): while the view turns by itself or glides back to the middle, the picture drifts a little in angle, tilt, roll and position, on a few slow waves. The drift is not the angle the bar shows and it is not written to the address. A drag, a pinch or the slider fades it out, and it fades back in afterwards. Reduced motion turns it off. A still view asks for no frame.
+
 ## [0.41.1] - 2026-11-12
 
 - **A bound bar keeps a view the element shows itself** (KAZOKU-UI-136). `carryControls` returns `show(view)`. It writes that view onto the element's controller and does not call `onChange`. While a bar is bound, the element sends `kazoku-viewshow` (`SHOW_EVENT`) and the bar takes the same yaw, tilt and zoom without sending `kazoku-viewchange`, so the bar's next change no longer snaps back to the old angle.

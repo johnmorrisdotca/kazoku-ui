@@ -90,6 +90,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
 | `tilt-max`, `roll-max`, `zoom-min`, `zoom-max` | The limits (30, 180, 0.1, 50). Tilt auto-turns as a pendulum under 90, and rolls over at 90 or more. |
+| `sway` | `off` (the default), `gentle` or `more`. While the view is already moving, an automatic turn or the glide back to the middle, the picture drifts a little in angle, tilt, roll and position, on a few slow waves whose lengths do not line up, so the drift does not visibly repeat. That drift is not the angle the bar shows, and it is not written to the address. A drag, a pinch or the slider fades it out, and it fades back in afterwards. A reader who prefers reduced motion gets none. A view that is still asks for no frame. |
 | `address` | Keep the choices in the page's address (`?yaw=40&tilt=10&zoom=2&pace=0.5&direction=left`). |
 | `address-keys` | Other keys: `yaw:a,zoom:z`. |
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
