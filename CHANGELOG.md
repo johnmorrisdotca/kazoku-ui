@@ -5,6 +5,7 @@
 - **A bound bar keeps a view the element shows itself** (KAZOKU-UI-136). `carryControls` returns `show(view)`. It writes that view onto the element's controller and does not call `onChange`. While a bar is bound, the element sends `kazoku-viewshow` (`SHOW_EVENT`) and the bar takes the same yaw, tilt and zoom without sending `kazoku-viewchange`, so the bar's next change no longer snaps back to the old angle.
 - **Space is let go, and it leaves a button and an editable alone** (KAZOKU-UI-126). A missed keyup (the window blurs, or the tab hides) no longer leaves Space held. Space in `contenteditable=""` or `contenteditable="plaintext-only"` is typed. A focused button inside the view keeps Space. A view that sits inside a link or a button still takes Space.
 - **A view made out of sight draws nothing** (KAZOKU-UI-128). A new live view starts from its rectangle, not as on screen. `focus()` on a view scrolled away asks for no frame until the view meets the window.
+- **The release freeze step installs Chromium through the bounded action** (KAZOKU-UI-110). `reusable-release.yml` ran `playwright install --with-deps chromium` with no time limit before a package's freeze test. It now calls `.github/actions/playwright` at `v0.41.0`, by repository and tag, because the workflow runs in the caller's checkout. A package gets this when it moves its pin to the release that carries it.
 
 ## [0.41.0] - 2026-11-12
 
