@@ -12,10 +12,7 @@ export const READINGS_STORAGE_KEY = "kazoku-readings";
 const ON = ["", "on", "1", "true", "yes"];
 const OFF = ["off", "0", "false", "no"];
 
-/**
- * What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or
- * any other value, which says nothing, so the device's kept choice decides, else off.
- */
+/** What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or any other value, which says nothing, so the device's kept choice decides, else off. */
 export function parseReadings(value: string | null | undefined): boolean | undefined {
   if (value === null || value === undefined) return undefined;
   const word = value.trim().toLowerCase();

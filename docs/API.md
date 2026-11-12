@@ -224,7 +224,7 @@ function parseAddress(search: string, keys?: AddressKeys, limits?: Limits): Part
 
 ### parseAxis
 
-*constant*
+*constant*. An axis from an attribute or the address, in any case and with spaces round it; anything else is `undefined`.
 
 ```ts
 const parseAxis: (text: string | null | undefined) => TurnAxis | undefined;
@@ -1615,7 +1615,7 @@ function keepReadings(on: boolean): void;
 
 ### parseReadings
 
-*function*. What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or
+*function*. What an address value says: on for `on`, `1`, `true`, `yes` or the bare key (`?readings`), off for `off`, `0`, `false` or `no` (any case, spaces round it ignored), and `undefined` for no key or any other value, which says nothing, so the device's kept choice decides, else off.
 
 ```ts
 function parseReadings(value: string | null | undefined): boolean | undefined;

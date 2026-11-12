@@ -35,12 +35,20 @@ export const turnSeconds = (speed: number, pace: number): number => {
 /** Which way Auto-turn goes. By the drag rule `yaw` goes up as the hand goes right, so `right` is a positive speed and `left` a negative one; the page's drawing decides what that looks like. */
 export type Direction = "left" | "right";
 
-export const parseDirection = (text: string | null | undefined): Direction | undefined => (text === "left" || text === "right" ? text : undefined);
+/** `left` or `right` from an attribute or the address, in any case and with spaces round it; anything else is `undefined`. */
+export const parseDirection = (text: string | null | undefined): Direction | undefined => {
+  const word = text?.trim().toLowerCase();
+  return word === "left" || word === "right" ? word : undefined;
+};
 
 /** Which axis Auto-turn drives. `angle` is yaw, the default. `all` is a tumble on yaw, tilt and roll at once. */
 export type TurnAxis = "angle" | "tilt" | "roll" | "all";
 
-export const parseAxis = (text: string | null | undefined): TurnAxis | undefined => (text === "angle" || text === "tilt" || text === "roll" || text === "all" ? text : undefined);
+/** An axis from an attribute or the address, in any case and with spaces round it; anything else is `undefined`. */
+export const parseAxis = (text: string | null | undefined): TurnAxis | undefined => {
+  const word = text?.trim().toLowerCase();
+  return word === "angle" || word === "tilt" || word === "roll" || word === "all" ? word : undefined;
+};
 
 /** The zoom as the readout shows it: `1×`, `2.4×`; below 1, two figures, so a small zoom never reads `0×`. */
 export const zoomText = (zoom: number): string => `${Number(zoom < 1 ? zoom.toPrecision(2) : zoom.toFixed(1))}×`;

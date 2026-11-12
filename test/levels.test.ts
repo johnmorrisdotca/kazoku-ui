@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { formatAddress, parseAddress, parseKeys, type AddressChoices } from "../src/view-controls/address.ts";
-import { PACE_FACTOR, PACES, parseDirection, parseLevel, parsePace, zoomText } from "../src/view-controls/levels.ts";
+import { PACE_FACTOR, PACES, parseAxis, parseDirection, parseLevel, parsePace, zoomText } from "../src/view-controls/levels.ts";
 import { WORDS } from "../src/view-controls/words.ts";
 
 const plain: AddressChoices = { yaw: 0, tilt: 0, zoom: 1 };
@@ -59,6 +59,11 @@ test("the way Auto-turn goes is left or right, kept in the address only when it 
   assert.equal(parseDirection("right"), "right");
   assert.equal(parseDirection("reverse"), undefined);
   assert.equal(parseDirection(null), undefined);
+  // any case, spaces round it: the address and the attributes read as readings does
+  for (const [text, way] of [["LEFT", "left"], [" Right ", "right"], ["Left", "left"]] as const) assert.equal(parseDirection(text), way, text);
+  for (const text of ["up", "l", "", "left-ish"]) assert.equal(parseDirection(text), undefined, text);
+  for (const [text, axis] of [["Tilt", "tilt"], [" ALL ", "all"], ["angle", "angle"], ["Roll", "roll"]] as const) assert.equal(parseAxis(text), axis, text);
+  for (const text of ["banana", "yaw", "", "tilts"]) assert.equal(parseAxis(text), undefined, text);
   assert.equal(formatAddress("", { ...plain, direction: "left" }), "?direction=left");
   assert.equal(formatAddress("?direction=left", { ...plain, direction: null }), "");
   assert.equal(formatAddress("?direction=left&yaw=3", { ...plain, yaw: 3 }), "?direction=left&yaw=3", "left out of the choices, the key is not touched");

@@ -120,6 +120,8 @@ export class ViewControlsElement extends HTMLElement {
   /** Which way the turn goes now, and the way the page itself starts it (its `direction`, else the sign of its `speed`): the address keeps a way only when it is not the start. */
   #direction: Direction = "right";
   #start: Direction | undefined;
+  /** The `direction` attribute as the page itself last set it (`null`: none), read before the controls write a reader's choice there; `undefined` until first read. */
+  #pageDirection: Direction | null | undefined;
   #axis: TurnAxis = "angle";
   #tiltWay: Direction = "right";
   #rollWay: Direction = "right";
@@ -247,6 +249,8 @@ export class ViewControlsElement extends HTMLElement {
     if (pace !== undefined) this.#writePace(this.#pace);
     // Read once: put back on a page after a move, the element is still started by the page and not by the way the reader has since chosen (which is in the attribute now).
     const first = this.#start === undefined;
+    // the page's own direction, read before a choice from the address is written over it
+    if (this.#pageDirection === undefined) this.#pageDirection = parseDirection(this.getAttribute("direction")) ?? null;
     this.#start ??= this.#startDirection();
     this.#direction = direction ?? (first ? this.#start : this.#direction);
     // The other choices from the address are the reader's too, and are written to their attributes the same way (after the page's start is read, so it stays the page's).
@@ -322,6 +326,7 @@ export class ViewControlsElement extends HTMLElement {
       this.#show();
     } else if (name === "direction") {
       if (this.#writing) return;
+      this.#pageDirection = parseDirection(value) ?? null;
       this.#start = this.#direction = this.#startDirection();
       this.#speed();
       this.#show();
@@ -584,9 +589,13 @@ export class ViewControlsElement extends HTMLElement {
     return { text, label: words.turnEvery.replace("{t}", long) };
   }
 
-  /** The way the page itself starts the turn: its `direction`, else left for a negative `speed` and right for the rest. */
+  /**
+   * The way the page itself starts the turn: its own `direction`, else left for a negative `speed` and right for the rest. Never the attribute as it is now, which also holds the reader's choice (a press,
+   * or the address), so a change of `speed` cannot make the reader's choice the page's start.
+   */
   #startDirection(): Direction {
-    return parseDirection(this.getAttribute("direction")) ?? (Number(this.getAttribute("speed")) < 0 ? "left" : "right");
+    const own = this.#pageDirection === undefined ? parseDirection(this.getAttribute("direction")) : this.#pageDirection;
+    return own ?? (Number(this.getAttribute("speed")) < 0 ? "left" : "right");
   }
 
   /** The seconds `autoplay-for` limits a turn to, or `undefined` for none. */

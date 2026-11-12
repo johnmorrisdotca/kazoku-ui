@@ -304,6 +304,49 @@ test("the direction, the axis and the tilt and roll directions read from the add
   expect(plain).toEqual(["left", "roll"]);
 });
 
+/** A fresh controls element made with these attributes on a page at `query`, the demo's own taken away; returns the attributes named. */
+const freshWith = (page, query, attributes, names) =>
+  page.evaluate(
+    ([tag, q, list, wanted]) => {
+      history.replaceState(null, "", q);
+      document.querySelector(tag)?.remove();
+      const el = document.createElement(tag);
+      for (const [name, value] of [["address", ""], ["controls", "advanced"], ...list]) el.setAttribute(name, value);
+      document.body.append(el);
+      return Object.fromEntries(wanted.map((name) => [name, el.getAttribute(name)]));
+    },
+    [BAR, query, attributes, names],
+  );
+
+test("a direction from the address is the reader's, not the page's start, even when the page changes its speed", async ({ page }) => {
+  const warnings = warningsOf(page);
+  await ready(page, "?controls=advanced");
+  // the page starts the turn to the right (no direction, a positive speed); the reader's link says left
+  expect(await freshWith(page, "?controls=advanced&direction=left", [], ["direction"])).toEqual({ direction: "left" });
+  // the page changes its speed (another look): its start is still right, not the left the controls wrote for the reader
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("speed", "20"), BAR);
+  await expect(button(page, "turn-left")).toHaveAttribute("aria-pressed", "true");
+  await button(page, "turn-right").click();
+  await expect(page.locator(BAR)).toHaveAttribute("direction", "right");
+  // back to the page's start: right leaves the address, and the turn goes right at the new speed
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/[?&]direction=/));
+  expect(await page.evaluate((tag) => document.querySelector(tag).controller.speed, BAR)).toBe(20);
+  // a page that starts left (a negative speed) keeps left as its start, and the reader's Right stays in the address
+  await page.evaluate((tag) => document.querySelector(tag).setAttribute("speed", "-20"), BAR);
+  await button(page, "turn-right").click();
+  await addressCheck(warnings, () => expect(page).toHaveURL(/[?&]direction=right/));
+});
+
+test("address values that are not a direction or an axis are not written, any case is read, and axis=angle takes a page's axis away", async ({ page }) => {
+  await ready(page, "?controls=advanced");
+  const names = ["direction", "axis", "tilt-direction", "roll-direction"];
+  expect(await freshWith(page, "?controls=advanced&direction=up&axis=banana&tiltDirection=sideways", [], names)).toEqual({ direction: null, axis: null, "tilt-direction": null, "roll-direction": null });
+  expect(await freshWith(page, "?controls=advanced&direction=LEFT&axis=Tilt&rollDirection=%20Left%20", [], names)).toEqual({ direction: "left", axis: "tilt", "tilt-direction": null, "roll-direction": "left" });
+  // the page set an axis; the reader's link says the angle, which is no attribute at all
+  expect(await freshWith(page, "?controls=advanced&axis=angle", [["axis", "roll"]], ["axis"])).toEqual({ axis: null });
+  await expect(button(page, "axis-angle")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("a pace read from the address is written to the attribute, and the page's start stays the start", async ({ page }) => {
   const warnings = warningsOf(page);
   await ready(page, "?controls=advanced&pace=0.5");
