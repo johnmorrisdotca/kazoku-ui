@@ -27,7 +27,7 @@ on:
         type: string
         default: ""
       require-ci-workflow:
-        description: "The file name of the repo's CI workflow (for example `ci.yml`). When set, the release refuses unless that workflow has succeeded on this exact commit, so no package publishes a red commit. Empty (the default) checks nothing. Reading the runs needs no permission on a public repository; a private one's caller must also grant `actions: read`."
+        description: "The file name of the repo's CI workflow (for example `ci.yml`). When a successful run of it exists for this exact commit, the check and the freeze are skipped and the release builds, tags and publishes. When no passing run is found, the check and the freeze still run. Empty (the default) always runs them. Reading the runs needs no permission on a public repository; a private one's caller must also grant `actions: read`."
         type: string
         default: ""
       github-release:
@@ -62,15 +62,20 @@ jobs:
           CODE="$(ask -H "Authorization: Bearer $GH_TOKEN" || true)"
           # A token without `actions: read` may be refused where a public repository's runs are open to anyone: ask again without it.
           [ "$CODE" = 200 ] || CODE="$(ask || true)"
+          # A passing run on this commit, on any branch, means the check and the freeze already happened. Anything else still runs them.
           if [ "$CODE" != 200 ]; then
-            echo "::error::Could not read the runs of $CI_WORKFLOW (HTTP $CODE). A private repository's release.yml needs actions: read in its permissions."
-            exit 1
+            echo "SKIP_REPEAT=no" >> "$GITHUB_ENV"
+            echo "Could not read the runs of $CI_WORKFLOW (HTTP $CODE). A private repository's release.yml needs actions: read in its permissions. The check and the freeze still run."
+            exit 0
           fi
           echo "The runs of $CI_WORKFLOW on $GITHUB_SHA:"
           jq -r '.workflow_runs[] | "  \(.status) \(.conclusion) \(.html_url)"' "$RUNS"
-          if [ "$(jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | length' "$RUNS")" -lt 1 ]; then
-            echo "::error::$CI_WORKFLOW has not succeeded on $GITHUB_SHA. Wait for it to pass (or fix it), then run the release again."
-            exit 1
+          if [ "$(jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success")] | length' "$RUNS")" -ge 1 ]; then
+            echo "SKIP_REPEAT=yes" >> "$GITHUB_ENV"
+            echo "$CI_WORKFLOW has succeeded on $GITHUB_SHA. The check and the freeze are not run again."
+          else
+            echo "SKIP_REPEAT=no" >> "$GITHUB_ENV"
+            echo "No passing run of $CI_WORKFLOW on $GITHUB_SHA. The check and the freeze still run."
           fi
           rm -f "$RUNS"
       - uses: actions/checkout@v7
@@ -113,16 +118,20 @@ jobs:
         if: env.ON_NPM == 'no'
         run: ${{ inputs.install-command }}
       - name: The repo's check
-        if: env.ON_NPM == 'no'
+        if: env.ON_NPM == 'no' && env.SKIP_REPEAT != 'yes'
         run: ${{ inputs.check-command }}
+      # dist is not in git, and the publish step ignores scripts, so a skipped check still has to build what the tarball ships.
+      - name: Build the files the tarball ships
+        if: env.ON_NPM == 'no' && env.SKIP_REPEAT == 'yes'
+        run: pnpm build
       # Named by repository and tag, not by a path here: this workflow runs in the caller's checkout, which does not have this action.
       - name: Browsers for the freeze test
-        if: env.ON_NPM == 'no' && inputs.freeze-command != ''
+        if: env.ON_NPM == 'no' && env.SKIP_REPEAT != 'yes' && inputs.freeze-command != ''
         uses: johnmorrisdotca/kazoku-ui/.github/actions/playwright@v0.41.0
         with:
           browsers: chromium
       - name: The freeze test (packages with live 3D)
-        if: env.ON_NPM == 'no' && inputs.freeze-command != ''
+        if: env.ON_NPM == 'no' && env.SKIP_REPEAT != 'yes' && inputs.freeze-command != ''
         run: ${{ inputs.freeze-command }}
       - name: Tag the commit, if the tag is missing
         if: env.TAG_EXISTS == 'no'

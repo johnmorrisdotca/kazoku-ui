@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A release does not repeat a check CI already passed** (KAZOKU-UI-144). `reusable-release.yml`, when `require-ci-workflow` names a workflow that has succeeded on this exact commit, skips the check and the freeze and builds, tags and publishes. When no passing run is found, the check and the freeze still run. On 2026-11-12 the freeze step alone took 15 minutes after CI had passed.
+
 ## [0.42.0] - 2026-11-12
 
 - **A double press can be switched off, or taken by the page** (KAZOKU-UI-121). A double-click or a double tap still zooms to 2× about that point and back to 1×. `double-press="off"` on `<kazoku-view-controls>` or on an element that carries the controls, or `doublePress: false` to `carryControls`, or `doublePress = false` on the controller, leaves the zoom alone. Before the built-in step the view fires `kazoku-doublepress` (`DOUBLE_PRESS_EVENT`), which can be cancelled; `detail` is `{ x, y, zoom, next }`. `preventDefault` skips the built-in step, so a page can use its own stops instead of replacing `zoomAt`. A later change of `zoom-min` does not put a hand-set value back.

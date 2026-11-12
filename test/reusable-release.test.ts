@@ -1,5 +1,5 @@
-// The shared release workflow's "CI has succeeded on this commit" step (the `require-ci-workflow` input, KAZOKU-UI-16): its shell is taken out of the
-// YAML and run with a stand-in `curl`, so a red, a missing, a green and a refused-then-open answer each give the exit code a release depends on.
+// The shared release workflow's "CI has succeeded on this commit" step (the `require-ci-workflow` input): its shell is taken out of the
+// YAML and run with a stand-in `curl`. A green run sets SKIP_REPEAT=yes. A red, a missing, an unreadable or a still-running answer sets SKIP_REPEAT=no, and the check and the freeze still run.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -26,7 +26,7 @@ function stepScript(): string {
 type Answer = { code: number; body?: unknown };
 
 /** Run the step. `answers` are what the stand-in curl says to its first, second ... call (the first carries the token). */
-function run(answers: Answer[]): { status: number | null; out: string; calls: string[] } {
+function run(answers: Answer[]): { status: number | null; out: string; calls: string[]; env: string } {
   const dir = mkdtempSync(join(tmpdir(), "reusable-release-"));
   mkdirSync(join(dir, "bin"));
   writeFileSync(join(dir, "answers.json"), JSON.stringify(answers));
@@ -47,11 +47,14 @@ process.stdout.write(String(answer.code));
   );
   chmodSync(join(dir, "bin", "curl"), 0o755);
   writeFileSync(join(dir, "step.sh"), stepScript());
+  const envFile = join(dir, "github.env");
+  writeFileSync(envFile, "");
   const ran = spawnSync("bash", ["-e", join(dir, "step.sh")], {
     encoding: "utf8",
     env: {
       PATH: `${join(dir, "bin")}:${process.env.PATH}`,
       RUNNER_TEMP: dir,
+      GITHUB_ENV: envFile,
       CI_WORKFLOW: "ci.yml",
       GH_TOKEN: "t0ken",
       GITHUB_REPOSITORY: "johnmorrisdotca/example",
@@ -64,7 +67,7 @@ process.stdout.write(String(answer.code));
   } catch {
     /* curl was never called */
   }
-  return { status: ran.status, out: ran.stdout + ran.stderr, calls };
+  return { status: ran.status, out: ran.stdout + ran.stderr, calls, env: readFileSync(envFile, "utf8") };
 }
 
 const runOf = (status: string, conclusion: string | null) => ({ status, conclusion, html_url: `https://example.test/${status}-${conclusion}` });
@@ -77,28 +80,35 @@ test("the step is there, only when the input is set, and asks for this commit's 
   assert.equal(r.status, 0, r.out);
   assert.equal(r.calls.length, 1);
   assert.match(r.calls[0], /^token https:\/\/api\.github\.com\/repos\/johnmorrisdotca\/example\/actions\/workflows\/ci\.yml\/runs\?head_sha=abc123/);
+  assert.match(r.env, /^SKIP_REPEAT=yes$/m);
 });
 
-test("a commit whose CI succeeded is released", () => {
+test("a commit whose CI succeeded skips the repeated check and freeze", () => {
   const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", "success")] } }]);
   assert.equal(r.status, 0, r.out);
+  assert.match(r.env, /^SKIP_REPEAT=yes$/m);
+  assert.match(r.out, /not run again/);
 });
 
 test("a green rerun counts even when an earlier run of the same commit was red", () => {
   const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", "success"), runOf("completed", "failure")] } }]);
   assert.equal(r.status, 0, r.out);
+  assert.match(r.env, /^SKIP_REPEAT=yes$/m);
 });
 
-test("a red commit is refused", () => {
+test("a red commit still runs the check and the freeze", () => {
   const r = run([{ code: 200, body: { workflow_runs: [runOf("completed", "failure")] } }]);
-  assert.equal(r.status, 1, r.out);
-  assert.match(r.out, /ci\.yml has not succeeded on abc123/);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.env, /^SKIP_REPEAT=no$/m);
+  assert.match(r.out, /No passing run of ci\.yml on abc123/);
+  assert.match(r.out, /still run/);
 });
 
-test("a commit whose CI is still running, or never ran, is refused", () => {
+test("a commit whose CI is still running, or never ran, still runs the check and the freeze", () => {
   for (const runs of [[runOf("in_progress", null)], [runOf("queued", null)], []]) {
     const r = run([{ code: 200, body: { workflow_runs: runs } }]);
-    assert.equal(r.status, 1, r.out);
+    assert.equal(r.status, 0, r.out);
+    assert.match(r.env, /^SKIP_REPEAT=no$/m);
   }
 });
 
@@ -108,11 +118,13 @@ test("a token the API refuses is followed by a plain ask, which a public reposit
   assert.deepEqual(r.calls.map((c) => c.split(" ")[0]), ["token", "anonymous"]);
 });
 
-test("runs that cannot be read at all refuse the release and say how a private repository fixes it", () => {
+test("runs that cannot be read still run the check and the freeze, and say how a private repository fixes the read", () => {
   const r = run([{ code: 404 }]);
-  assert.equal(r.status, 1, r.out);
+  assert.equal(r.status, 0, r.out);
+  assert.match(r.env, /^SKIP_REPEAT=no$/m);
   assert.match(r.out, /Could not read the runs of ci\.yml \(HTTP 404\)/);
   assert.match(r.out, /actions: read/);
+  assert.match(r.out, /still run/);
 });
 
 test("kazoku-ui's own release asks for it", () => {
@@ -125,6 +137,8 @@ test("the release job ends at 120 minutes", () => {
 
 test("the freeze test installs Chromium through the bounded action, not install --with-deps", () => {
   assert.doesNotMatch(yaml, /playwright install --with-deps/);
-  assert.match(yaml, /name: Browsers for the freeze test\n {8}if: env\.ON_NPM == 'no' && inputs\.freeze-command != ''\n {8}uses: johnmorrisdotca\/kazoku-ui\/\.github\/actions\/playwright@v0\.41\.0\n {8}with:\n {10}browsers: chromium/);
-  assert.match(yaml, /name: The freeze test \(packages with live 3D\)\n {8}if: env\.ON_NPM == 'no' && inputs\.freeze-command != ''\n {8}run: \$\{\{ inputs\.freeze-command \}\}/);
+  assert.match(yaml, /name: The repo's check\n {8}if: env\.ON_NPM == 'no' && env\.SKIP_REPEAT != 'yes'\n {8}run: \$\{\{ inputs\.check-command \}\}/);
+  assert.match(yaml, /name: Build the files the tarball ships\n {8}if: env\.ON_NPM == 'no' && env\.SKIP_REPEAT == 'yes'\n {8}run: pnpm build/);
+  assert.match(yaml, /name: Browsers for the freeze test\n {8}if: env\.ON_NPM == 'no' && env\.SKIP_REPEAT != 'yes' && inputs\.freeze-command != ''\n {8}uses: johnmorrisdotca\/kazoku-ui\/\.github\/actions\/playwright@v0\.41\.0\n {8}with:\n {10}browsers: chromium/);
+  assert.match(yaml, /name: The freeze test \(packages with live 3D\)\n {8}if: env\.ON_NPM == 'no' && env\.SKIP_REPEAT != 'yes' && inputs\.freeze-command != ''\n {8}run: \$\{\{ inputs\.freeze-command \}\}/);
 });
