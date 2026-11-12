@@ -23,13 +23,13 @@ export interface ReplayDetail {
 }
 
 /**
- * Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
+ * Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `no-repeat` (no Repeat button, and a repeat is never reported), `back-label` (the back-to-the-start button's own words), `steps` and `speed` (handed to the speed buttons),
  * `address` (keep play, repeat and the speed in the address), `address-keys` (`play:p,repeat:r`), `speed-key` (the speed's own key, `replay-speed` by default),
  * `user-play` (kept for older pages: it changes nothing now, because a reader who asked for reduced motion always gets a Play button that is ready and works), `lang`, `theme`.
  * Reduced motion gives a still view with Play ready: `playing`, an address that says `play=on` and a property never start it, and only the reader's own press does.
  */
 export class ReplayBarElement extends HTMLElement {
-  static observedAttributes = ["playing", "repeat", "steps", "speed", "lang", "label", "user-play"];
+  static observedAttributes = ["playing", "repeat", "no-repeat", "back-label", "steps", "speed", "lang", "label", "user-play"];
 
   #root: ShadowRoot;
   #playing = false;
@@ -82,7 +82,7 @@ export class ReplayBarElement extends HTMLElement {
     this.#motion?.addEventListener?.("change", this.#onMotion);
     const keys = addressKeys(this.getAttribute("address-keys"));
     const askedPlay = this.hasAttribute("address") ? flagOn(readParam(keys.play)) : this.hasAttribute("playing") && this.getAttribute("playing") !== "off";
-    const askedRepeat = this.hasAttribute("address") ? flagOn(readParam(keys.repeat)) : this.hasAttribute("repeat") && this.getAttribute("repeat") !== "off";
+    const askedRepeat = this.hasAttribute("no-repeat") ? false : this.hasAttribute("address") ? flagOn(readParam(keys.repeat)) : this.hasAttribute("repeat") && this.getAttribute("repeat") !== "off";
     this.#playing = askedPlay && !this.#reduced();
     this.#repeat = askedRepeat;
     this.#reflect("playing", this.#playing);
@@ -106,6 +106,15 @@ export class ReplayBarElement extends HTMLElement {
     if (!this.#ready || this.#reflecting) return;
     if (name === "playing") this.#play(value !== "off" && value !== null, "set");
     else if (name === "repeat") this.#loop(value !== "off" && value !== null, "set");
+    else if (name === "no-repeat") {
+      // A loop that was already on is dropped quietly, so a repeat is never reported once the button is gone.
+      if (this.hasAttribute("no-repeat") && this.#repeat) {
+        this.#repeat = false;
+        this.#reflect("repeat", false);
+        this.#write();
+      }
+      this.#render();
+    }
     else if (name === "steps" || name === "speed") this.#speeds();
     else this.#paint();
   }
@@ -138,6 +147,7 @@ export class ReplayBarElement extends HTMLElement {
   }
 
   #loop(next: boolean, reason: "user" | "set"): void {
+    if (this.hasAttribute("no-repeat")) return;
     if (next === this.#repeat) return;
     this.#repeat = next;
     this.#reflect("repeat", next);
@@ -175,6 +185,7 @@ export class ReplayBarElement extends HTMLElement {
     row.className = "row";
     row.setAttribute("role", "group");
     for (const act of ["play", "start", "repeat"] as const) {
+      if (act === "repeat" && this.hasAttribute("no-repeat")) continue;
       const button = doc.createElement("button");
       button.type = "button";
       button.dataset.act = act;
@@ -224,7 +235,7 @@ export class ReplayBarElement extends HTMLElement {
       play.setAttribute("aria-pressed", String(this.#playing));
       play.disabled = false;
     }
-    if (start) start.textContent = words.start;
+    if (start) start.textContent = this.getAttribute("back-label") || words.start;
     if (repeat) {
       repeat.textContent = words.repeat;
       repeat.setAttribute("aria-pressed", String(this.#repeat));

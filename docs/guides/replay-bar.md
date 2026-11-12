@@ -17,6 +17,8 @@ Play, pause, back to the start and repeat, with the family's speed buttons on th
 
 `kazoku-replay` carries `{ action, playing, repeat, reason }`. `action` is `play`, `pause`, `start` or `repeat`. `playing` and `repeat` are attributes, and with `address` they are kept as `play=on` and `repeat=on`. `address-keys="play:p,repeat:r"` renames either.
 
+`no-repeat` leaves the Repeat button out, and a repeat is never reported. `back-label` is the text of the button that goes back to the start. Left out, that button says Start (最初へ in Japanese).
+
 The speed buttons are the same `<kazoku-speed-buttons>`. `steps` is the list, `speed` is the one that is on, and their address key is `replay-speed` unless `speed-key` says otherwise, so a view's `pace` is left alone. A change is the usual `kazoku-speedchange`.
 
 Reduced motion gives a still view with Play ready: the Play button is enabled, nothing starts by itself (an address that says `play=on`, the `playing` attribute and the `playing` property are held back), and the reader's own press on Play starts it, so a page can keep the rule of [the family clock](clock.md). Up to 0.33 the button was disabled unless the element had `user-play`; that attribute is still accepted and now changes nothing.

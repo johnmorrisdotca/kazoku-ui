@@ -54,6 +54,10 @@ export interface ViewControllerOptions {
   keyTilt?: KeyTilt;
   /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
   stopTurn?: boolean;
+  /** A double press zooms to 2× about that point, and the next one back to 1×. False switches it off. True (the default) fires `kazoku-doublepress` first; a page that calls `preventDefault` does its own zoom. */
+  doublePress?: boolean;
+  /** A view that fills the screen. A plain wheel zooms about the pointer, and a finger drag turns and tips instead of scrolling the page. Ctrl, Alt and Shift with the wheel stay as they are. False (the default) leaves the plain wheel as a move. */
+  immersive?: boolean;
   /** Round the tilt of a drag to a multiple of this many degrees; 0 (the default) leaves it unrounded, 1 gives whole degrees. */
   tiltStep?: number;
   /** Exact grab: the on-screen radius, in CSS pixels at Fit, of the globe or turnable piece, or `"fit"` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (`degreesPerPixel`), and at a zoom the radius grows with it. 0 (the default) keeps the fixed angle across the view. */
@@ -92,6 +96,20 @@ export interface ViewController {
   stopTurn: boolean;
   /** A hand-held drift while the view is already moving (`off`, `gentle` or `more`). Can be changed at any time. `off` by default. */
   sway: Sway;
+  /**
+   * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
+   *
+   * @example
+   * controller.doublePress = false;
+   */
+  doublePress: boolean;
+  /**
+   * A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time.
+   *
+   * @example
+   * controller.immersive = true;
+   */
+  immersive: boolean;
   tiltStep: number;
   /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
   grabRadius: number | "fit";
@@ -142,6 +160,16 @@ const positive = (value: unknown): number | undefined => (typeof value === "numb
 
 const browserClock = (): Clock => ({ request: (callback) => globalThis.requestAnimationFrame(callback), cancel: (id) => globalThis.cancelAnimationFrame(id) });
 
+/**
+ * Fired on the view before a double press zooms. Cancel it to keep the zoom and do your own.
+ *
+ * @example
+ * scene.addEventListener("kazoku-doublepress", (event) => {
+ *   event.preventDefault();
+ * });
+ */
+export const DOUBLE_PRESS_EVENT = "kazoku-doublepress";
+
 export function createViewController(options: ViewControllerOptions = {}): ViewController {
   const limits: Limits = { ...DEFAULT_LIMITS, ...options.limits };
   const clock = options.clock ?? browserClock();
@@ -181,8 +209,8 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     const share = controller.freePan;
     return share !== undefined && share > 0 && Number.isFinite(share);
   };
-  /** A zoomed view, or one that may move at any zoom (a full-view explorer), takes every touch; at Fit the page may scroll. */
-  const touchAction = (): string => (state.zoom > ZOOMED || isFree() ? "none" : "pan-y");
+  /** A zoomed view, one that may move at any zoom, or an immersive one, takes every touch; at Fit the page may scroll. */
+  const touchAction = (): string => (controller.immersive || state.zoom > ZOOMED || isFree() ? "none" : "pan-y");
 
   let swayGain = 0;
   let swayAt = 0;
@@ -235,6 +263,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
   };
 
   let freePan = options.freePan;
+  let immersiveOn = options.immersive ?? false;
 
   const take = (next: Camera): void => {
     if (!stepping) stopCentre();
@@ -344,6 +373,14 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     keyTilt: options.keyTilt ?? "drag",
     stopTurn: options.stopTurn ?? false,
     sway: options.sway ?? "off",
+    doublePress: options.doublePress ?? true,
+    get immersive() {
+      return immersiveOn;
+    },
+    set immersive(on: boolean) {
+      immersiveOn = on;
+      if (bound !== undefined) bound.style.touchAction = touchAction();
+    },
     tiltStep: options.tiltStep ?? 0,
     grabRadius: options.grabRadius ?? 0,
     objectSize: options.objectSize,
@@ -658,7 +695,7 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         const r = view.getBoundingClientRect();
         // Up and down tips it for a mouse; on a finger the browser keeps the vertical drag to scroll the page, and the tilt slider tips it.
         const radius = controller.grabRadius === "fit" ? Math.min(r.width, r.height) / 2 : controller.grabRadius;
-        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch", limits, controller.tiltStep, radius * gesture.camera.zoom) });
+        take({ ...camera(), ...dragTurn(gesture.camera, dx, dy, { width: r.width, height: r.height }, e.pointerType !== "touch" || controller.immersive, limits, controller.tiltStep, radius * gesture.camera.zoom) });
         emit(false, "drag");
       }
     };
@@ -681,10 +718,15 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
         showHand();
         emit(true, "drag");
         // A double press (two quick taps or clicks, hardly moved): in to 2x where it was pressed, and again back to 1x.
+        // Off, or a page that cancels kazoku-doublepress, leaves the zoom alone so the page can step its own stops.
         if (!wasPinch && !moved && e.type === "pointerup") {
           if (e.timeStamp - lastTap < 350 && Math.hypot(e.clientX - lastTapAt.x, e.clientY - lastTapAt.y) < 24) {
             lastTap = 0;
-            controller.zoomAt(state.zoom > ZOOMED ? 1 : 2, { x: e.clientX, y: e.clientY });
+            if (controller.doublePress) {
+              const next = state.zoom > ZOOMED ? 1 : 2;
+              const told = new CustomEvent(DOUBLE_PRESS_EVENT, { bubbles: true, cancelable: true, detail: { x: e.clientX, y: e.clientY, zoom: state.zoom, next } });
+              if (view.dispatchEvent(told)) controller.zoomAt(next, { x: e.clientX, y: e.clientY });
+            }
           } else {
             lastTap = e.timeStamp;
             lastTapAt = { x: e.clientX, y: e.clientY };
@@ -704,10 +746,15 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       const now = Number.isFinite(e.timeStamp) ? e.timeStamp : 0;
       const continuing = now - wheelTaken < WHEEL_GESTURE_MS && now >= wheelTaken;
       const asked = wheelMove(e, view.getBoundingClientRect().height || 800);
-      if (asked.zoom) {
+      // A sideways-only wheel has no deltaY. It is not a zoom: immersive used to call zoomAt with a factor of 1.
+      if (!asked.zoom && controller.immersive && !e.shiftKey && e.deltaY === 0) return;
+      // Immersive: the plain wheel zooms about the pointer. Shift still moves sideways, and Ctrl, Command and Alt still zoom.
+      const zooming = asked.zoom || (controller.immersive && !e.shiftKey);
+      if (zooming) {
         const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
         const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
-        if (!pinch && atEnd && !continuing) return;
+        const own = pinch || controller.immersive;
+        if (!own && atEnd && !continuing) return;
         e.preventDefault();
         wheelTaken = now;
         if (atEnd) return;

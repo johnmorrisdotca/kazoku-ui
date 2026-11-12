@@ -90,6 +90,37 @@ test("the paper buttons are a finger wide and the preview fits the screen", asyn
   expect(first.width).toBeLessThanOrEqual(box.width + 1);
 });
 
+test("a Japanese child's info box does not leave one kana alone on a line", async ({ page }) => {
+  await ready(page, "?theme=light&lang=ja");
+  await pick(page, "type", "kid");
+  await pick(page, "page", "a4");
+  await pick(page, "orientation", "portrait");
+  const lines = await page.locator(".kazoku-info dd").evaluateAll((dds) => dds.map((dd) => {
+    const node = [...dd.childNodes].find((one) => one.nodeType === 3);
+    if (!node) return [];
+    const text = node.textContent ?? "";
+    const range = document.createRange();
+    const out = [];
+    let buf = "";
+    let top = null;
+    for (let i = 0; i < text.length; i += 1) {
+      range.setStart(node, i);
+      range.setEnd(node, i + 1);
+      const rect = range.getClientRects()[0];
+      if (!rect) continue;
+      if (top !== null && Math.abs(rect.top - top) > 1) { out.push(buf); buf = ""; }
+      top = rect.top;
+      buf += text[i];
+    }
+    if (buf) out.push(buf);
+    return out;
+  }));
+  const alone = lines.flat().map((line) => line.trim()).filter((line) => /^[\u3040-\u30ff]$/.test(line));
+  expect(alone).toEqual([]);
+  const overflow = await page.locator(".kazoku-info dd").evaluateAll((dds) => dds.filter((dd) => dd.scrollWidth > dd.clientWidth + 1).map((dd) => dd.textContent));
+  expect(overflow).toEqual([]);
+});
+
 test("the sheet speaks Japanese in plain words", async ({ page }) => {
   await ready(page, "?theme=light&lang=ja");
   await expect(page.locator(".kazoku-namelabel")).toHaveText("なまえ：");

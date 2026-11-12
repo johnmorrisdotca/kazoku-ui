@@ -36,8 +36,8 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 
 ## What it does, once
 
-- **Drag and pinch.** A drag turns the picture at every zoom (the middle button, Ctrl or Command and a drag, Space and a drag, and the wheel move it); two fingers pinch, move and twist. A double tap goes to 2× and back.
-- **The wheel.** At Fit the plain wheel scrolls the page, so the picture is never a trap. Ctrl, Command or Alt with the wheel zooms about the pointer, and once zoomed the plain wheel moves the view.
+- **Drag and pinch.** A drag turns the picture at every zoom (the middle button, Ctrl or Command and a drag, Space and a drag, and the wheel move it); two fingers pinch, move and twist. A double tap goes to 2× and back, unless `double-press="off"` or `doublePress: false`. Before that zoom the view fires `kazoku-doublepress`, which a page can cancel.
+- **The wheel.** At Fit the plain wheel scrolls the page, so the picture is never a trap. Ctrl, Command or Alt with the wheel zooms about the pointer, and once zoomed the plain wheel moves the view. With `immersive` (the attribute, `immersive: true` to `carryControls`, or the controller's `immersive`) a plain wheel zooms about the pointer, and a finger drag turns and tips instead of scrolling the page. A bar bound to the element follows that.
 - **Keys.** The arrows turn, + and − zoom, 0 and Home put it back. The element gets `tabindex="0"` unless the page gave it one, and also when a bar was bound to it before it started, so the bar's keys always have somewhere to go.
 - **`touch-action`.** It is `pan-y` at Fit, so a finger can still scroll the page, and `none` once zoomed. A custom element is inline unless you say otherwise, and `touch-action` does nothing on an inline element, so an inline element is made a block while it carries the hands.
 - **Reduced motion.** Nothing starts by itself, so there is nothing to hold back; Centre goes at once.
@@ -50,6 +50,8 @@ A reader who drops a package's tag on a page expects the picture to zoom and pan
 | `controls` | Left out, the hands are on (`on: false` in the options makes a still picture start with them off). `controls="none"` takes them off. It is watched, so turning it on and off at run time works. |
 | `zoom-min`, `zoom-max` | The zoom range. They win over the `limits` in the options, which win over the defaults. `zoom-min` is held to 1 or less and `zoom-max` to `zoom-min` or more, so Fit is always inside. Watched too. |
 | `tilt-max`, `roll-max` | The tilt (30) and roll (180) limits, in degrees. |
+| `double-press` | Left out, a double tap zooms to 2× and back. `off` leaves it alone. The same switch as `doublePress: false`. Watched, and only this attribute resets it. |
+| `immersive` | A plain wheel zooms about the pointer, and a finger drag turns and tips. Left out, the plain wheel scrolls at Fit. The same switch as `immersive: true`. Watched, and only this attribute resets it. A bound bar follows it. |
 
 ## Limits that change
 

@@ -36,6 +36,34 @@ const ready = async (page, query = "") => {
   return errors;
 };
 
+test("a double press zooms to 2x, off leaves the zoom, and a page can take the press", async ({ page }) => {
+  await ready(page);
+  const at = await centreOf(page, "#scene");
+  const zoom = () => stateOf(page).then((s) => s.zoom);
+  // A gap longer than the double-press window, so one pair cannot run into the next.
+  const twice = async () => {
+    await page.mouse.click(at.x, at.y);
+    await page.mouse.click(at.x, at.y);
+    await page.waitForTimeout(400);
+  };
+  await twice();
+  await expect.poll(zoom).toBe(2);
+  await page.locator(BAR).evaluate((el) => { el.setAttribute("double-press", "off"); });
+  await twice();
+  expect(await zoom()).toBe(2);
+  await page.locator(BAR).evaluate((el) => { el.removeAttribute("double-press"); });
+  await page.evaluate(() => {
+    window.__presses = [];
+    document.querySelector("#scene").addEventListener("kazoku-doublepress", (event) => {
+      event.preventDefault();
+      window.__presses.push(event.detail.next);
+    });
+  });
+  await twice();
+  expect(await zoom()).toBe(2);
+  expect(await page.evaluate(() => window.__presses)).toEqual([1]);
+});
+
 test("the controls are visible without scrolling, a finger wide, and in the page's own style", async ({ page }) => {
   const errors = await ready(page, "?controls=advanced");
   await button(page, "in").click();

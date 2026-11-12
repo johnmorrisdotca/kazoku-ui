@@ -89,6 +89,8 @@ The footer of every page has its page number: "Page 2 of 3" in English, "2 / 3 ã
 
 The `kid` lines are 1.2 mm: a child sees them clearly, and a page is not dominated by heavy black lines (they were 3 mm in 0.24.0 and before). Keep your own lines near that width; a child's page reads best when the type is large and the lines are light.
 
+Japanese in the info box breaks at a space, not between kana, so one kana is never left alone on the next line. A child's sheet also gives each fact a wider column, so a phrase fits on one line.
+
 Put a name in an element with the class `kazoku-name` and it is as large as the preset says. Draw your own lines at `var(--kz-line)` thick in the same way.
 
 ## A poster over several pages

@@ -74,6 +74,8 @@ export interface GestureOptions {
   timeout?: number;
   /** The zoom the moves are made at (3). */
   zoom?: number;
+  /** The view is immersive: a plain wheel zooms about the pointer, and a finger drag tips as well as turns. Shift and the wheel still moves. A test then does not name `wheel-pan` as lacked. */
+  immersive?: boolean;
 }
 
 export interface GestureReport {
@@ -222,7 +224,7 @@ async function grey(page: GesturePage, png: Uint8Array): Promise<{ w: number; h:
  * @param options See `GestureOptions`.
  */
 export async function checkGestures(page: GesturePage, view: string, options: GestureOptions = {}): Promise<GestureReport[]> {
-  const { controls = "kazoku-view-controls", picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3 } = options;
+  const { controls = "kazoku-view-controls", picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3, immersive = false } = options;
   for (const [name, reason] of Object.entries(lacks)) {
     if (name !== "picture" && !(name in GESTURES)) throw new Error(`checkGestures: "${name}" is not a gesture (${GESTURE_NAMES.join(", ")}, or "picture")`);
     if (typeof reason !== "string" || reason.trim() === "") throw new Error(`checkGestures: say why the view lacks "${name}"`);
@@ -362,6 +364,20 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
       const zoomed = await until((s) => Math.abs(s.yaw - was.yaw) > 1);
       if (Math.abs(zoomed.yaw - was.yaw) <= 1) throw new Error(`a drag did not turn the view zoomed in at ${zoom}x (yaw ${was.yaw} to ${zoomed.yaw}): a plain drag turns at every zoom`);
       if (Math.abs(zoomed.panX - was.panX) > 1e-6 || Math.abs(zoomed.panY - was.panY) > 1e-6 || Math.abs(zoomed.roll - was.roll) > 1e-6) throw new Error(`a drag zoomed in at ${zoom}x moved or rolled the view as well as turning it (${JSON.stringify(was)} to ${JSON.stringify(zoomed)})`);
+      if (!immersive) return;
+      await put({});
+      const at = await centre();
+      await page.evaluate(([selector, x, y]) => {
+        const el = document.querySelector(selector as string)!;
+        const send = (type: string, p: { x: number; y: number }): void => {
+          el.dispatchEvent(new PointerEvent(type, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: p.x, clientY: p.y, bubbles: true, cancelable: true, composed: true, button: 0, buttons: type === "pointerup" ? 0 : 1 }));
+        };
+        send("pointerdown", { x: x as number, y: y as number });
+        send("pointermove", { x: x as number, y: (y as number) - 80 });
+        send("pointerup", { x: x as number, y: (y as number) - 80 });
+      }, [view, at.x, at.y] as const);
+      const tipped = await until((s) => Math.abs(s.tilt) > 2);
+      if (Math.abs(tipped.tilt) <= 2) throw new Error(`a finger drag did not tip the view (tilt ${tipped.tilt})`);
     },
     async roll() {
       await put({});
@@ -403,6 +419,12 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
         const further = await until((s) => s.zoom < 1.95);
         if (further.zoom >= 1.95) throw new Error(`${key} and the wheel down did not zoom out (zoom ${further.zoom})`);
       }
+      if (!immersive) return;
+      await put({ zoom: 2 });
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.wheel(0, -120);
+      const plain = await until((s) => s.zoom > 2.05);
+      if (plain.zoom <= 2.05) throw new Error(`a plain wheel did not zoom in (zoom ${plain.zoom})`);
     },
     async "pinch-zoom"() {
       const at = await centre();
@@ -418,10 +440,12 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
     },
     async "wheel-pan"() {
       const at = await centre();
-      await moves("the wheel", async () => {
-        await page.mouse.move(at.x, at.y);
-        await page.mouse.wheel(0, 60);
-      }, "wheel");
+      if (!immersive) {
+        await moves("the wheel", async () => {
+          await page.mouse.move(at.x, at.y);
+          await page.mouse.wheel(0, 60);
+        }, "wheel");
+      }
       await moves("Shift and the wheel", async () => {
         await page.mouse.move(at.x, at.y);
         await held(["Shift"], () => page.mouse.wheel(0, 60));

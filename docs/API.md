@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.41.1, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.42.0, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -28,10 +28,10 @@ type Part = (typeof PARTS)[number];
 
 ## `@johnmorrisdotca/kazoku-ui/view-controls`
 
-61 values and 25 types.
+62 values and 25 types.
 
 ```js
-import { between, carryControls, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, readLimits, SHOW_EVENT, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WIDE, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
+import { between, carryControls, clamp, clampPan, COMMON_ZOOMS, createViewController, DEFAULT_IGNORE, DEFAULT_KEYS, DEFAULT_LIMITS, degreesPerPixel, DOUBLE_PRESS_EVENT, dragRoll, dragTurn, eulerFromQuat, EVENT, formatAddress, languageOf, LAYOUTS, LEVEL_STORAGE_KEY, MARK_GAP, PACE_FACTOR, PACES, PAN_STEP, parseAddress, parseAxis, parseKeys, parseLayout, parseLevel, parsePace, pendulumTilt, pinchTo, quatFromEuler, quatIdentity, rateSign, readLimits, SHOW_EVENT, SLIDER_STEP, SNAP_PX, spinLocal, TAG, TILT_ACROSS, tumbleRates, TURN_ACROSS, upVector, WHEEL_GESTURE_MS, wheelMove, wheelPanPixels, wheelZoomFactor, WIDE, WORDS, wordsFor, wrapYaw, ZOOM_STEP, zoomAbout, zoomAtPosition, ZOOMED, zoomMarks, zoomPosition, zoomSnap, zoomStep, zoomText, zoomToMark } from '@johnmorrisdotca/kazoku-ui/view-controls';
 ```
 
 ### between
@@ -112,6 +112,14 @@ const DEFAULT_LIMITS: Limits;
 
 ```ts
 const degreesPerPixel: (radius: number) => number;
+```
+
+### DOUBLE_PRESS_EVENT
+
+*constant*. Fired on the view before a double press zooms. Cancel it to keep the zoom and do your own.
+
+```ts
+const DOUBLE_PRESS_EVENT = "kazoku-doublepress";
 ```
 
 ### dragRoll
@@ -819,6 +827,20 @@ interface ViewController {
     stopTurn: boolean;
     /** A hand-held drift while the view is already moving (`off`, `gentle` or `more`). Can be changed at any time. `off` by default. */
     sway: Sway;
+    /**
+     * A double press zooms to 2× and back (see `ViewControllerOptions.doublePress`). Can be changed at any time.
+     *
+     * @example
+     * controller.doublePress = false;
+     */
+    doublePress: boolean;
+    /**
+     * A plain wheel zooms and a finger drag turns, for a view that fills the screen (see `ViewControllerOptions.immersive`). Can be changed at any time.
+     *
+     * @example
+     * controller.immersive = true;
+     */
+    immersive: boolean;
     tiltStep: number;
     /** Exact grab (see `ViewControllerOptions.grabRadius`). Can be changed at any time. */
     grabRadius: number | "fit";
@@ -887,6 +909,10 @@ interface ViewControllerOptions {
     keyTilt?: KeyTilt;
     /** True to stop the automatic turn when the reader presses the view, uses the wheel on it or presses a key it handles. False (the default) lets it carry on. Buttons and sliders never stop it. */
     stopTurn?: boolean;
+    /** A double press zooms to 2× about that point, and the next one back to 1×. False switches it off. True (the default) fires `kazoku-doublepress` first; a page that calls `preventDefault` does its own zoom. */
+    doublePress?: boolean;
+    /** A view that fills the screen. A plain wheel zooms about the pointer, and a finger drag turns and tips instead of scrolling the page. Ctrl, Alt and Shift with the wheel stay as they are. False (the default) leaves the plain wheel as a move. */
+    immersive?: boolean;
     /** Round the tilt of a drag to a multiple of this many degrees; 0 (the default) leaves it unrounded, 1 gives whole degrees. */
     tiltStep?: number;
     /** Exact grab: the on-screen radius, in CSS pixels at Fit, of the globe or turnable piece, or `"fit"` for half the smaller side of the view. A drag then turns it by the angle that keeps the touched point under the pointer (`degreesPerPixel`), and at a zoom the radius grows with it. 0 (the default) keeps the fixed angle across the view. */
@@ -2595,7 +2621,7 @@ const EVENT = "kazoku-replay";
 
 ### ReplayBarElement
 
-*class*. Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `steps` and `speed` (handed to the speed buttons),
+*class*. Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `no-repeat` (no Repeat button, and a repeat is never reported), `back-label` (the back-to-the-start button's own words), `steps` and `speed` (handed to the speed buttons),
 
 ```ts
 class ReplayBarElement extends HTMLElement {
@@ -7920,6 +7946,8 @@ interface GestureOptions {
     timeout?: number;
     /** The zoom the moves are made at (3). */
     zoom?: number;
+    /** The view is immersive: a plain wheel zooms about the pointer, and a finger drag tips as well as turns. Shift and the wheel still moves. A test then does not name `wheel-pan` as lacked. */
+    immersive?: boolean;
 }
 ```
 
