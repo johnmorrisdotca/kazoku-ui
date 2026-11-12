@@ -104,6 +104,9 @@ test("the print CSS names the paper, has no page margin of its own, and hides th
   assert.match(printCss({ type: "normal" }), /--kz-line: 0\.4mm/);
   // Japanese in the info box breaks at a space, not between kana. A child's column is wide enough for a phrase.
   assert.match(printCss({ type: "kid" }), /\.kazoku-info dd \{[^}]*word-break: keep-all/);
+  // keep-all alone lets a long unspaced phrase run out of its cell; overflow-wrap breaks it only when it cannot fit on a line of its own.
+  assert.match(printCss({ type: "kid" }), /\.kazoku-info dd \{[^}]*word-break: keep-all; overflow-wrap: anywhere/);
+  assert.match(printCss({ type: "kid" }), /\.kazoku-info dt \{[^}]*word-break: keep-all; overflow-wrap: anywhere/);
   assert.match(printCss({ type: "kid" }), /minmax\(52mm, 1fr\)/);
   assert.match(printCss({ type: "normal" }), /minmax\(38mm, 1fr\)/);
 });
