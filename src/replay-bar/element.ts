@@ -106,7 +106,15 @@ export class ReplayBarElement extends HTMLElement {
     if (!this.#ready || this.#reflecting) return;
     if (name === "playing") this.#play(value !== "off" && value !== null, "set");
     else if (name === "repeat") this.#loop(value !== "off" && value !== null, "set");
-    else if (name === "no-repeat") this.#render();
+    else if (name === "no-repeat") {
+      // A loop that was already on is dropped quietly, so a repeat is never reported once the button is gone.
+      if (this.hasAttribute("no-repeat") && this.#repeat) {
+        this.#repeat = false;
+        this.#reflect("repeat", false);
+        this.#write();
+      }
+      this.#render();
+    }
     else if (name === "steps" || name === "speed") this.#speeds();
     else this.#paint();
   }

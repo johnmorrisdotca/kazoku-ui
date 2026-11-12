@@ -24,6 +24,26 @@ test("no-repeat leaves Repeat out, and back-label names the start button", async
   expect(await page.evaluate(() => window.heard.includes("repeat"))).toBe(false);
 });
 
+test("no-repeat set on a bar that is already looping drops the loop and the button", async ({ page }) => {
+  await page.goto("/replay.html");
+  await page.evaluate(() => {
+    window.heard = [];
+    const el = document.createElement("kazoku-replay-bar");
+    el.id = "late";
+    el.setAttribute("repeat", "");
+    el.addEventListener("kazoku-replay", (event) => window.heard.push(event.detail));
+    document.body.append(el);
+  });
+  await expect(page.locator("#late").locator('button[data-act="repeat"]')).toHaveCount(1);
+  await page.waitForFunction(() => window.heard.length > 0);
+  await page.evaluate(() => { window.heard.length = 0; document.getElementById("late").setAttribute("no-repeat", ""); });
+  await expect(page.locator("#late").locator('button[data-act="repeat"]')).toHaveCount(0);
+  expect(await page.evaluate(() => document.getElementById("late").repeat)).toBe(false);
+  expect(await page.evaluate(() => document.getElementById("late").hasAttribute("repeat"))).toBe(false);
+  await page.locator("#late").locator('button[data-act="play"]').click();
+  expect(await page.evaluate(() => window.heard.every((detail) => detail.repeat === false))).toBe(true);
+});
+
 test("play, pause, start and repeat are one row, a finger wide, and play is in the address", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
