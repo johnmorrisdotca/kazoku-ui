@@ -5,7 +5,7 @@ import { DEFAULT_LIMITS, type Limits, readLimits } from "./math.ts";
 /** A `<kazoku-view-controls for="...">` marks the view it is bound to with this attribute and says so with `BAR_EVENT`: the bar's hands are then the only ones, and the element's stand down until the bar goes. */
 export const BAR_MARK = "data-kazoku-bar";
 export const BAR_EVENT = "kazoku-viewbar";
-/** While a bar is bound, the element says what its limits are with this event, whenever they may have changed: `detail.limits`. The bar uses them under its own `zoom-min`, `zoom-max`, `tilt-max` and `roll-max`. */
+/** While a bar is bound, the element says what its limits are with this event, whenever they may have changed: `detail.limits`, and whether the view is immersive: `detail.immersive`. The bar uses the limits under its own `zoom-min`, `zoom-max`, `tilt-max` and `roll-max`, and follows `immersive` unless the bar itself has that attribute. */
 export const CARRY_EVENT = "kazoku-viewcarry";
 /** The view the element is showing now, so a bound bar keeps it: `detail` is a partial view (`yaw`, `tilt`, `zoom`, and `roll`, `panX`, `panY` when the element has them). The bar takes it and does not send `kazoku-viewchange`. */
 export const SHOW_EVENT = "kazoku-viewshow";
@@ -37,13 +37,25 @@ export interface ElementControls {
  * becomes a block, or no touch would reach it. Nothing starts by itself, so reduced motion has nothing to hold back.
  *
  * The element's attributes are read now and watched: `controls="none"` takes the hands off, and `zoom-min` and `zoom-max` (also `tilt-max` and `roll-max`) set the limits over the `limits` given here,
- * which sit over `DEFAULT_LIMITS`. A `<kazoku-view-controls>` for the same element takes the hands over while it is there.
+ * which sit over `DEFAULT_LIMITS`. `immersive` (the attribute, or `immersive: true`) makes a plain wheel zoom about the pointer and a finger drag turn and tip; a bound bar follows it (`CARRY_EVENT`).
+ * `double-press="off"` (or `doublePress: false`) leaves a double tap alone. Both are read again only when that attribute changes, so a value set on the controller by hand survives a later `zoom-min` change.
+ * A `<kazoku-view-controls>` for the same element takes the hands over while it is there. The bar has its own `double-press`; the element's `double-press` applies to the element's own hands, which stand down while the bar is bound.
+ *
+ * @example
+ * const hands = carryControls(element, { immersive: true, doublePress: false, onChange: (state) => draw(state) });
+ * element.setAttribute("immersive", "");
  */
 export function carryControls(element: HTMLElement, options: CarryOptions): ElementControls {
-  const { on = true, limits, ...rest } = options;
+  const { on = true, limits, immersive, doublePress, ...rest } = options;
   const base = { ...DEFAULT_LIMITS, ...limits };
   const get = (name: string): string | null => element.getAttribute(name);
-  const controller = createViewController({ ...rest, limits: readLimits(get, base) });
+  const immersiveNow = (): boolean => immersive === true || element.hasAttribute("immersive");
+  const doublePressNow = (): boolean => {
+    const attr = get("double-press");
+    if (attr !== null) return attr.trim().toLowerCase() !== "off";
+    return doublePress !== false;
+  };
+  const controller = createViewController({ ...rest, immersive: immersiveNow(), doublePress: doublePressNow(), limits: readLimits(get, base) });
   let off: (() => void) | undefined;
   let gaveTab = false;
   let gaveBlock = false;
@@ -59,12 +71,14 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     gaveTab = false;
   };
 
-  const apply = (): void => {
+  const apply = (changed?: string): void => {
     Object.assign(controller.limits, readLimits(get, base));
+    if (changed === "immersive") controller.immersive = immersiveNow();
+    if (changed === "double-press") controller.doublePress = doublePressNow();
     const { zoom } = controller.state;
     const { zoomMin, zoomMax } = controller.limits;
     if (zoom < zoomMin || zoom > zoomMax) controller.set({ zoom: Math.min(zoomMax, Math.max(zoomMin, zoom)) });
-    if (element.hasAttribute(BAR_MARK)) element.dispatchEvent(new CustomEvent<{ limits: Limits }>(CARRY_EVENT, { detail: { limits: readLimits(get, base) } }));
+    if (element.hasAttribute(BAR_MARK)) element.dispatchEvent(new CustomEvent<{ limits: Limits; immersive: boolean }>(CARRY_EVENT, { detail: { limits: readLimits(get, base), immersive: immersiveNow() } }));
     const asked = get("controls");
     const wanted = asked === null ? on : asked !== "none";
     if (!wanted) hold(true);
@@ -83,9 +97,14 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     }
   };
 
-  const watch = typeof MutationObserver === "function" ? new MutationObserver(apply) : undefined;
-  watch?.observe(element, { attributes: true, attributeFilter: ["controls", "zoom-min", "zoom-max", "tilt-max", "roll-max", BAR_MARK] });
-  element.addEventListener(BAR_EVENT, apply);
+  const watch = typeof MutationObserver === "function" ? new MutationObserver((records) => {
+    const names = records.map((record) => record.attributeName).filter((name): name is string => name !== null);
+    if (names.length === 0) apply();
+    else for (const name of names) apply(name);
+  }) : undefined;
+  watch?.observe(element, { attributes: true, attributeFilter: ["controls", "immersive", "double-press", "zoom-min", "zoom-max", "tilt-max", "roll-max", BAR_MARK] });
+  const onBar = (): void => apply();
+  element.addEventListener(BAR_EVENT, onBar);
   apply();
 
   return {
@@ -100,7 +119,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     },
     unbind() {
       watch?.disconnect();
-      element.removeEventListener(BAR_EVENT, apply);
+      element.removeEventListener(BAR_EVENT, onBar);
       hold(true);
       controller.destroy();
     },

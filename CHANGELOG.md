@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- **A double press can be switched off, or taken by the page** (KAZOKU-UI-121). A double-click or a double tap still zooms to 2× about that point and back to 1×. `double-press="off"` on `<kazoku-view-controls>` or on an element that carries the controls, or `doublePress: false` to `carryControls`, or `doublePress = false` on the controller, leaves the zoom alone. Before the built-in step the view fires `kazoku-doublepress` (`DOUBLE_PRESS_EVENT`), which can be cancelled; `detail` is `{ x, y, zoom, next }`. `preventDefault` skips the built-in step, so a page can use its own stops instead of replacing `zoomAt`. A later change of `zoom-min` does not put a hand-set value back.
+- **An immersive view takes the plain wheel and a finger drag** (KAZOKU-UI-142). `immersive` on `<kazoku-view-controls>` or on the element, `immersive: true` to `carryControls`, or `immersive` on the controller: a plain wheel zooms about the pointer, and a finger drag turns and tips instead of scrolling the page. A bar bound to the element follows the element's `immersive`. A sideways wheel with no `deltaY` is left alone. Ctrl, Command, Alt or Shift with the wheel is unchanged. `checkGestures(page, view, { immersive: true })` checks the plain wheel as a zoom and Shift and the wheel as a move, so a test does not name `wheel-pan` as lacked. A later change of `zoom-min` does not put a hand-set value back.
+
 ## [0.41.1] - 2026-11-12
 
 - **A bound bar keeps a view the element shows itself** (KAZOKU-UI-136). `carryControls` returns `show(view)`. It writes that view onto the element's controller and does not call `onChange`. While a bar is bound, the element sends `kazoku-viewshow` (`SHOW_EVENT`) and the bar takes the same yaw, tilt and zoom without sending `kazoku-viewchange`, so the bar's next change no longer snaps back to the old angle.

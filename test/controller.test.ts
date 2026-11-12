@@ -237,7 +237,7 @@ const fakeBound = () => {
   const press = (x: number, y: number, button = 0, extra: Record<string, unknown> = {}) => listeners.get("pointerdown")?.({ target: {}, composedPath: () => [], pointerId: 1, pointerType: "mouse", clientX: x, clientY: y, shiftKey: false, button, ...extra });
   const move = (x: number, y: number) => listeners.get("pointermove")?.({ pointerId: 1, pointerType: "mouse", clientX: x, clientY: y });
   const pointer = (type: string, id: number, x: number, y: number) => listeners.get(type)?.({ pointerId: id, pointerType: "touch", button: 0, clientX: x, clientY: y, shiftKey: false, target: {}, composedPath: () => [], type });
-  const release = () => listeners.get("pointerup")?.({ pointerId: 1, type: "pointerup", pointerType: "mouse", clientX: 0, clientY: 0, timeStamp: 1e9 });
+  const release = (extra: Record<string, unknown> = {}) => listeners.get("pointerup")?.({ pointerId: 1, type: "pointerup", pointerType: "mouse", clientX: 0, clientY: 0, timeStamp: 1e9, ...extra });
   const enter = () => listeners.get("pointerenter")?.({});
   const holdSpace = () => {
     let stopped = false;
@@ -308,6 +308,40 @@ test("Arrow Up tips like a drag up by default and the other way with keyTilt whe
   assert.equal(wheel.view.state.tilt, 5);
 });
 
+test("a double press zooms to 2 once, off leaves it, and a cancelled event does not zoom", () => {
+  const { view } = make();
+  const hands = fakeBound();
+  const fired: number[] = [];
+  (hands.fakeView as unknown as { dispatchEvent: (event: CustomEvent<{ next: number }>) => boolean }).dispatchEvent = (event) => {
+    fired.push(event.detail.next);
+    return !event.defaultPrevented;
+  };
+  view.bind(hands.fakeView);
+  const tap = (t: number) => {
+    hands.press(200, 150);
+    hands.release({ clientX: 200, clientY: 150, timeStamp: t });
+  };
+  tap(1000);
+  tap(1100);
+  assert.equal(view.state.zoom, 2);
+  assert.deepEqual(fired, [2]);
+  view.doublePress = false;
+  tap(2000);
+  tap(2100);
+  assert.equal(view.state.zoom, 2, "off leaves the zoom");
+  assert.deepEqual(fired, [2], "off fires nothing");
+  view.doublePress = true;
+  (hands.fakeView as unknown as { dispatchEvent: (event: CustomEvent<{ next: number }>) => boolean }).dispatchEvent = (event) => {
+    fired.push(event.detail.next);
+    event.preventDefault();
+    return false;
+  };
+  tap(3000);
+  tap(3100);
+  assert.equal(view.state.zoom, 2, "a cancelled press does not zoom");
+  assert.deepEqual(fired, [2, 1]);
+});
+
 test("a plain wheel moves a zoomed view and leaves Fit to the page; it never turns the view", () => {
   const { view } = make();
   const hands = fakeBound();
@@ -330,6 +364,41 @@ test("a plain wheel moves a zoomed view and leaves Fit to the page; it never tur
   hands.wheel({ deltaX: -30, deltaY: 0, timeStamp: 2200 });
   assert.equal(view.state.panX, -10, "a sideways swipe moves");
   assert.equal(view.state.yaw, 0);
+});
+
+test("immersive ignores a sideways wheel that has no deltaY", () => {
+  const { view } = make({ immersive: true });
+  const hands = fakeBound();
+  view.bind(hands.fakeView);
+  let stopped = false;
+  hands.wheel({ deltaX: -40, deltaY: 0, timeStamp: 1000, preventDefault: () => { stopped = true; } });
+  assert.equal(stopped, false, "a sideways-only wheel is not taken");
+  assert.equal(view.state.zoom, 1, "it is not a zoom");
+  assert.equal(view.state.panX, 0, "and it is not a move");
+});
+
+test("immersive: a plain wheel zooms about the pointer, a finger drag tips, and Shift and the wheel still moves", () => {
+  const { view } = make({ immersive: true });
+  const hands = fakeBound();
+  const style = (hands.fakeView as unknown as { style: { touchAction?: string } }).style;
+  view.bind(hands.fakeView);
+  assert.equal(style.touchAction, "none", "a finger drag is the view's, at Fit too");
+  let stopped = false;
+  hands.wheel({ deltaY: -100, clientX: 300, clientY: 150, timeStamp: 1000, preventDefault: () => { stopped = true; } });
+  assert.equal(stopped, true, "the plain wheel is the view's");
+  assert.ok(view.state.zoom > 1.15 && view.state.zoom < 1.3, `one notch zooms about 1.2 times (${view.state.zoom})`);
+  assert.equal(view.state.panY, 0, "it zooms, it does not move");
+  view.set({ zoom: 2, panX: 0, panY: 0 }, true);
+  hands.wheel({ shiftKey: true, deltaY: 40, timeStamp: 2000 });
+  assert.equal(view.state.zoom, 2, "Shift and the wheel does not zoom");
+  assert.equal(view.state.panX, -40, "Shift and the wheel still moves sideways");
+  view.set({ zoom: 1, panX: 0, panY: 0, yaw: 0, tilt: 0 }, true);
+  hands.pointer("pointerdown", 1, 200, 150);
+  hands.pointer("pointermove", 1, 200, 70);
+  assert.notEqual(view.state.tilt, 0, "a finger drag tips");
+  assert.equal(view.state.panX, 0, "and does not move the view");
+  view.immersive = false;
+  assert.equal(style.touchAction, "pan-y", "turned off, Fit scrolls again");
 });
 
 test("Ctrl, Command or Alt and the wheel zoom about the pointer", () => {
