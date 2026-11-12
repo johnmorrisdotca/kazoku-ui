@@ -820,3 +820,26 @@ test("Space still types in an editable and still presses a focused button inside
   expect(await page.evaluate(() => window.__clicks ?? 0)).toBe(1);
   expect(await cursor()).toBe("");
 });
+
+test("Space still grabs when the view sits inside a link", async ({ page }) => {
+  await ready(page);
+  await page.locator("#scene").evaluate((scene) => {
+    const link = document.createElement("a");
+    link.id = "wrap";
+    link.href = "#kept";
+    scene.parentElement.insertBefore(link, scene);
+    link.append(scene);
+    scene.tabIndex = 0;
+    scene.focus();
+  });
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const result = await page.locator("#scene").evaluate((el) => {
+    const event = new window.KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    el.dispatchEvent(event);
+    return { prevented: event.defaultPrevented, cursor: el.style.cursor, focused: document.activeElement === el };
+  });
+  expect(result.focused).toBe(true);
+  expect(result.prevented).toBe(true);
+  expect(result.cursor).toBe("grab");
+});

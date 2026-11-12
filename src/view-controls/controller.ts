@@ -518,15 +518,22 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       space = false;
       showHand();
     };
-    /** A button, link or text field inside the view: Space belongs to it, even when the event's target is the view and the focus is the control. */
+    /** A button, link or text field inside the view, and not the view. Space belongs to it. The walk stops at the view, so a link or button wrapped around the view does not take Space. */
     const handedTo = (target: EventTarget | null): Element | null => {
+      const control = (start: Element | null): Element | null => {
+        if (start === null || start === view || !view.contains(start)) return null;
+        let node: Element | null = start;
+        while (node !== null && node !== view) {
+          if (node.matches("button, a, [role='button'], input, textarea, select")) return node;
+          if (node.matches("[contenteditable]") && (node.getAttribute("contenteditable") ?? "").toLowerCase() !== "false") return node;
+          node = node.parentElement;
+        }
+        return null;
+      };
       const node = target as Element | null;
-      const fromTarget = node !== null && typeof node.closest === "function" ? node.closest("button, a, [role='button'], input, textarea, select, [contenteditable]") : null;
-      if (fromTarget !== null && view.contains(fromTarget) && (typing(fromTarget) || fromTarget.closest("button, a, [role='button']") !== null)) return fromTarget;
-      const active = view.ownerDocument.activeElement;
-      if (active === null || !view.contains(active)) return null;
-      if (typing(active) || active.closest("button, a, [role='button']") !== null) return active;
-      return null;
+      const fromEvent = control(node !== null && typeof node.matches === "function" ? node : null);
+      if (fromEvent !== null) return fromEvent;
+      return control(view.ownerDocument.activeElement);
     };
     const onSpace = (e?: KeyboardEvent): void => {
       if (!e || (e.key !== " " && e.key !== "Spacebar")) return;
