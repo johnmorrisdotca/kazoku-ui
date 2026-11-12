@@ -706,3 +706,60 @@ test("the three axes can be set by hand, and auto-turn All moves every one", asy
   await expect.poll(() => page.url()).toContain("axis=all");
   await button(page, "play").click();
 });
+
+/** One wheel event sent to the view; resolves to whether the page's default (scrolling, or the browser's own zoom for Ctrl) was prevented. */
+const wheelTaken = (page, init) => page.locator("#scene").evaluate((el, extra) => {
+  const r = el.getBoundingClientRect();
+  const e = new WheelEvent("wheel", { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, cancelable: true, ...extra });
+  el.dispatchEvent(e);
+  return e.defaultPrevented;
+}, init);
+const pageZoom = (page) => page.evaluate(() => ({ scale: window.visualViewport?.scale ?? 1, ratio: window.devicePixelRatio, width: window.innerWidth }));
+
+test("a pinch or Ctrl and the wheel over the view is always the view's, at every zoom including both ends; a plain wheel at an end still passes to the page", async ({ page }) => {
+  await ready(page);
+  const before = await pageZoom(page);
+  const limits = await page.locator(BAR).evaluate((el) => ({ min: el.controller.limits.zoomMin, max: el.controller.limits.zoomMax }));
+  for (const [name, zoom] of [["maximum", limits.max], ["minimum", limits.min], ["Fit", 1]]) {
+    await page.locator(BAR).evaluate((el, z) => el.set({ zoom: z }), zoom);
+    expect((await stateOf(page)).zoom, `at the ${name}`).toBe(zoom);
+    for (const key of ["ctrlKey", "metaKey"]) {
+      for (const deltaY of [-120, 120, -4, 4]) {
+        // Twice, a moment apart: the first event of a pinch and a later one, which the wheel's own pass-through treats differently.
+        expect(await wheelTaken(page, { deltaY, [key]: true }), `${key} ${deltaY} at the ${name}`).toBe(true);
+        await page.waitForTimeout(350);
+        expect(await wheelTaken(page, { deltaY, [key]: true }), `${key} ${deltaY} again at the ${name}`).toBe(true);
+        await page.waitForTimeout(350);
+      }
+    }
+  }
+  expect(await pageZoom(page)).toEqual(before);
+  // A plain wheel turn that starts at the zoom's end is the page's, as documented (here, at Fit, with nothing to move to).
+  await page.locator(BAR).evaluate((el) => el.set({ zoom: 1 }));
+  expect(await wheelTaken(page, { deltaY: 100 })).toBe(false);
+});
+
+test("Safari's page-zoom gestures over the view are prevented, and their scale zooms the view", async ({ page, browserName }) => {
+  test.skip(browserName !== "webkit", "gesturestart, gesturechange and gestureend are Safari's own events");
+  await ready(page);
+  const sent = (type, scale) => page.locator("#scene").evaluate((el, [t, s]) => {
+    const r = el.getBoundingClientRect();
+    const e = new window.MouseEvent(t, { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 });
+    Object.defineProperty(e, "scale", { value: s });
+    el.dispatchEvent(e);
+    return e.defaultPrevented;
+  }, [type, scale]);
+  expect(await sent("gesturestart", 1)).toBe(true);
+  expect(await sent("gesturechange", 1.5)).toBe(true);
+  expect((await stateOf(page)).zoom).toBeCloseTo(1.5, 1);
+  expect(await sent("gesturechange", 0.8)).toBe(true);
+  expect((await stateOf(page)).zoom).toBeCloseTo(0.8, 1);
+  expect(await sent("gestureend", 0.8)).toBe(true);
+  const z = (await stateOf(page)).zoom;
+  expect((await pageZoom(page)).scale).toBe(1);
+  // At the maximum a gesture is still the view's.
+  await page.locator(BAR).evaluate((el) => el.set({ zoom: el.controller.limits.zoomMax }));
+  expect(await sent("gesturestart", 1)).toBe(true);
+  expect(await sent("gesturechange", 2)).toBe(true);
+  expect(z).toBeGreaterThan(0);
+});

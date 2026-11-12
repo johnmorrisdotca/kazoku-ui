@@ -624,14 +624,16 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
 
     // The plain wheel moves the view, and Shift and the wheel moves it sideways. Ctrl, Command or Alt and the wheel, and a pinch, zoom about the pointer.
     // At Fit there is nothing to move, so the plain wheel scrolls the page. Once zoomed in, the wheel moves the view, and a new turn that starts already at the edge of that move scrolls the page again.
-    // A turn that reaches the edge part-way through stays with the view, so the page does not jump. Ctrl or Command and the wheel is always the view's, or the browser would zoom the page.
+    // A turn that reaches the edge part-way through stays with the view, so the page does not jump. Only the PLAIN wheel may pass to the page: a trackpad's pinch arrives as Ctrl and the wheel,
+    // and the browser turns one the view leaves alone into a zoom of the whole page, so Ctrl or Command and the wheel is always the view's, at every zoom and at both ends of the range.
     let wheelTaken = Number.NEGATIVE_INFINITY;
     const onWheel = (e: WheelEvent): void => {
+      const pinch = e.ctrlKey || e.metaKey;
+      if (pinch) e.preventDefault();
       const now = Number.isFinite(e.timeStamp) ? e.timeStamp : 0;
       const continuing = now - wheelTaken < WHEEL_GESTURE_MS && now >= wheelTaken;
       const asked = wheelMove(e, view.getBoundingClientRect().height || 800);
       if (asked.zoom) {
-        const pinch = e.ctrlKey || e.metaKey;
         const factor = wheelZoomFactor(e.deltaY, e.deltaMode, pinch ? "pinch" : "wheel");
         const atEnd = factor >= 1 ? state.zoom >= limits.zoomMax : state.zoom <= limits.zoomMin;
         if (!pinch && atEnd && !continuing) return;
@@ -651,6 +653,21 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       grab();
       take(next);
       emit(true, "wheel");
+    };
+
+    // Safari's trackpad pinch is not a Ctrl and wheel event but gesturestart, gesturechange and gestureend, and Safari zooms the whole page unless each is prevented. `scale` is the pinch's size since it started, so the view zooms to
+    // the zoom it had at the start times the scale, about the fingers' middle. A finger pinch on a touch screen also makes these events (iOS) beside its pointer events, which already zoom the view, so then they are only prevented.
+    let gestureZoom = 1;
+    const onGesture = (e: Event): void => {
+      e.preventDefault();
+      if (e.type === "gesturestart") {
+        gestureZoom = state.zoom;
+        return;
+      }
+      const { scale, clientX, clientY } = e as Event & { scale?: number; clientX?: number; clientY?: number };
+      if (e.type !== "gesturechange" || gesture?.kind === "pinch" || typeof scale !== "number" || !Number.isFinite(scale) || scale <= 0) return;
+      grab();
+      controller.zoomAt(gestureZoom * scale, typeof clientX === "number" && typeof clientY === "number" ? { x: clientX, y: clientY } : undefined);
     };
 
     const onKey = (e: KeyboardEvent): void => {
@@ -687,6 +704,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
     view.addEventListener("pointerenter", onEnter);
     view.addEventListener("pointerleave", onLeave);
     view.addEventListener("wheel", onWheel, { passive: false });
+    view.addEventListener("gesturestart", onGesture);
+    view.addEventListener("gesturechange", onGesture);
+    view.addEventListener("gestureend", onGesture);
     view.addEventListener("keydown", onKey);
     doc.addEventListener?.("keydown", onSpace);
     doc.addEventListener?.("keyup", onSpace);
@@ -703,6 +723,9 @@ export function createViewController(options: ViewControllerOptions = {}): ViewC
       view.removeEventListener("pointerenter", onEnter);
       view.removeEventListener("pointerleave", onLeave);
       view.removeEventListener("wheel", onWheel);
+      view.removeEventListener("gesturestart", onGesture);
+      view.removeEventListener("gesturechange", onGesture);
+      view.removeEventListener("gestureend", onGesture);
       view.removeEventListener("keydown", onKey);
       doc.removeEventListener?.("keydown", onSpace);
       doc.removeEventListener?.("keyup", onSpace);
