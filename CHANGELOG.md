@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Japanese wording in the address state and view controls guides, from the Japanese review of 0.40.1: the readings switch's list of values, the turn held by a hand, Centre, the zoom readout and the wheel at the zoom's limits, `data-level` and the `zoom-slider` part. The words are the guides' own from here on: 上限 and 下限 for the zoom's limits (端 only for the edges of a move), 絵 for a picture, 指定がない for a value not given.
+
 ## [0.40.1] - 2026-11-11
 
 - **The README is shorter** (64,126 characters, past `docs:check`'s 64,000; npm cuts at 65,536). Its view controls section keeps the summary, the gestures, the layouts picture, the plain HTML example, the event and the essential attributes, and links the guides for the rest; what only the README said (Centre's move, the readout's announcement, the wheel at the end of the zoom, `data-level`, the `zoom-slider` part) is now in the view controls guide, in English and Japanese. The event's `reason` lists `centre`. The README is now 45,915 characters.
