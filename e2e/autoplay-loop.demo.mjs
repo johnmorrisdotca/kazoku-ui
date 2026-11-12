@@ -53,6 +53,26 @@ const during = async (page, ms) => {
   await page.evaluate(() => window.__pageFrames(5));
   return page.evaluate(() => ({ ...window.__loop }));
 };
+/** One window of page frames, counted after a reset. The clock is not the measure. */
+const windowOf = (page, frames) => page.evaluate(async (count) => {
+  window.__reset();
+  await window.__pageFrames(count);
+  return { ...window.__loop };
+}, frames);
+/**
+ * The loop at rest: one callback, one change and one frame waiting.
+ * A busy moment can report two before the frame mark arrives, so that window is thrown away.
+ * A loop that really asks for two frames in one page frame never has a quiet window, and this times out.
+ */
+const atRest = async (page) => {
+  let last = { frames: 0, auto: 0, mostInFrame: 0, autoInFrame: 0, mostWaiting: 0 };
+  await expect.poll(async () => {
+    last = await windowOf(page, 8);
+    const quiet = last.frames > 5 && last.auto > 5 && last.mostInFrame === 1 && last.autoInFrame === 1 && last.mostWaiting === 1;
+    return quiet ? "rest" : `frames ${last.frames} auto ${last.auto} mostInFrame ${last.mostInFrame} autoInFrame ${last.autoInFrame} mostWaiting ${last.mostWaiting}`;
+  }, { timeout: 8000 }).toBe("rest");
+  return last;
+};
 const BAR = "kazoku-view-controls";
 const button = (page, name) => page.locator(`${BAR} [data-b="${name}"]`);
 const scrollAway = (page) => page.evaluate(() => {
@@ -78,7 +98,7 @@ test.beforeEach(async ({ page }) => {
 test("while it turns: one frame asked for at a time, one callback and one change a page frame", async ({ page }) => {
   await button(page, "play").click();
   await turns(page);
-  const on = await during(page, 800);
+  const on = await atRest(page);
   expect(on.frames).toBeGreaterThan(5);
   expect(on.auto).toBeGreaterThan(5);
   expect(on.mostInFrame).toBe(1);
@@ -91,7 +111,7 @@ test("a press of Auto-turn after the element moved is one loop, and it stops out
   await button(page, "play").click();
   await expect(button(page, "play")).toHaveAttribute("aria-pressed", "true");
   await turns(page);
-  const on = await during(page, 500);
+  const on = await atRest(page);
   expect(on.auto).toBeGreaterThan(3);
   expect(on.mostInFrame).toBe(1);
   await scrollAway(page);
@@ -116,7 +136,7 @@ test("an autoplay element moved at once is one loop, and it stops out of sight",
     document.body.prepend(el);
   });
   await turns(page);
-  const on = await during(page, 600);
+  const on = await atRest(page);
   expect(on.frames).toBeGreaterThan(3);
   expect(on.mostInFrame).toBe(1);
   expect(on.autoInFrame).toBe(1);

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The autoplay count waits for a quiet window** (KAZOKU-UI-143). A busy moment can report two callbacks before the frame mark arrives, so the count is taken again until a window shows one callback, one change and one frame waiting. A loop that really asks for two frames in one page frame never has that window.
+
 ## [0.42.0] - 2026-11-12
 
 - **A double press can be switched off, or taken by the page** (KAZOKU-UI-121). A double-click or a double tap still zooms to 2× about that point and back to 1×. `double-press="off"` on `<kazoku-view-controls>` or on an element that carries the controls, or `doublePress: false` to `carryControls`, or `doublePress = false` on the controller, leaves the zoom alone. Before the built-in step the view fires `kazoku-doublepress` (`DOUBLE_PRESS_EVENT`), which can be cancelled; `detail` is `{ x, y, zoom, next }`. `preventDefault` skips the built-in step, so a page can use its own stops instead of replacing `zoomAt`. A later change of `zoom-min` does not put a hand-set value back.
