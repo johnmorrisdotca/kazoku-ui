@@ -29,6 +29,8 @@ Run by hand from main (Actions → Release → Run workflow), or by pushing a `v
 6. `npm publish --access public --provenance --ignore-scripts` by trusted publishing: no token, no secret.
 7. With `github-release: true`, makes a GitHub release with the packed tarball (notes from the repo's `scripts/release-notes.mjs` when it has one, else generated).
 
+The job ends at 120 minutes. GitHub's own limit is 360. 120 is twice the slowest release job seen (38 minutes for the whole job on 2026-11-12, an upper bound on its freeze) plus the 35-minute install worst case, rounded up, so the check, the install, the freeze and the publish fit, and a hang still ends.
+
 A rerun of a half-done release is safe: each step looks at what is already there.
 
 ## Calling it
