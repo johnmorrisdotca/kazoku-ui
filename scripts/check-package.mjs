@@ -152,6 +152,12 @@ const PARTS = [
   assert.equal(Math.round(pure.bodyLabelFacing(0, -5, 0) * 180 / Math.PI), 90);
   assert.equal(pure.BODY_LABEL_FONT, "Michroma");`,
   },
+  {
+    name: "collection-picker", tag: "kazoku-collection-picker", cls: "CollectionPickerElement", define: "defineCollectionPicker",
+    pure: ["addId", "indexItems", "moveId", "removeId", "searchItems", "SUGGEST_LIMIT", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.deepEqual(pure.searchItems(pure.indexItems([{ kind: "body", id: "m", name: "Mars" }]), "mar").map((item) => item.id), ["m"]);
+  assert.deepEqual(pure.addId(["a"], "b"), ["a", "b"]);`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";

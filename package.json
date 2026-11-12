@@ -86,7 +86,8 @@
     "./dist/options-window/define.js",
     "./dist/wide-layout/define.js",
     "./dist/page-frame/define.js",
-    "./dist/interface/define.js"
+    "./dist/interface/define.js",
+    "./dist/collection-picker/define.js"
   ],
   "bin": {
     "kazoku-ci-image": "./dist/testing/ci-image-cli.js",
@@ -146,6 +147,21 @@
       "types": "./dist/language-picker/define.d.ts",
       "import": "./dist/language-picker/define.js",
       "default": "./dist/language-picker/define.js"
+    },
+    "./collection-picker": {
+      "types": "./dist/collection-picker/index.d.ts",
+      "import": "./dist/collection-picker/index.js",
+      "default": "./dist/collection-picker/index.js"
+    },
+    "./collection-picker/element": {
+      "types": "./dist/collection-picker/element.d.ts",
+      "import": "./dist/collection-picker/element.js",
+      "default": "./dist/collection-picker/element.js"
+    },
+    "./collection-picker/define": {
+      "types": "./dist/collection-picker/define.d.ts",
+      "import": "./dist/collection-picker/define.js",
+      "default": "./dist/collection-picker/define.js"
     },
     "./address-state": {
       "types": "./dist/address-state/index.d.ts",

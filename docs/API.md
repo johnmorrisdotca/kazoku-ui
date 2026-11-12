@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker"];
 ```
 
 ### Part
@@ -1610,6 +1610,231 @@ import { defineLanguagePicker } from '@johnmorrisdotca/kazoku-ui/language-picker
 
 ```ts
 function defineLanguagePicker(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/collection-picker`
+
+11 values and 4 types.
+
+```js
+import { addId, EVENT, indexItems, languageOf, moveId, removeId, searchItems, SUGGEST_LIMIT, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/collection-picker';
+```
+
+### addId
+
+*function*. `id` at the end, once. An id already chosen is left where it is.
+
+```ts
+function addId(ids: readonly string[], id: string): string[];
+```
+
+### EVENT
+
+*constant*. Fired on the element when the chosen ids change. `detail` is `{ ids, reason }`.
+
+```ts
+const EVENT = "kazoku-collectionchange";
+```
+
+### indexItems
+
+*function*. One folded line per item, built once when the list is handed over, so each keystroke does not rebuild it.
+
+```ts
+function indexItems(items: readonly CollectionItem[]): IndexedItem[];
+```
+
+### languageOf
+
+*constant*. Japanese for a `lang` that starts with ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### moveId
+
+*function*. `id` moved by one place. A missing id, or a move past either end, leaves the list as it was.
+
+```ts
+function moveId(ids: readonly string[], id: string, by: number): string[];
+```
+
+### removeId
+
+*function*. `id` taken out. An unknown id leaves the list as it was.
+
+```ts
+function removeId(ids: readonly string[], id: string): string[];
+```
+
+### searchItems
+
+*function*. The first `limit` items whose folded line holds every word of `query`.
+
+```ts
+function searchItems(index: readonly IndexedItem[], query?: string, limit?: number): CollectionItem[];
+```
+
+### SUGGEST_LIMIT
+
+*constant*. How many suggestions a query shows, unless a caller asks for another number.
+
+```ts
+const SUGGEST_LIMIT = 8;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-collection-picker";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, CollectionWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<CollectionWords>) => CollectionWords;
+```
+
+### CollectionItem
+
+*interface*
+
+```ts
+interface CollectionItem {
+    /** What kind of thing this is. The page decides the words (`body`, `place`). */
+    kind: string;
+    /** Stable id. The chosen list stores these, in order. */
+    id: string;
+    /** The name a reader sees. The page passes it in the reader's language. */
+    name: string;
+    /** A group the name can be searched with. Left out, the item has none. */
+    group?: string;
+    /** Extra words the search should find, besides the name, the kind and the id. */
+    keywords?: readonly string[];
+}
+```
+
+### CollectionWords
+
+*interface*
+
+```ts
+interface CollectionWords {
+    search: string;
+    suggestions: string;
+    chosen: string;
+    add: string;
+    remove: string;
+    up: string;
+    down: string;
+    empty: string;
+    none: string;
+}
+```
+
+### IndexedItem
+
+*interface*
+
+```ts
+interface IndexedItem {
+    item: CollectionItem;
+    hay: string;
+}
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+## `@johnmorrisdotca/kazoku-ui/collection-picker/element`
+
+3 values and 1 type.
+
+```js
+import { CollectionPickerElement, EVENT, TAG } from '@johnmorrisdotca/kazoku-ui/collection-picker/element';
+```
+
+### CollectionPickerElement
+
+*class*. No attributes decide the items: a page sets `items` and reads `value` (the chosen ids, in order).
+
+```ts
+class CollectionPickerElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    get items(): readonly CollectionItem[];
+    set items(items: readonly CollectionItem[]);
+    /** The chosen ids, in order. Setting it reports `reason: "set"`. */
+    get value(): string[];
+    set value(ids: readonly string[]);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(): void;
+}
+```
+
+### EVENT
+
+*constant*. Fired on the element when the chosen ids change. `detail` is `{ ids, reason }`.
+
+```ts
+const EVENT = "kazoku-collectionchange";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-collection-picker";
+```
+
+### CollectionDetail
+
+*interface*. What `kazoku-collectionchange` carries in `detail`.
+
+```ts
+interface CollectionDetail {
+    /** The chosen ids, in the reader's order. */
+    ids: string[];
+    /** `user` is a press or a key. `set` is the `value` property. */
+    reason: "user" | "set";
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/collection-picker/define`
+
+1 value and 0 types.
+
+```js
+import { defineCollectionPicker } from '@johnmorrisdotca/kazoku-ui/collection-picker/define';
+```
+
+### defineCollectionPicker
+
+*function*
+
+```ts
+function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/address-state`
