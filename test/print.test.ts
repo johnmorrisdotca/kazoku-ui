@@ -102,6 +102,10 @@ test("the print CSS names the paper, has no page margin of its own, and hides th
   // The Name is an underline (a bottom border only), not a box, in both presets.
   for (const type of ["kid", "normal"] as const) assert.match(printCss({ type }), /\.kazoku-namefield \{[^}]*border: 0; border-bottom: var\(--kz-line\) solid #000; border-radius: 0;/);
   assert.match(printCss({ type: "normal" }), /--kz-line: 0\.4mm/);
+  // Japanese in the info box breaks at a space, not between kana. A child's column is wide enough for a phrase.
+  assert.match(printCss({ type: "kid" }), /\.kazoku-info dd \{[^}]*word-break: keep-all/);
+  assert.match(printCss({ type: "kid" }), /minmax\(52mm, 1fr\)/);
+  assert.match(printCss({ type: "normal" }), /minmax\(38mm, 1fr\)/);
 });
 
 test("the words are in English and Japanese, every key in both, and the page number fills in", () => {

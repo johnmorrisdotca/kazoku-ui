@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A child's info box does not leave one kana alone on the next line** (KAZOKU-UI-88). Japanese in the info box breaks at a space, not between kana, and a child's sheet gives each fact a wider column so a phrase fits on one line.
+
 ## [0.41.1] - 2026-11-12
 
 - **A bound bar keeps a view the element shows itself** (KAZOKU-UI-136). `carryControls` returns `show(view)`. It writes that view onto the element's controller and does not call `onChange`. While a bar is bound, the element sends `kazoku-viewshow` (`SHOW_EVENT`) and the bar takes the same yaw, tilt and zoom without sending `kazoku-viewchange`, so the bar's next change no longer snaps back to the old angle.
