@@ -14,10 +14,11 @@ description: "The view-controls element in full: what the reader gets, every att
 - **Two levels, so the bar stays simple.** The default, `controls="basic"`, shows one slider and the Auto-turn axis (Angle, Tilt, Roll or All). The slider sets the axis the chips name, and All keeps the angle. Then Auto-turn, zoom out and in with a **zoom readout** (`2.4×`; tap it to go back to Fit), Fit and a small More button. More adds the speed buttons (0.5×, 1×, 2×), which way the turn goes, Front and the arrow pad, and the choice is remembered.
 - A plain left drag, and one finger, turn the view at every zoom (a finger does not tilt, so the page can still scroll at Fit); the hand never changes with the zoom. Shift and a drag rolls, and a two-finger twist rolls. The wheel moves the view, and Shift and the wheel moves it sideways; a two-finger swipe moves it too. Ctrl, Command or Alt with the wheel, or a pinch, zooms about the pointer. Ctrl or Command and a left drag, the middle or right button and a drag, or Space and a drag, moves it, and two fingers dragging together move it too; the pointer is a hand while Space is held. A plain left drag leaves roll alone. At Fit, with nothing to move to, the wheel scrolls the page; once zoomed in, the wheel moves the view, and a new turn that starts at the edge of that move scrolls the page again. With `free-pan` every one of these moves the view at any zoom, zoomed out too, and the view takes every touch.
 - **The turn speeds say how long one turn of the view takes.** They are the family's [speed buttons](speed-buttons.md) at paces of 0.125, 0.25, 0.5 and 1 times `speed`, and each shows its turn's time: 4 min, 2 min, 1 min, 30 s (4分 … 30秒 under 1周 in Japanese), and "The view turns once in 30 seconds" to a screen reader, so they cannot be taken for a clock's speed buttons and their `1×`. While the view turns in the basic level, one small button shows "One turn in" over the time and a press steps to the next. The choice is kept in the `pace` attribute and in the address as `?pace=0.5`. A page that wants faster turns names them in `paces` (`paces="1 4 8"`), and each still shows its time.
-- **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running.
+- **A control never stops or resets the turn.** Zoom, tilt, pan, Fit and Front all leave Auto-turn running (Front only sets the angle to 0, and the turn goes on from there). A hand on the angle slider, or a drag on the view, holds the turn while it is down, and the turn carries on from where the hand left it. Only the Auto-turn button pauses it.
 - Keys on the view: arrows turn and tip it, Shift and Left or Right rolls, `+` and `-` zoom, `0` or Home is Front and Fit.
 - English and Japanese labels, light and dark, 48 px touch targets, a compact bar on a phone, and no automatic turn for a reader who prefers reduced motion.
-- Once the view is zoomed or moved, a **Centre** button (`中央`) puts the object back in the middle at Fit.
+- Once the view is zoomed or moved, a **Centre** button (`中央`) puts the object back in the middle at Fit and the default angle, with a quarter of a second's move (at once for a reader who prefers reduced motion); a hand on the view stops the move where it is. `element.centre()` does the same from code, ending with a change whose `reason` is `centre`. The pan is held so the object cannot be lost: the picture keeps covering the view, or, with `object-size`, a quarter of the object stays in view.
+- The zoom readout is the view's `zoom` (1× is Fit), the one zoom number on the bar, and follows every way the zoom changes. A screen reader is told it ("Zoom level 2.4×") once the zoom has settled for a moment, not at every step of a pinch. The steps of one turn of the wheel that zooms stay with the view even when the zoom reaches its end part-way through, so the page does not jump; a new turn at that end scrolls the page.
 
 ## Use it
 
@@ -54,7 +55,7 @@ Put the element on the view or right beside it, so it is on screen with the view
 | `panX`, `panY` | CSS pixels the picture is moved from the middle of the view; 0 at 1x and below, unless `free-pan` is on. |
 | `turning` | True while Auto-turn is running. |
 | `final` | False for the steps of a drag, a pinch, a slider and the automatic turn; true when something settled. Do the costly drawing on `final`, the cheap transform on every event. |
-| `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `fit-scale`, `play`, `pause` or `set`. |
+| `reason` | What changed it: `init`, `auto`, `drag`, `pinch`, `wheel`, `key`, `slider`, `zoom`, `pan`, `front`, `fit`, `centre`, `fit-scale`, `play`, `pause` or `set`. |
 
 An `init` event is sent once, a moment after the element connects, with the starting view (from the attributes and the address). `element.state` is the current view at any time. The constants `TAG` and `EVENT` name the tag and the event.
 
@@ -83,7 +84,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `tilt-direction`, `roll-direction` | Which way those axes turn, `left` or `right`. Kept as `tiltDirection` and `rollDirection` when they are not to the right. The reader's choice, from the buttons or from the address the page opened with, is written here. |
 | `pace` | The Auto-turn speed as a multiple of `speed`: 1 by default, 0.125, 0.25 and 0.5 on the default buttons. The reader's choice, from the buttons or from the address the page opened with (`?pace=2`), is written here and kept in the address as `pace`, so a page that reads the attribute has the pace the reader sees. The page's own start is the value it last set itself. The buttons are the family's [speed buttons](speed-buttons.md). |
 | `paces` | The speeds the buttons stand for: `0.125 0.25 0.5 1` by default; any numbers (`paces="1 4 8"`), each shown as its turn's time. |
-| `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. |
+| `controls` | `basic` (the default) or `advanced`. What the reader chose with More is remembered in `localStorage` and wins. Setting the attribute later changes the level at once; the host carries `data-level` with the level now. |
 | `layout` | `classic` (the default), `horizontal`, `vertical` or `compact`: see [Layouts and the zoom slider](layouts-and-zoom.md). |
 | `storage` | The `localStorage` key the level is remembered under (`kazoku-view-controls`). |
 | `flat` | The view cannot turn: no angle, tilt, Auto-turn or Front, and a drag moves it. |
@@ -93,7 +94,7 @@ An `init` event is sent once, a moment after the element connects, with the star
 | `theme` | `light` or `dark`; otherwise the page's colour scheme. |
 | `overlay` | Sit over the bottom of a positioned parent. |
 
-Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, tilt, zoom, panX, panY })`, `setFitScale(n)`, and `controller`, the [controller](view-controller.md) behind it. `element.words = { front: "Home" }` replaces labels. The colours are the custom properties `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, and the parts are `bar`, `field`, `slider` and `button`.
+Methods are `play()`, `pause()`, `front()`, `fit()`, `centre()`, `set({ yaw, tilt, zoom, panX, panY })`, `setFitScale(n)`, and `controller`, the [controller](view-controller.md) behind it. `element.words = { front: "Home" }` replaces labels. The colours are the custom properties `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, and the parts are `bar`, `field`, `slider` and `button`, and the zoom slider's `zoom-slider` (on its field and its input).
 
 ## The address
 
