@@ -274,6 +274,36 @@ test("a pace read from the address is written to the pace attribute, and the pag
   expect(plain).toBe("1440");
 });
 
+test("the direction, the axis and the tilt and roll directions read from the address are written to their attributes, and the page's start stays its own", async ({ page }) => {
+  const warnings = warningsOf(page);
+  await ready(page, "?controls=advanced&direction=left&axis=tilt&tiltDirection=left&rollDirection=left");
+  const opened = await page.evaluate((tag) => {
+    document.querySelector(tag).remove();
+    const el = document.createElement(tag);
+    for (const [name, value] of [["address", ""], ["controls", "advanced"]]) el.setAttribute(name, value);
+    document.body.append(el);
+    return Object.fromEntries(["direction", "axis", "tilt-direction", "roll-direction"].map((name) => [name, el.getAttribute(name)]));
+  }, BAR);
+  expect(opened).toEqual({ direction: "left", axis: "tilt", "tilt-direction": "left", "roll-direction": "left" });
+  // the page started the turn to the right (it set no direction): Right on the angle is the start again and leaves the address
+  await button(page, "axis-angle").click();
+  await expect(page.locator(BAR)).not.toHaveAttribute("axis", /./);
+  await button(page, "turn-right").click();
+  await expect(page.locator(BAR)).toHaveAttribute("direction", "right");
+  await addressCheck(warnings, () => expect(page).not.toHaveURL(/[?&]direction=/));
+  // a page opened without them keeps its own attributes
+  const plain = await page.evaluate((tag) => {
+    history.replaceState(null, "", "?controls=advanced");
+    const el = document.createElement(tag);
+    for (const [name, value] of [["address", ""], ["direction", "left"], ["axis", "roll"]]) el.setAttribute(name, value);
+    document.body.append(el);
+    const out = [el.getAttribute("direction"), el.getAttribute("axis")];
+    el.remove();
+    return out;
+  }, BAR);
+  expect(plain).toEqual(["left", "roll"]);
+});
+
 test("a pace read from the address is written to the attribute, and the page's start stays the start", async ({ page }) => {
   const warnings = warningsOf(page);
   await ready(page, "?controls=advanced&pace=0.5");

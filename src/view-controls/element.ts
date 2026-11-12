@@ -87,7 +87,7 @@ const HTML = `
 /**
  * Attributes: `for` (the id of the view to bind), `lang` (en or ja; else the page's), `yaw`, `tilt` (the starting view), `zoom` (`fit`, the default, or a scale where 1
  * is the scene's natural size), `fit-scale` (the page's scale at Fit: what zoom 1 means), `ignore` (a selector for what inside the view a pointer press leaves alone;
- * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice of the Left and Right buttons is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice, from the buttons or from the address the page opened with, is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
+ * buttons, links and form controls by default), `autoplay` (turn by itself from the start, unless the reader prefers reduced motion), `autoplay-for` (stop a turn by itself after this many seconds of turning: the one `autoplay` starts, and one the Play button or `play()` starts), `speed` (degrees a second at a pace of 1; a negative one starts the turn to the left), `direction` (`left` or `right`: which way Auto-turn goes; the reader's choice, from the Left and Right buttons or from the address, is written here and kept in the address as `direction`, and the angle goes on from where it was at the same speed), `pace` (the auto-turn speed as a multiple of `speed`, 1 by default; the reader's choice, from the buttons or from the address the page opened with, is written here and kept in the address as `pace`), `paces` (the speeds the buttons stand for, `0.5 1 2` by default),
  * `anchor` (`x,y`: the point the zoom buttons and keys zoom about, in pixels from the view's middle at Fit), `key-tilt` (`drag`, the default, or `wheel`: which way Arrow Up tips; the wheel itself moves),
  * `controls` (`basic`, the default, or `advanced`: which controls are shown, the zoom readout in both, and the speed in both while the view turns; the reader's own choice with the More button is remembered in localStorage, under `kazoku-view-controls` or the key `storage` names, and wins),
  * `layout` (`classic`, the default, `horizontal`, `vertical` or `compact`: where the controls sit; the horizontal, vertical and compact layouts have the zoom slider),
@@ -249,6 +249,11 @@ export class ViewControlsElement extends HTMLElement {
     const first = this.#start === undefined;
     this.#start ??= this.#startDirection();
     this.#direction = direction ?? (first ? this.#start : this.#direction);
+    // The other choices from the address are the reader's too, and are written to their attributes the same way (after the page's start is read, so it stays the page's).
+    if (direction !== undefined) this.#writeAttribute("direction", direction);
+    if (tiltDirection !== undefined) this.#writeAttribute("tilt-direction", tiltDirection);
+    if (rollDirection !== undefined) this.#writeAttribute("roll-direction", rollDirection);
+    if (axis !== undefined) this.#writeAttribute("axis", axis === "angle" ? null : axis);
     this.#speed();
     c.ignore = this.getAttribute("ignore") ?? DEFAULT_IGNORE;
     for (const name of ["key-tilt", "stop-turn", "tilt-step", "grab-radius", "object-size", "free-pan"]) this.#option(name);
@@ -555,9 +560,15 @@ export class ViewControlsElement extends HTMLElement {
 
   /** Writes the reader's pace to the `pace` attribute, marked as written here so it is not taken for the page's new start. */
   #writePace(pace: number): void {
-    if (this.getAttribute("pace") === String(pace)) return;
+    this.#writeAttribute("pace", String(pace));
+  }
+
+  /** Writes a reader's choice to its attribute (`null` takes it off), marked as written here so it is not taken for a change the page made. */
+  #writeAttribute(name: string, value: string | null): void {
+    if (this.getAttribute(name) === value) return;
     this.#writing = true;
-    this.setAttribute("pace", String(pace));
+    if (value === null) this.removeAttribute(name);
+    else this.setAttribute(name, value);
     this.#writing = false;
   }
 

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The direction, the axis and the tilt and roll directions from the address are written to their attributes** (KAZOKU-UI-137), as the pace is since 0.40.0 (KAZOKU-UI-135). A page opened with `?direction=left&axis=tilt` turned left about the tilt but its `direction` and `axis` attributes still said the page's start, so a page that reads them saw the wrong choice. They are now written when the controls start, marked as the element's own write, so the page's start stays its own (Right on the angle is still the start and leaves the address). One helper writes every such choice. Guides in English and Japanese, and an e2e.
+
 - **`?readings=no` means off** (KAZOKU-UI-138). `parseReadings` took any value it did not know as on, so `?readings=no` or a typo turned the kana readings on. Now `on`, `1`, `true`, `yes` and the bare key (`?readings`) are on, `off`, `0`, `false` and `no` are off (any case, spaces round them ignored), and any other value says nothing: `readReadings` then goes on to the reader's kept choice on the device, else off. Guides in English and Japanese, and a test of each value.
 
 ## [0.40.0] - 2026-11-11
