@@ -23,7 +23,7 @@ on:
         type: string
         default: pnpm check
       freeze-command:
-        description: A package with live 3D sets this to its freeze test (for example `pnpm test:freeze`); it is run in headless Chromium, drawing in software, before anything is published. Empty for a package with no WebGL.
+        description: A package with live 3D sets this to its freeze test (for example `pnpm test:freeze`); Chromium is installed by the bounded Playwright action, then the test runs before anything is published. Empty for a package with no WebGL.
         type: string
         default: ""
       require-ci-workflow:
@@ -113,11 +113,15 @@ jobs:
       - name: The repo's check
         if: env.ON_NPM == 'no'
         run: ${{ inputs.check-command }}
+      # Named by repository and tag, not by a path here: this workflow runs in the caller's checkout, which does not have this action.
+      - name: Browsers for the freeze test
+        if: env.ON_NPM == 'no' && inputs.freeze-command != ''
+        uses: johnmorrisdotca/kazoku-ui/.github/actions/playwright@v0.41.0
+        with:
+          browsers: chromium
       - name: The freeze test (packages with live 3D)
         if: env.ON_NPM == 'no' && inputs.freeze-command != ''
-        run: |
-          pnpm exec playwright install --with-deps chromium
-          ${{ inputs.freeze-command }}
+        run: ${{ inputs.freeze-command }}
       - name: Tag the commit, if the tag is missing
         if: env.TAG_EXISTS == 'no'
         run: |
