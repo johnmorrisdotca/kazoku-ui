@@ -25,7 +25,7 @@ interface Folded {
 /** A hiragana or katakana letter, as hiragana: the two scripts are one to a reader who types either. */
 const kana = (char: string): string => char.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
-const ASCII = /^[\u0000-\u007f]*$/;
+const ASCII = /^[\p{ASCII}]*$/u;
 const MARKS = /[\u0300-\u036f]/g;
 /** A letter with the marks that follow it (an accent, a half-width voiced or half-voiced mark), or marks with no letter before them. */
 const CLUSTER = /[^\p{M}\uFF9E\uFF9F][\p{M}\uFF9E\uFF9F]*|[\p{M}\uFF9E\uFF9F]+/gu;
