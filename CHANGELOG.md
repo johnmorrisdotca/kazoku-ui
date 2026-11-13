@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-11-13
+
 - **A grouped search box** (KAZOKU-UI-147). `<kazoku-search-box>` searches several kinds of thing at once: the page's `source` (`(query, { signal, group }) => groups`) answers with groups (`{ id, label, total, rows }`), the box draws a few rows of each with its count, a row of kind chips and "See all N" narrow to one group (drawn in windows of 20 with "Show more"), and each row carries up to three actions (a toggle such as Favourite keeps `aria-pressed`). Right and Left move across a row's actions with focus kept in the box (`aria-activedescendant` over a grid popup); Enter fires the first action; `kazoku-search-pick` carries `{ id, group, action, pressed }`. It never fetches and holds no data: calls are debounced, the previous one is aborted, and an older answer is dropped. Only what is shown is drawn, one draw for each answer, none for moving the active row. An optional `shortcut` (`/`, `mod+k`) focuses the box and never takes a key from another field. Pure helpers: `rank` (exact, prefix, word start, contains; case, accents, width and kana folded), `highlight`, `planLines` and `createSearchRunner`. English and Japanese words, light and dark, phone width, no motion. A new element rather than an extension of the collection picker, whose contract (a list handed over once, a chosen list) does not fit.
 
 ## [0.43.1] - 2026-11-13
