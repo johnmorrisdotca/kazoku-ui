@@ -1,7 +1,8 @@
 // The search box without the element: ranking, the marked part of a name, the plan of what is drawn, the stale-answer guard, the preview loader and the words. Nothing here touches the DOM, so it imports on a server.
 export { highlight, rank, RANK, type Rank, type Segment } from "./rank.ts";
 export { iconPaths, isSafeColor, isSafeImageUrl, isSafePath, MAX_ICON_PATH, MAX_ICON_TEXT, ROW_ICON_NAMES, rowIconSpec, SEARCH_ICON_NAMES, SEARCH_ICONS, type RowIcon, type RowIconImage, type RowIconName, type RowIconNamed, type RowIconShape, type RowIconSpec, type RowIconText, type SearchIcon, type SearchIconName, type SearchIconPath } from "./icons.ts";
-export { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, MAX_ACTIONS, MAX_FACTS, planLines, PREVIEW_ACTION_ID, previewView, stepIndex, toggleAnnouncement, type PlanLine, type PreviewContext, type PreviewView, type SearchAction, type SearchContext, type SearchFact, type SearchGroup, type SearchPickDetail, type SearchPreview, type SearchPreviewSource, type SearchRow, type SearchSource } from "./model.ts";
+export { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, MAX_ACTIONS, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type PreviewContext, type SearchAction, type SearchContext, type SearchFact, type SearchGroup, type SearchPickDetail, type SearchPreview, type SearchPreviewSource, type SearchRow, type SearchSource } from "./model.ts";
+export { MAX_FACT_LABEL, MAX_FACT_VALUE, MAX_FACTS, MAX_KIND, MAX_PICTURE_ALT, MAX_TITLE, previewView, sanitizePreview, type PreviewView } from "./preview-view.ts";
 export { createPreviewLoader, type PreviewLoader, type PreviewLoaderOptions, type PreviewTarget } from "./preview.ts";
 export { createSearchRunner, type SearchRunner, type SearchRunnerOptions, type SearchTimers } from "./runner.ts";
 export { countPhrase, languageOf, WORDS, wordsFor, type Language, type SearchBoxWords } from "./words.ts";

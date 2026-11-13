@@ -1,7 +1,8 @@
 // The preview pane: one region the box fills with the highlighted row's preview. It is built once and filled again for each preview; it never fetches, and it keeps what it shows until the next preview is ready.
 import { drawPaths, drawRowIcon } from "./draw.ts";
 import { iconPaths } from "./icons.ts";
-import { isActionEnabled, type PreviewView, type SearchAction } from "./model.ts";
+import { isActionEnabled, type SearchAction } from "./model.ts";
+import type { PreviewView } from "./preview-view.ts";
 import type { SearchBoxWords } from "./words.ts";
 
 /** Who the pane is showing, so a press on one of its buttons reaches that row's action. */

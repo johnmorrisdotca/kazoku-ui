@@ -49,7 +49,7 @@ export function iconPaths(icon: SearchIcon | undefined): readonly string[] | und
   if (icon === undefined || icon === null) return undefined;
   if (typeof icon === "string") {
     const name = icon === "eye" ? "show" : icon === "arrow" ? "go" : icon;
-    return name in SEARCH_ICONS ? SEARCH_ICONS[name as keyof typeof SEARCH_ICONS] : SEARCH_ICONS.dot;
+    return Object.hasOwn(SEARCH_ICONS, name) ? SEARCH_ICONS[name as keyof typeof SEARCH_ICONS] : SEARCH_ICONS.dot;
   }
   const own = (Array.isArray(icon.path) ? icon.path : [icon.path]).filter((d): d is string => typeof d === "string");
   return own.length > 0 && own.length <= 6 && own.every(isSafePath) ? own : SEARCH_ICONS.dot;

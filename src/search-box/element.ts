@@ -4,11 +4,12 @@
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
-import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, previewView, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreview, type SearchPreviewSource, type SearchSource } from "./model.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreview, type SearchPreviewSource, type SearchSource } from "./model.ts";
 import { drawPaths, drawRowIcon } from "./draw.ts";
 import { iconPaths, rowIconSpec } from "./icons.ts";
 import { createPreviewPane, type PreviewPane } from "./pane.ts";
 import { createPreviewLoader, type PreviewLoader, type PreviewTarget } from "./preview.ts";
+import { previewView } from "./preview-view.ts";
 import { highlight } from "./rank.ts";
 import { createSearchRunner, type SearchRunner } from "./runner.ts";
 import { STYLES } from "./styles.ts";

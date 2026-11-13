@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, MAX_FACTS, planLines, previewView, stepIndex, toggleAnnouncement, type SearchGroup, type SearchPreview, type SearchRow } from "../src/search-box/model.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type SearchGroup, type SearchPreview, type SearchRow } from "../src/search-box/model.ts";
 import { iconPaths, isSafeColor, isSafeImageUrl, isSafePath, MAX_ICON_TEXT, rowIconSpec, SEARCH_ICONS } from "../src/search-box/icons.ts";
 import { createPreviewLoader, type PreviewTarget } from "../src/search-box/preview.ts";
+import { MAX_FACTS, MAX_FACT_VALUE, MAX_TITLE, previewView, sanitizePreview } from "../src/search-box/preview-view.ts";
 import { highlight, rank, RANK } from "../src/search-box/rank.ts";
 import { createSearchRunner, type SearchTimers } from "../src/search-box/runner.ts";
 import { WORDS, countPhrase, languageOf, wordsFor } from "../src/search-box/words.ts";
@@ -597,4 +598,82 @@ test("a call that has ended is never aborted by the next highlight", async () =>
   advance(0);
   assert.equal(asked[0]?.signal.aborted, false);
   assert.equal(asked[1]?.signal.aborted, false);
+});
+
+test("names that every object has are not built-in icons: they draw the dot, and nothing throws", () => {
+  for (const name of ["toString", "constructor", "__proto__", "hasOwnProperty", "valueOf"]) {
+    assert.deepEqual(iconPaths(name as never), SEARCH_ICONS.dot, name);
+    assert.deepEqual(rowIconSpec(name as never), rowIconSpec("dot"), name);
+    assert.deepEqual(rowIconSpec({ name } as never), rowIconSpec("dot"), name);
+  }
+});
+
+test("a preview of the wrong shape is a plain one, and no text is longer than the pane can use", () => {
+  for (const bad of [5, {}, "x", null, [], () => 1]) {
+    assert.deepEqual(previewView({ id: "a", label: "A" }, "K", { facts: bad } as never).facts, [], String(bad));
+  }
+  assert.equal(sanitizePreview("nonsense"), undefined);
+  assert.equal(sanitizePreview(null), undefined);
+  assert.deepEqual(sanitizePreview({ facts: 5, title: "Mars", kind: 3, picture: 7, pictureAlt: {}, element: "x" }), { title: "Mars" });
+  const messy = sanitizePreview({ facts: [null, 3, { label: 1, value: "x" }, { label: "a", value: "b" }, "text"] });
+  assert.deepEqual(messy?.facts, [{ label: "a", value: "b" }]);
+  const long = sanitizePreview({ title: "t".repeat(5000), kind: "k".repeat(5000), pictureAlt: "p".repeat(5000), facts: [{ label: "l".repeat(5000), value: "v".repeat(5000) }] });
+  assert.equal([...(long?.title ?? "")].length, MAX_TITLE);
+  assert.equal([...(long?.facts?.[0]?.value ?? "")].length, MAX_FACT_VALUE);
+  assert.ok((long?.kind?.length ?? 0) <= 80 && (long?.pictureAlt?.length ?? 0) <= 240 && (long?.facts?.[0]?.label.length ?? 0) <= 60);
+  // idempotent: the checked form is its own checked form
+  assert.deepEqual(sanitizePreview(long), long);
+});
+
+test("a bad answer is checked before it is kept, so it cannot throw at every later highlight; what onShow does is not a failure of the load", async () => {
+  const shown: string[] = [];
+  let asked = 0;
+  let throwOnce = true;
+  const loader = createPreviewLoader({
+    debounceMs: 0,
+    staleMs: 100,
+    cacheSize: 10,
+    timers: { set: (run) => { queueMicrotask(run); return 0; }, clear: () => undefined },
+    fallback: () => async () => {
+      asked += 1;
+      return { facts: 5, title: "T" } as never;
+    },
+    onShow: (target, preview, failed) => {
+      shown.push(`${target.row.id}:${preview?.title ?? "-"}:${failed}`);
+      if (throwOnce) {
+        throwOnce = false;
+        throw new Error("the page's drawing failed");
+      }
+    },
+  });
+  // onShow throwing is the caller's error and is not reported as a failed load
+  loader.highlight("a", { id: "a", label: "A" }, "g");
+  await tick();
+  await tick();
+  assert.deepEqual(shown, ["a:T:false"]);
+  loader.highlight("b", { id: "b", label: "B" }, "g");
+  await tick();
+  await tick();
+  loader.highlight("a", { id: "a", label: "A" }, "g");
+  assert.equal(asked, 2);
+  assert.deepEqual(shown.at(-1), "a:T:false");
+  assert.equal(previewView({ id: "a", label: "A" }, "K", { facts: 5 } as never).title, "A");
+});
+
+test("a failed row is not asked for again by the same highlight: only after another row", async () => {
+  const { loader, asked, shown, advance, row } = previewRig();
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  asked[0]?.reject(new Error("down"));
+  await tick();
+  assert.deepEqual(shown, ["a:-:failed"]);
+  // a repeat of the same highlight (an arrow along the row, a resize) asks for nothing
+  loader.highlight("a", row("a"), "g");
+  loader.highlight("a", row("a"), "g");
+  advance(1000);
+  assert.equal(asked.length, 1);
+  loader.highlight("b", row("b"), "g");
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  assert.equal(asked.length, 2);
 });

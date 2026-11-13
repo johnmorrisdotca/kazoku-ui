@@ -1,5 +1,6 @@
 // Gets the preview of the row the reader has highlighted, one at a time, and never for any other row. Nothing here touches the DOM, so it runs on a server, and a test turns its clock by hand.
 import type { SearchPreview, SearchPreviewSource, SearchRow } from "./model.ts";
+import { sanitizePreview } from "./preview-view.ts";
 import type { SearchTimers } from "./runner.ts";
 
 /** What the loader reports about a row: the cache key it was highlighted with, the row and its group's id. */
@@ -47,7 +48,7 @@ const realTimers: SearchTimers = { set: (run, ms) => setTimeout(run, ms), clear:
 /**
  * The preview loader. A row that carries its preview (an object) shows it at once. A row that carries a function, or the page's `fallback`, is asked after the quiet time and only if it is still the highlighted row; the request has its own `AbortController`
  * and moving to another row aborts it; an answer that arrives after another row was highlighted is dropped. Answers are kept by key (the oldest used go first), so a row highlighted again shows at once and asks for nothing. The pane keeps what it shows until
- * the next answer: nothing is called while a request is out except `onWait` and, later, `onStale`. A failed request is shown as no preview and is not kept, so the next highlight asks again.
+ * the next answer: nothing is called while a request is out except `onWait` and, later, `onStale`. A failed request is shown as no preview and is not kept; the row is asked for again when it is highlighted after another row, not by a repeat of the same highlight.
  *
  * @example
  * const loader = createPreviewLoader({ fallback: () => async (row) => ({ facts: [{ label: "Id", value: row.id }] }), debounceMs: 150, staleMs: 300, cacheSize: 100, onShow: (target, preview) => draw(target.row, preview) });
@@ -87,22 +88,21 @@ export function createPreviewLoader(options: PreviewLoaderOptions): PreviewLoade
     const own = new AbortController();
     controller = own;
     calls += 1;
+    let preview: SearchPreview | undefined;
+    let failed = false;
+    // only the page's function is inside the try: what is done with its answer is not a failure of the load
     try {
-      const preview = await load(target.row, { signal: own.signal, group: target.group });
-      if (mine !== serial || own.signal.aborted) return;
-      // a call that has ended is not aborted later: the next highlight has nothing of it to stop
-      if (controller === own) controller = undefined;
-      clearTimers();
-      keep(target.key, preview ?? undefined);
-      options.onShow(target, preview ?? undefined, false);
+      preview = sanitizePreview(await load(target.row, { signal: own.signal, group: target.group }));
     } catch {
-      if (mine !== serial || own.signal.aborted) return;
-      if (controller === own) controller = undefined;
-      clearTimers();
-      // a failure is shown and not kept, and the next highlight of the row asks again
-      current = undefined;
-      options.onShow(target, undefined, true);
+      failed = true;
     }
+    if (mine !== serial || own.signal.aborted) return;
+    // a call that has ended is not aborted later: the next highlight has nothing of it to stop
+    if (controller === own) controller = undefined;
+    clearTimers();
+    // an answer is kept in its checked form; a failure is shown and not kept, and the row is asked for again only after another row has been highlighted
+    if (!failed) keep(target.key, preview);
+    options.onShow(target, preview, failed);
   };
 
   const cancel = (): void => {
@@ -125,7 +125,7 @@ export function createPreviewLoader(options: PreviewLoaderOptions): PreviewLoade
       const own = row.preview;
       // a preview the row carries is shown as it is each time, and is not kept: the page may send a newer one with its next answer
       if (own !== undefined && typeof own !== "function") {
-        options.onShow(target, own, false);
+        options.onShow(target, sanitizePreview(own), false);
         return;
       }
       if (cache.has(key)) {
@@ -148,7 +148,8 @@ export function createPreviewLoader(options: PreviewLoaderOptions): PreviewLoade
       hasWaiting = true;
       waiting = timers.set(() => {
         hasWaiting = false;
-        void ask(target, load, mine);
+        // an error of the caller's own (in onShow) is reported to the page as any uncaught error is, and is not a failed load
+        ask(target, load, mine).catch((error: unknown) => (globalThis as { reportError?: (error: unknown) => void }).reportError?.(error));
       }, Math.max(0, options.debounceMs));
     },
     cancel,
