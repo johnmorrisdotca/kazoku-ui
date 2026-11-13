@@ -380,18 +380,220 @@ test("the words are Japanese when the page is, and the count is said in Japanese
   await expect(page.locator("kazoku-search-box").locator("[data-kind=all]").first()).toHaveText("5件すべてを見る");
 });
 
-test("the popup fills the box's width, actions are touch-sized, and nothing makes the page scroll sideways", async ({ page }) => {
+test("the popup fills the box's width, and nothing makes the page scroll sideways", async ({ page }) => {
   await ready(page);
   await type(page, "mar");
   const sizes = await page.locator("kazoku-search-box").evaluate((el) => {
     const host = el.getBoundingClientRect();
     const panelBox = el.shadowRoot.querySelector(".panel").getBoundingClientRect();
-    const small = [...el.shadowRoot.querySelectorAll(".row button, .chips button, .row[data-kind]")].filter((b) => b.getBoundingClientRect().height < 47.5).length;
-    return { hostWidth: Math.round(host.width), panelWidth: Math.round(panelBox.width), small, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    return { hostWidth: Math.round(host.width), panelWidth: Math.round(panelBox.width), overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(sizes.panelWidth).toBe(sizes.hostWidth);
-  expect(sizes.small).toBe(0);
   expect(sizes.overflow).toBe(false);
+});
+
+// The compact look. Three actions a row, at a phone's width and a desk's: one line a result, the actions on it, the chips on one row, See all on the heading's line.
+const measure = (page) => page.locator("kazoku-search-box").evaluate((el) => {
+  const root = el.shadowRoot;
+  const box = (node) => {
+    const r = node.getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height };
+  };
+  const results = [...root.querySelectorAll("[role=row][data-i]:not(.extra)")].map((row) => ({ row: box(row), actions: [...row.querySelectorAll("button[data-act]")].map((b) => ({ ...box(b), ovf: b.closest("[data-ovf]") !== null })), more: row.querySelector("button.more:not([hidden])") !== null }));
+  const chipBox = root.querySelector(".chips");
+  const chipButtons = [...chipBox.querySelectorAll("button")].map(box);
+  const groups = [...root.querySelectorAll("[role=rowgroup]")].map((g) => ({ head: box(g.querySelector("[role=rowheader]")), name: box(g.querySelector("[role=rowheader] span")), all: g.querySelector("[data-kind=all]") ? box(g.querySelector("[data-kind=all]")) : null, group: box(g) }));
+  return { coarse: window.matchMedia("(pointer: coarse)").matches, results, chips: { ...box(chipBox), scrollWidth: chipBox.scrollWidth, clientWidth: chipBox.clientWidth, fade: chipBox.getAttribute("data-fade"), buttons: chipButtons }, groups };
+});
+
+for (const width of [360, 1280]) {
+  test(`at ${width} px wide a result is one short line with its three actions on it, the chips are one row, and See all is on the heading`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    const errors = await ready(page);
+    await type(page, "mar");
+    const m = await measure(page);
+    const three = m.results.filter((r) => r.actions.length === 3);
+    expect(three.length, "rows with three actions").toBeGreaterThanOrEqual(2);
+    for (const r of m.results) {
+      // no row taller than 44 px, on a finger or a mouse
+      expect(r.row.height, "row height").toBeLessThanOrEqual(44.5);
+      for (const a of r.actions) {
+        // every action on the row's own line, none behind "more", none wrapped under the name
+        expect(a.ovf).toBe(false);
+        expect(a.top).toBeGreaterThanOrEqual(r.row.top - 0.5);
+        expect(a.bottom).toBeLessThanOrEqual(r.row.bottom + 0.5);
+        expect(a.right).toBeLessThanOrEqual(r.row.right + 0.5);
+        // one size and a target a finger or a mouse can use
+        expect(a.width).toBe(a.height);
+        if (m.coarse) expect(a.height, "touch target").toBeGreaterThanOrEqual(44);
+        else {
+          expect(a.height).toBeGreaterThanOrEqual(28);
+          expect(a.height).toBeLessThanOrEqual(32);
+        }
+      }
+      expect(r.more).toBe(false);
+      if (m.coarse) expect(r.row.height, "touch row").toBeGreaterThanOrEqual(43.5);
+      else expect(r.row.height, "row").toBeLessThanOrEqual(42);
+      // the actions share one size and one line, left to right in order
+      expect(new Set(r.actions.map((a) => Math.round(a.top))).size).toBeLessThanOrEqual(1);
+    }
+    // the chips: one row (every chip at one height), small on a mouse and a target on a finger, scrolling sideways when they do not fit
+    expect(m.chips.buttons.length).toBe(6);
+    expect(new Set(m.chips.buttons.map((b) => Math.round(b.top))).size).toBe(1);
+    for (const b of m.chips.buttons) {
+      if (m.coarse) expect(b.height).toBeGreaterThanOrEqual(44);
+      else expect(b.height).toBeLessThanOrEqual(26);
+    }
+    expect(m.chips.height).toBeLessThanOrEqual(m.coarse ? 52 : 32);
+    if (width === 360) {
+      expect(m.chips.scrollWidth).toBeGreaterThan(m.chips.clientWidth);
+      expect(m.chips.fade).toBe("end");
+    } else {
+      expect(m.chips.scrollWidth).toBeLessThanOrEqual(m.chips.clientWidth);
+      expect(m.chips.fade).toBeNull();
+    }
+    // See all sits on the heading's line, at the right, and not below the rows
+    const craft = m.groups.find((g) => g.all);
+    expect(craft, "a group with See all").toBeTruthy();
+    expect(Math.abs((craft.all.top + craft.all.bottom) / 2 - (craft.head.top + craft.head.bottom) / 2)).toBeLessThanOrEqual(4);
+    expect(craft.all.left).toBeGreaterThanOrEqual(craft.name.right);
+    expect(craft.all.right).toBeGreaterThan(craft.group.right - 12);
+    for (const r of m.results) expect(r.row.top >= craft.all.bottom || r.row.bottom <= craft.all.top || r.row.left >= craft.all.right, "no row beside See all").toBe(true);
+    // the chips' edge fades follow the scroll
+    if (width === 360) {
+      await page.locator("kazoku-search-box").locator(".chips").evaluate((el) => (el.scrollLeft = el.scrollWidth));
+      await expect(page.locator("kazoku-search-box").locator(".chips")).toHaveAttribute("data-fade", "start");
+    }
+    expect(errors).toEqual([]);
+  });
+}
+
+test("a coarse pointer gets 44 px targets, and the chromium phone is one", async ({ page }, info) => {
+  await ready(page);
+  await type(page, "mar");
+  const m = await measure(page);
+  if (info.project.name === "chromium-phone") expect(m.coarse, "the phone project has a coarse pointer").toBe(true);
+  const small = [...m.results.flatMap((r) => [r.row, ...r.actions]), ...m.chips.buttons, ...m.groups.flatMap((g) => (g.all ? [g.all] : []))].filter((b) => b.height < 43.5);
+  if (m.coarse) expect(small.map((b) => `${Math.round(b.width)}x${Math.round(b.height)}`)).toEqual([]);
+  else expect(m.results[0].row.height).toBeLessThan(44);
+});
+
+test("an action with an icon is an icon button with a tooltip and a name, a toggle's star fills when it is on, and one without an icon is a small text button", async ({ page }) => {
+  await ready(page);
+  await type(page, "mars");
+  const mars = rows(page).first();
+  const fav = mars.locator("button[data-act=fav]");
+  await expect(fav).toHaveAttribute("title", "Favourite");
+  await expect(fav).toHaveAccessibleName("Favourite Mars");
+  await expect(mars.locator("button[data-act=show]")).toHaveAttribute("title", "Show");
+  await expect(mars.locator("button[data-act=go]")).toHaveAccessibleName("Go Mars");
+  const fill = () => fav.locator("svg").evaluate((svg) => getComputedStyle(svg).fill);
+  expect(await fill()).toBe("none");
+  await fav.click();
+  await expect(fav).toHaveAttribute("aria-pressed", "true");
+  expect(await fill()).not.toBe("none");
+  await fav.click();
+  await expect(fav).toHaveAttribute("aria-pressed", "false");
+  expect(await fill()).toBe("none");
+  // an icon is drawn from path data by the box, and hidden from a screen reader
+  await expect(fav.locator("svg")).toHaveAttribute("aria-hidden", "true");
+  await expect(fav.locator("svg path")).toHaveCount(1);
+});
+
+// A source of the test's own: its rows, and the box's width.
+const own = async (page, groups, width) => {
+  // the popup opens for a box the reader is in
+  await box(page).focus();
+  await page.locator("kazoku-search-box").evaluate((el, [list, w]) => {
+    if (w) el.style.width = `${w}px`;
+    el.source = () => list;
+    el.value = "x";
+  }, [groups, width]);
+  await expect(heads(page).first()).toBeVisible();
+};
+const row = (id, actions) => ({ id, label: `Row ${id}`, detail: "A detail line", actions });
+
+test("a page's own icon path is drawn, an unsafe one is the dot, and an action without an icon is a small text button, not a pill", async ({ page }) => {
+  await ready(page);
+  await own(page, [{ id: "g", label: "Things", total: 1, rows: [row("a", [{ id: "own", label: "Own", icon: { path: "M4 12h16" } }, { id: "bad", label: "Bad", icon: { path: 'M0 0" onload="x' } }, { id: "text", label: "Plain" }])] }]);
+  const a = rows(page).first();
+  await expect(a.locator("button[data-act=own] path")).toHaveAttribute("d", "M4 12h16");
+  const dot = await a.locator("button[data-act=bad] path").getAttribute("d");
+  expect(dot).toMatch(/^M12 8\.5a3\.5/);
+  await expect(a.locator("button[data-act=bad] svg *")).toHaveCount(1);
+  const text = a.locator("button[data-act=text]");
+  await expect(text).toHaveText("Plain");
+  await expect(text.locator("svg")).toHaveCount(0);
+  const look = await text.evaluate((b) => ({ h: b.getBoundingClientRect().height, radius: parseFloat(getComputedStyle(b).borderTopLeftRadius) }));
+  expect(look.h).toBeLessThanOrEqual(44);
+  expect(look.radius).toBeLessThan(15);
+  expect(await rows(page).first().evaluate((r) => r.getBoundingClientRect().height)).toBeLessThanOrEqual(44.5);
+});
+
+test("on a row too narrow for its actions the last ones go behind one More button, and the keyboard still reaches them", async ({ page }) => {
+  await ready(page);
+  const picks = [];
+  await page.exposeFunction("recordPick", (text) => picks.push(text));
+  await page.locator("kazoku-search-box").evaluate((el) => el.addEventListener("kazoku-search-pick", (event) => window.recordPick(`${event.detail.action}${event.detail.pressed === undefined ? "" : event.detail.pressed ? " on" : " off"}`)));
+  await own(page, [{ id: "g", label: "Things", total: 1, rows: [row("a", [{ id: "one", label: "Show on the map" }, { id: "two", label: "Go there now" }, { id: "three", label: "Favourite this", pressed: false }])] }], 260);
+  const a = rows(page).first();
+  const more = a.locator("button.more");
+  await expect(more).toBeVisible();
+  await expect(more).toHaveAttribute("title", "More actions");
+  // the first stays on the line; the last is behind the button, but every action is still in the grid
+  await expect(a.locator("button[data-act]")).toHaveCount(3);
+  const lay = await a.evaluate((r) => {
+    const box = (n) => n.getBoundingClientRect();
+    const visible = [...r.querySelectorAll("button[data-act]")].filter((b) => !b.closest("[data-ovf]"));
+    return { visible: visible.map((b) => b.dataset.act), row: box(r).height, hidden: [...r.querySelectorAll("[data-ovf] button")].map((b) => box(b).width) };
+  });
+  expect(lay.visible.length).toBeGreaterThanOrEqual(1);
+  expect(lay.visible.length).toBeLessThan(3);
+  expect(lay.row).toBeLessThanOrEqual(44.5);
+  expect(lay.hidden.every((w) => w <= 1.5)).toBe(true);
+  // the arrows move onto an action behind the button, the row shows it under the name, and Enter does it
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  expect((await state(page)).active).toBe("button three");
+  await expect(a).toHaveAttribute("data-more", "");
+  const shown = await a.locator("button[data-act=three]").evaluate((b) => ({ h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width }));
+  expect(shown.h).toBeGreaterThanOrEqual(24);
+  expect(shown.w).toBeGreaterThan(20);
+  await page.keyboard.press("Enter");
+  await expect.poll(() => picks).toEqual(["three on"]);
+  // back to the first action, and the extra line closes
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  await expect(a).not.toHaveAttribute("data-more", "");
+  // a press on the button opens the line for a pointer, and a second press closes it
+  await more.click();
+  await expect(a).toHaveAttribute("data-more", "");
+  await expect(more).toHaveAttribute("aria-expanded", "true");
+  await a.locator("button[data-act=two]").click();
+  await expect.poll(() => picks).toEqual(["three on", "two"]);
+});
+
+test("Tab goes from the box through the kind chips and out; the buttons on the rows are not tab stops; a focused chip and the active action show a ring", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  expect(await page.locator("kazoku-search-box").evaluate((el) => [...el.shadowRoot.querySelectorAll(".row button")].every((b) => b.tabIndex === -1))).toBe(true);
+  await page.keyboard.press("Tab");
+  await expect(chips(page).first()).toBeFocused();
+  const ring = await chips(page).first().evaluate((b) => ({ style: getComputedStyle(b).outlineStyle, width: parseFloat(getComputedStyle(b).outlineWidth) }));
+  expect(ring.style).not.toBe("none");
+  expect(ring.width).toBeGreaterThanOrEqual(2);
+  for (let i = 0; i < 5; i += 1) await page.keyboard.press("Tab");
+  await expect(chips(page).last()).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator("#slow")).toBeFocused();
+  // the active action has a ring too
+  await box(page).focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  const active = page.locator("kazoku-search-box").locator("button[data-active]");
+  await expect(active).toHaveCount(1);
+  expect(await active.evaluate((b) => getComputedStyle(b).boxShadow)).not.toBe("none");
 });
 
 test("the open popup, with a row and an action active, has no accessibility violations in light or dark", async ({ page }) => {

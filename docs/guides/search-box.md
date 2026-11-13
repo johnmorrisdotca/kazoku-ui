@@ -28,7 +28,7 @@ It is its own element, not an extension of [the collection picker](collection-pi
 
 - A **group** is `{ id, label, total, rows }`. `label` is the kind's name in the reader's language. `total` is how many results the kind has in all, which may be more than `rows` holds; it is what the count, the chip and "See all N" say.
 - A **row** is `{ id, label, detail, actions }`. `label` is the name, with the part the query matched marked. `detail` is a second line.
-- An **action** is `{ id, label, pressed, disabled, title }`. A row carries up to three (more are ignored). Leave `pressed` out for a plain button; set it to `true` or `false` for a toggle, which the box draws as a button with `aria-pressed`. Set `disabled` to `true` for an action that cannot be done yet (a kind with nothing to do), and `title` to say why (see "A disabled action" below). A row with no actions has one, `open`, and a press on the row fires it.
+- An **action** is `{ id, label, icon, pressed, disabled, title }`. A row carries up to three (more are ignored). `icon` is what the button wears (see "Action icons" below); left out, the button is small text. Leave `pressed` out for a plain button; set it to `true` or `false` for a toggle, which the box draws as a button with `aria-pressed` (an icon button whose picture fills when it is on). Set `disabled` to `true` for an action that cannot be done yet (a kind with nothing to do), and `title` to say why (see "A disabled action" below). A row with no actions has one, `open`, and a press on the row fires it.
 - `group` is `""` for every group, or the id of the group the reader narrowed to (a chip, or "See all N"). With a group set, answer with that group's whole list (the box draws it in windows of 20), and send the other groups with `rows: []` and their `total` so the chips keep their counts.
 - `signal` is aborted when a newer call replaces this one. A source that can stop its request passes it on; one that cannot is not harmed, because its late answer is dropped.
 
@@ -50,6 +50,47 @@ An empty box never calls the source. After the quiet time (`debounce`, 120 ms) a
 The active row stands for its **first** action: Enter does it, and so does a press on the row's text. Right moves to the second action, then the third, and Enter fires the one it stands on. So Favourite, as the last action, is two Right presses from the row. A page that puts Favourite first makes Enter toggle it.
 
 `kazoku-search-pick` carries `{ id, group, action }` in `detail`, and `pressed` (the new state) for a toggle. The box flips a toggle's `aria-pressed` at once; the page keeps the real state, and its next answer says it. `setPressed(group, id, action, pressed)` syncs it without a new call.
+
+## The compact look
+
+The box is compact by default, and there is no roomy mode: a page that wants bigger things gets them from the reader's own pointer, not from an option.
+
+- **A result is one line** about 40 px tall: the name with the match marked, and under it, quieter and smaller, the `detail`. A name or a detail that is too long ends in an ellipsis rather than wrapping.
+- **Actions are icon buttons** on the right of the row, all one size (30 px), never wrapping under the name. Each has a tooltip (the action's `label`, or a disabled action's `title`) and the accessible name `label row` (`Favourite Mars`). A toggle's star is an outline that fills, and turns to the accent colour, when it is on. An action with no `icon` is a small text button (28 px, rounded corners, not a pill).
+- **A row too narrow for its actions** keeps as many as fit and puts the last ones behind one **More actions** button. A press on it opens them as a line of small buttons under the row. The keyboard does not need the button: Right still moves across every action, behind the button or not, and the row opens that line while the arrows stand on one of them.
+- **The kind chips** are one row of small chips (24 px). When they do not fit they scroll sideways, with a fade at each edge that has more beyond it, and the counts are drawn in a lighter weight. Tab moves between them as before.
+- **A group's heading** is small, with its count, and `See all N` is on the same line at the right, not below the rows.
+- **On a finger** (`pointer: coarse`) every row, icon button, chip and `See all` grows to a 44 px target.
+
+## Action icons
+
+`icon` on an action is one of the built-in names, or the page's own path data.
+
+| `icon` | Draws |
+|---|---|
+| `"star"` | A star outline; it fills when a toggle is on |
+| `"show"` (or `"eye"`) | An eye |
+| `"go"` (or `"arrow"`) | An arrow |
+| `"dot"` | A small dot, for an action with no picture of its own |
+| `{ path: "M4 12h16" }` | The page's own picture: SVG path data on a 24 by 24 grid, one string or an array of up to six. It is stroked 1.75 wide with round ends, the same as the built-in ones, and a toggle that is on fills it |
+
+An unknown name, and path data that is not safe, are drawn as the dot, so a mistake is seen and nothing is dropped. The box builds the picture node by node from the path data and never from a string of markup, and it accepts only the path commands (`MLHVCSQTAZ`, either case), numbers, signs, commas and spaces, up to 800 characters, so a page's icon cannot add an element, an attribute or a script. The picture is hidden from a screen reader; the button's name comes from `label`.
+
+```html
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/search-box/define";
+  const box = document.querySelector("kazoku-search-box");
+  box.source = async () => [
+    { id: "planets", label: "Planets", total: 1, rows: [{ id: "mars", label: "Mars", detail: "Planet", actions: [
+      { id: "show", label: "Show", icon: "show" },
+      { id: "go", label: "Go", icon: { path: ["M4.5 12h14", "M13 6.5l5.5 5.5-5.5 5.5"] } },
+      { id: "fav", label: "Favourite", icon: "star", pressed: false },
+    ] }] },
+  ];
+</script>
+
+<kazoku-search-box lang="en"></kazoku-search-box>
+```
 
 ## A disabled action
 
@@ -95,7 +136,7 @@ The chips are `All` and one button for each group the answer has, each with its 
 | `placeholder` | The hint in the empty box. Left out or empty, the word for Search in the box's language (`Search`, `検索`); set, it is shown as written, in any language. Also a property: it reads as the text shown, and setting it writes the attribute. The box's accessible name stays `Search` |
 | `shortcut` | Keys that focus the box: `/`, `mod+k` (Control or Command), `ctrl+k`, `meta+k`, `alt+s`, several with spaces. Never takes a key while the reader types in a field |
 
-`close()` closes the popup, `clear()` empties the box, `focus()` focuses it. It is themed through the family's `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, in light and dark. On a phone the popup fills the box's width, rows put their actions under the name, and every button is at least 44 px. Nothing moves, so there is no motion to turn off.
+`close()` closes the popup, `clear()` empties the box, `focus()` focuses it. It is themed through the family's `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, in light and dark. The popup fills the box's width, and on a finger every target is at least 44 px (see "The compact look"). Nothing moves, so there is no motion to turn off.
 
 ## Words
 
@@ -117,6 +158,7 @@ The words come in English and Japanese; every key is in both (`WORDS`, `wordsFor
 | `kindCount` | {label} {n} | {label}{n}件 |
 | `join` | , | 、 |
 | `open` | Open | 開く |
+| `more` | More actions | その他の操作 |
 | `on` | on | オン |
 | `off` | off | オフ |
 
@@ -140,4 +182,4 @@ const runner = createSearchRunner({
 runner.request("vega");
 ```
 
-Also exported: `planLines` (what is drawn for an answer), `chipsOf`, `announcement`, `toggleAnnouncement`, `isActionEnabled`, `actionsOf`, `stepIndex`, `MAX_ACTIONS`, `countPhrase`, `languageOf`, `EVENT` and `TAG`. `SearchBoxElement` is the class, and `defineSearchBox` registers the tag and does nothing if it is already taken.
+Also exported: `iconPaths`, `isSafePath`, `MAX_ICON_PATH` (800), `SEARCH_ICONS`, `SEARCH_ICON_NAMES`, `actionsFit` (how many of a row's actions fit on its line), `planLines` (what is drawn for an answer), `chipsOf`, `announcement`, `toggleAnnouncement`, `isActionEnabled`, `actionsOf`, `stepIndex`, `MAX_ACTIONS`, `countPhrase`, `languageOf`, `EVENT` and `TAG`. `SearchBoxElement` is the class, and `defineSearchBox` registers the tag and does nothing if it is already taken.

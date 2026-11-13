@@ -2011,10 +2011,18 @@ function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/search-box`
 
-18 values and 14 types.
+24 values and 17 types.
 
 ```js
-import { actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, isActionEnabled, languageOf, MAX_ACTIONS, planLines, rank, RANK, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+import { actionsFit, actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, iconPaths, isActionEnabled, isSafePath, languageOf, MAX_ACTIONS, MAX_ICON_PATH, planLines, rank, RANK, SEARCH_ICON_NAMES, SEARCH_ICONS, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+```
+
+### actionsFit
+
+*function*. How many of a row's actions to draw on its line. `room` is the width the actions may use (the row's width less the name's smallest share), `widths` is each action's own width,
+
+```ts
+function actionsFit(room: number, widths: readonly number[], moreWidth: number, gap: number): number;
 ```
 
 ### actionsOf
@@ -2077,12 +2085,28 @@ const EVENT = "kazoku-search-pick";
 function highlight(text: string, query: string): Segment[];
 ```
 
+### iconPaths
+
+*function*. The path data to draw for an action's `icon`, or `undefined` when it has none (the action is then a text button). A built-in name gives its paths; an unknown name, or a page's own
+
+```ts
+function iconPaths(icon: SearchIcon | undefined): readonly string[] | undefined;
+```
+
 ### isActionEnabled
 
 *constant*. Whether an action can be done: every action can, unless the page set `disabled`.
 
 ```ts
 const isActionEnabled: (action: SearchAction) => boolean;
+```
+
+### isSafePath
+
+*constant*. Whether a string is path data this box will draw: only the path commands, numbers, signs, commas and spaces, and not longer than `MAX_ICON_PATH`.
+
+```ts
+const isSafePath: (d: string) => boolean;
 ```
 
 ### languageOf
@@ -2099,6 +2123,14 @@ const languageOf: (lang: string | null | undefined) => Language;
 
 ```ts
 const MAX_ACTIONS = 3;
+```
+
+### MAX_ICON_PATH
+
+*constant*. The most characters of path data a page's own icon may have (one string).
+
+```ts
+const MAX_ICON_PATH = 800;
 ```
 
 ### planLines
@@ -2129,6 +2161,22 @@ const RANK: {
     readonly prefix: 3;
     readonly exact: 4;
 };
+```
+
+### SEARCH_ICON_NAMES
+
+*constant*. The names of the built-in icons. `eye` and `arrow` are other names for `show` and `go`.
+
+```ts
+const SEARCH_ICON_NAMES: readonly ["star", "show", "go", "dot", "eye", "arrow"];
+```
+
+### SEARCH_ICONS
+
+*constant*. The paths of each built-in icon, on the 24 grid.
+
+```ts
+const SEARCH_ICONS: Readonly<Record<"star" | "show" | "go" | "dot", readonly string[]>>;
 ```
 
 ### stepIndex
@@ -2218,8 +2266,10 @@ type Rank = (typeof RANK)[keyof typeof RANK];
 interface SearchAction {
     /** What `kazoku-search-pick` reports in `detail.action`. */
     id: string;
-    /** The word on the button, and for a screen reader the word and the row (`Favourite Mars`). */
+    /** The word for the action: its tooltip, and for a screen reader the word and the row (`Favourite Mars`). Drawn as text on the button when the action has no `icon`. */
     label: string;
+    /** What the button wears: a built-in name (`star`, `show`, `go`, `dot`) or the page's own path data (`{ path: "M4 12h16" }`, on a 24 by 24 grid). Left out, the action is a small text button. */
+    icon?: SearchIcon;
     /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
     pressed?: boolean;
     /** Set to true when the action cannot be done now (a kind with nothing to do yet). It is drawn dimmed and marked `aria-disabled`; Enter, a press and a press on the row's text (for the first action) do nothing and report nothing. The arrows still reach it, so a reader hears why. */
@@ -2265,6 +2315,8 @@ interface SearchBoxWords {
     join: string;
     /** What a row without actions of its own does, as an action id's label. */
     open: string;
+    /** The name of the button that holds the actions that do not fit on a narrow row. */
+    more: string;
     /** A toggle action's new state when it is on, said after the row (`Favourite Mars, on`). */
     on: string;
     /** A toggle action's new state when it is off. */
@@ -2299,6 +2351,32 @@ interface SearchGroup {
     total: number;
     /** The rows to draw. The box draws a few of them (`per-group`), or a window of them once narrowed. */
     rows: readonly SearchRow[];
+}
+```
+
+### SearchIcon
+
+*type*. What an action's `icon` can be.
+
+```ts
+type SearchIcon = SearchIconName | SearchIconPath;
+```
+
+### SearchIconName
+
+*type*
+
+```ts
+type SearchIconName = (typeof SEARCH_ICON_NAMES)[number];
+```
+
+### SearchIconPath
+
+*interface*. A page's own icon: SVG path data (`d`) on a 24 by 24 grid, one string or several. Stroked, so draw it as lines; a toggle that is on fills it.
+
+```ts
+interface SearchIconPath {
+    path: string | readonly string[];
 }
 ```
 

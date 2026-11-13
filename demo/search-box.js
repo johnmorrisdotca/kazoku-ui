@@ -170,7 +170,7 @@ box.source = async (query, { group }) => {
         id: item.id,
         label: lang === "ja" ? item.ja : item.en,
         detail: DETAIL[lang][kind],
-        actions: ACTIONS[kind].map((action) => (action === "fav" ? { id: "fav", label: words.fav, pressed: favourites.has(`${kind}:${item.id}`) } : { id: action, label: words[action], ...(kind === "places" ? { disabled: true, title: words.noMaps } : {}) })),
+        actions: ACTIONS[kind].map((action) => (action === "fav" ? { id: "fav", label: words.fav, icon: "star", pressed: favourites.has(`${kind}:${item.id}`) } : { id: action, label: words[action], icon: action === "show" ? "show" : "go", ...(kind === "places" ? { disabled: true, title: words.noMaps } : {}) })),
       })),
     };
   }).filter((one) => one.total > 0);

@@ -3,7 +3,8 @@
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
-import { actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchSource } from "./model.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchSource } from "./model.ts";
+import { iconPaths } from "./icons.ts";
 import { highlight } from "./rank.ts";
 import { createSearchRunner, type SearchRunner } from "./runner.ts";
 import { STYLES } from "./styles.ts";
@@ -23,6 +24,9 @@ interface NavEntry {
   /** The row's own text cell, which stands for its first action, then one cell for each action. */
   main: HTMLElement;
   cells: HTMLElement[];
+  /** The button that holds the actions that do not fit, and how many actions are drawn on the row's line (all of them unless the row is narrow). */
+  more?: HTMLButtonElement;
+  shown: number;
 }
 
 type Mode = "idle" | "busy" | "answer" | "failed";
@@ -30,6 +34,9 @@ type Mode = "idle" | "busy" | "answer" | "failed";
 const DEFAULT_DEBOUNCE = 120;
 const DEFAULT_PER_GROUP = 3;
 const DEFAULT_WINDOW = 20;
+/** The least width a row keeps for its name before actions go behind "more". */
+const MIN_NAME_WIDTH = 96;
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 const whole = (value: string | null, fallback: number, min = 0): number => {
   const n = Number(value);
@@ -100,6 +107,9 @@ export class SearchBoxElement extends HTMLElement {
   #flips = new Map<string, boolean>();
   #chipKey = "";
   #lines: PlanLine[] = [];
+  #ro?: ResizeObserver;
+  /** The row (by its index) whose overflowed actions a press on "more" opened, or -1. */
+  #moreOpen = -1;
   #listening = false;
   #uid = 0;
   /** True while the box gives its own focus back to itself, so the focus handler does not reopen a popup that was just closed. */
@@ -163,11 +173,17 @@ export class SearchBoxElement extends HTMLElement {
     this.#mount();
     this.#paintWords();
     this.#listen();
+    // the popup's width decides how many actions a row can show and whether the chips fade at an edge; both are read again when it changes, and when it is first shown
+    if (typeof ResizeObserver !== "undefined") {
+      this.#ro ??= new ResizeObserver(() => this.#measure());
+      this.#ro.observe(this.#el(".panel"));
+    }
   }
 
   disconnectedCallback(): void {
     this.#stop?.();
     this.#stop = undefined;
+    this.#ro?.disconnect();
     this.#runner.cancel();
     if (this.#mode === "busy") this.#mode = this.#nav.length > 0 ? "answer" : "idle";
     this.#root.querySelector("#grid")?.removeAttribute("aria-busy");
@@ -193,6 +209,7 @@ export class SearchBoxElement extends HTMLElement {
   /** Close the popup and keep the text. */
   close(): void {
     this.#closed = true;
+    this.#moreOpen = -1;
     this.#sync();
   }
 
@@ -297,6 +314,7 @@ export class SearchBoxElement extends HTMLElement {
       }
     });
     // a press on the popup must not take the focus from the box, or the keyboard would be left behind
+    chips.addEventListener("scroll", () => this.#fades(), { passive: true });
     panel.addEventListener("mousedown", (event) => event.preventDefault());
     panel.addEventListener("click", (event) => this.#onClick(event));
   }
@@ -423,6 +441,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#draws += 1;
     grid.replaceChildren();
     this.#nav = [];
+    this.#moreOpen = -1;
     let section: HTMLElement | undefined;
     for (const line of this.#lines) {
       if (line.type === "header") {
@@ -430,6 +449,7 @@ export class SearchBoxElement extends HTMLElement {
         section.setAttribute("role", "rowgroup");
         const head = doc.createElement("div");
         head.setAttribute("role", "row");
+        head.className = "head";
         const cell = doc.createElement("div");
         cell.setAttribute("role", "rowheader");
         cell.className = "gh";
@@ -450,6 +470,7 @@ export class SearchBoxElement extends HTMLElement {
     }
     this.#paintChips();
     this.#sync();
+    this.#measure();
   }
 
   #drawLine(line: NavLine, query: string, words: SearchBoxWords): HTMLElement {
@@ -467,7 +488,7 @@ export class SearchBoxElement extends HTMLElement {
     text.className = "label";
     main.id = `m${(this.#uid += 1)}`;
     main.setAttribute("aria-selected", "false");
-    const entry: NavEntry = { line, el, actions: [], buttons: [], main, cells: [] };
+    const entry: NavEntry = { line, el, actions: [], buttons: [], main, cells: [], shown: 0 };
     if (line.type === "row") {
       for (const part of highlight(line.row.label, query)) {
         if (part.match) {
@@ -485,6 +506,7 @@ export class SearchBoxElement extends HTMLElement {
       }
       el.append(main);
       entry.actions = actionsOf(line.row, words.open);
+      entry.shown = entry.actions.length;
       if (line.row.actions && line.row.actions.length > 0) {
         entry.actions.forEach((action, c) => {
           const cell = doc.createElement("div");
@@ -497,7 +519,25 @@ export class SearchBoxElement extends HTMLElement {
           button.tabIndex = -1;
           button.id = `a${(this.#uid += 1)}`;
           button.dataset.act = action.id;
-          button.textContent = action.label;
+          const paths = iconPaths(action.icon);
+          if (paths) {
+            // an icon button: the picture, with the word kept for a tooltip, the menu of a narrow row, and the accessible name below
+            button.className = "ic";
+            button.title = action.label;
+            const svg = doc.createElementNS(SVG_NS, "svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("aria-hidden", "true");
+            svg.setAttribute("focusable", "false");
+            for (const d of paths) {
+              const path = doc.createElementNS(SVG_NS, "path");
+              path.setAttribute("d", d);
+              svg.append(path);
+            }
+            const lab = doc.createElement("span");
+            lab.className = "lab";
+            lab.textContent = action.label;
+            button.append(svg, lab);
+          } else button.textContent = action.label;
           button.setAttribute("aria-label", `${action.label} ${line.row.label}`);
           const flipped = this.#flips.get(`${line.group.id}\u0000${line.row.id}\u0000${action.id}`);
           const pressed = flipped ?? action.pressed;
@@ -572,6 +612,81 @@ export class SearchBoxElement extends HTMLElement {
       if (focused !== undefined) (box.querySelector<HTMLButtonElement>(`button[data-chip="${CSS.escape(focused)}"]`) ?? box.querySelector<HTMLButtonElement>("button"))?.focus();
     }
     for (const button of box.querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.chip ?? "") === this.#narrowed));
+    this.#fades();
+  }
+
+  /** Read the popup's width: which actions each row can show, and whether the chips run past an edge. Nothing is read while the popup is hidden; its first showing is a change of size, which calls this again. */
+  #measure(): void {
+    this.#fit();
+    this.#fades();
+  }
+
+  /** The chips scroll sideways rather than wrap; an edge with more beyond it fades. */
+  #fades(): void {
+    const box = this.#root.querySelector<HTMLElement>(".chips");
+    if (!box) return;
+    const room = box.scrollWidth - box.clientWidth;
+    const start = room > 1 && box.scrollLeft > 1;
+    const end = room > 1 && box.scrollLeft < room - 1;
+    const fade = [start ? "start" : "", end ? "end" : ""].filter(Boolean).join(" ");
+    if (fade === "") box.removeAttribute("data-fade");
+    else box.setAttribute("data-fade", fade);
+  }
+
+  /** On a row too narrow for its actions, the last ones go behind the "more" button. Every action stays in the grid, so the arrows still reach them; only their place on the row changes. */
+  #fit(): void {
+    const panel = this.#root.querySelector<HTMLElement>(".panel");
+    if (!panel || panel.hidden || panel.clientWidth === 0) return;
+    const view = this.ownerDocument.defaultView;
+    for (const entry of this.#nav) {
+      if (entry.actions.length < 2) continue;
+      // measure with every action on the line
+      entry.el.removeAttribute("data-more");
+      for (const cell of entry.cells) cell.removeAttribute("data-ovf");
+      if (entry.more) entry.more.hidden = true;
+      const style = view?.getComputedStyle(entry.el);
+      const pad = (parseFloat(style?.paddingLeft ?? "0") || 0) + (parseFloat(style?.paddingRight ?? "0") || 0);
+      const gap = parseFloat(style?.columnGap ?? "0") || 0;
+      const room = entry.el.clientWidth - pad - MIN_NAME_WIDTH - gap;
+      const widths = entry.buttons.map((button) => button.getBoundingClientRect().width);
+      let shown = actionsFit(room, widths, 0, gap);
+      if (shown < widths.length) {
+        // the button is made only for a row that needs it
+        const more = entry.more ?? this.#makeMore(entry);
+        more.hidden = false;
+        shown = actionsFit(room, widths, more.getBoundingClientRect().width, gap);
+      }
+      entry.shown = shown;
+      entry.cells.forEach((cell, c) => cell.toggleAttribute("data-ovf", c >= shown));
+    }
+    this.#mark();
+  }
+
+  /** The one button for the actions that do not fit: a pointer's way to them, since the keyboard reaches every action with the arrows. Hidden from a screen reader, which has them in the grid. */
+  #makeMore(entry: NavEntry): HTMLButtonElement {
+    const doc = this.ownerDocument;
+    const more = doc.createElement("button");
+    more.type = "button";
+    more.tabIndex = -1;
+    more.className = "ic more";
+    more.setAttribute("aria-hidden", "true");
+    more.setAttribute("aria-expanded", "false");
+    more.title = this.#words().more;
+    const svg = doc.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    for (const d of ["M5.5 12h.01", "M12 12h.01", "M18.5 12h.01"]) {
+      const path = doc.createElementNS(SVG_NS, "path");
+      path.setAttribute("d", d);
+      svg.append(path);
+    }
+    more.append(svg);
+    const brk = doc.createElement("div");
+    brk.className = "brk";
+    brk.setAttribute("aria-hidden", "true");
+    entry.el.append(more, brk);
+    entry.more = more;
+    return more;
   }
 
   #chipsKept: Array<{ id: string; label: string; total: number }> = [];
@@ -626,6 +741,7 @@ export class SearchBoxElement extends HTMLElement {
       }
       this.#active = stepIndex(this.#active, this.#nav.length, key === "ArrowDown" ? 1 : -1);
       this.#col = 0;
+      this.#moreOpen = -1;
       this.#mark();
     } else if (key === "ArrowRight" || key === "ArrowLeft") {
       // across the active row's actions; with no row active, or at the end of its actions, the arrows move the caret as they do in any field
@@ -660,6 +776,10 @@ export class SearchBoxElement extends HTMLElement {
     // the box's `aria-activedescendant` always names a gridcell: the row's text cell for its first action, or the cell of the action the arrows reached
     this.#nav.forEach((entry, i) => {
       const on = i === this.#active;
+      // the actions behind "more" are shown under the row while the arrows stand on one of them, or after a press on the button
+      const open = entry.shown < entry.actions.length && ((on && this.#col >= entry.shown) || this.#moreOpen === i);
+      entry.el.toggleAttribute("data-more", open);
+      entry.more?.setAttribute("aria-expanded", String(open));
       entry.el.setAttribute("aria-selected", String(on));
       entry.main.setAttribute("aria-selected", String(on && this.#col === 0));
       entry.buttons.forEach((button, c) => {
@@ -690,6 +810,12 @@ export class SearchBoxElement extends HTMLElement {
     const row = target?.closest<HTMLElement>("[role=row][data-i]");
     const entry = row ? this.#nav[Number(row.dataset.i)] : undefined;
     if (!row || !entry) return;
+    if (target?.closest("button.more")) {
+      const i = Number(row.dataset.i);
+      this.#moreOpen = this.#moreOpen === i ? -1 : i;
+      this.#mark();
+      return;
+    }
     const button = target?.closest<HTMLButtonElement>("button[data-act]");
     this.#activate(entry, button ? Math.max(0, entry.buttons.indexOf(button)) : 0);
   }

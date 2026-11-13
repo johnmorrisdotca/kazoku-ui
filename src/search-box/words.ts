@@ -30,6 +30,8 @@ export interface SearchBoxWords {
   join: string;
   /** What a row without actions of its own does, as an action id's label. */
   open: string;
+  /** The name of the button that holds the actions that do not fit on a narrow row. */
+  more: string;
   /** A toggle action's new state when it is on, said after the row (`Favourite Mars, on`). */
   on: string;
   /** A toggle action's new state when it is off. */
@@ -55,6 +57,7 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     kindCount: "{label} {n}",
     join: ", ",
     open: "Open",
+    more: "More actions",
     on: "on",
     off: "off",
   },
@@ -74,6 +77,7 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     kindCount: "{label}{n}件",
     join: "、",
     open: "開く",
+    more: "その他の操作",
     on: "オン",
     off: "オフ",
   },

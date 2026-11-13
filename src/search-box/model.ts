@@ -1,12 +1,15 @@
 // What a page's source returns, and the plan of what the box draws from it. Nothing here touches the DOM, so it imports on a server.
+import type { SearchIcon } from "./icons.ts";
 import { countPhrase, type SearchBoxWords } from "./words.ts";
 
 /** What a row can do. A row carries up to three. */
 export interface SearchAction {
   /** What `kazoku-search-pick` reports in `detail.action`. */
   id: string;
-  /** The word on the button, and for a screen reader the word and the row (`Favourite Mars`). */
+  /** The word for the action: its tooltip, and for a screen reader the word and the row (`Favourite Mars`). Drawn as text on the button when the action has no `icon`. */
   label: string;
+  /** What the button wears: a built-in name (`star`, `show`, `go`, `dot`) or the page's own path data (`{ path: "M4 12h16" }`, on a 24 by 24 grid). Left out, the action is a small text button. */
+  icon?: SearchIcon;
   /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
   pressed?: boolean;
   /** Set to true when the action cannot be done now (a kind with nothing to do yet). It is drawn dimmed and marked `aria-disabled`; Enter, a press and a press on the row's text (for the first action) do nothing and report nothing. The arrows still reach it, so a reader hears why. */
@@ -84,6 +87,23 @@ export type PlanLine =
 export function actionsOf(row: SearchRow, openLabel = "Open"): SearchAction[] {
   const own = (row.actions ?? []).slice(0, MAX_ACTIONS);
   return own.length > 0 ? own : [{ id: "open", label: openLabel }];
+}
+
+/**
+ * How many of a row's actions to draw on its line. `room` is the width the actions may use (the row's width less the name's smallest share), `widths` is each action's own width,
+ * `moreWidth` the width of the one button that holds the rest, and `gap` the space between buttons. All of them when they fit; otherwise as many as leave room for the "more" button,
+ * and never fewer than one. A lone action is never put behind "more".
+ *
+ * @example
+ * actionsFit(200, [30, 30, 30], 30, 4); // 3
+ * actionsFit(100, [60, 40, 70], 30, 4); // 1
+ */
+export function actionsFit(room: number, widths: readonly number[], moreWidth: number, gap: number): number {
+  if (widths.length <= 1) return widths.length;
+  const need = (count: number): number => widths.slice(0, count).reduce((sum, w) => sum + w, 0) + gap * Math.max(0, count - 1);
+  if (need(widths.length) <= room) return widths.length;
+  for (let count = widths.length - 1; count >= 1; count -= 1) if (need(count) + gap + moreWidth <= room) return count;
+  return 1;
 }
 
 /**

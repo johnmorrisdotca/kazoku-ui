@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type SearchGroup } from "../src/search-box/model.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type SearchGroup } from "../src/search-box/model.ts";
+import { iconPaths, isSafePath, SEARCH_ICONS } from "../src/search-box/icons.ts";
 import { highlight, rank, RANK } from "../src/search-box/rank.ts";
 import { createSearchRunner, type SearchTimers } from "../src/search-box/runner.ts";
 import { WORDS, countPhrase, languageOf, wordsFor } from "../src/search-box/words.ts";
@@ -286,4 +287,51 @@ test("an action can be done unless the page disabled it, and a row keeps a disab
   const actions = actionsOf({ id: "a", label: "A", actions: [{ id: "go", label: "Go", disabled: true, title: "Not yet" }, { id: "fav", label: "Fav", pressed: false }] });
   assert.deepEqual(actions.map((one) => one.id), ["go", "fav"]);
   assert.equal(actions[0]?.title, "Not yet");
+});
+
+test("actionsFit keeps every action when they fit, and puts the last ones behind one button when they do not", () => {
+  // three icon buttons of 30 with 4 between: 98
+  assert.equal(actionsFit(98, [30, 30, 30], 30, 4), 3);
+  assert.equal(actionsFit(500, [30, 30, 30], 30, 4), 3);
+  // a pixel short: two actions and the button would need 98 too, so one stays and the rest go behind "more" (30 + 4 + 30 = 64)
+  assert.equal(actionsFit(97, [30, 30, 30], 30, 4), 1);
+  assert.equal(actionsFit(64, [30, 30, 30], 30, 4), 1);
+  // text buttons of different widths: the first two (60 + 4 + 40 = 104) and the button (4 + 30) need 138
+  assert.equal(actionsFit(138, [60, 40, 70], 30, 4), 2);
+  assert.equal(actionsFit(137, [60, 40, 70], 30, 4), 1);
+  // never fewer than the first action, and a lone action is never put behind "more"
+  assert.equal(actionsFit(10, [60, 40, 70], 30, 4), 1);
+  assert.equal(actionsFit(10, [60], 30, 4), 1);
+  assert.equal(actionsFit(10, [], 30, 4), 0);
+  // a smaller button for "more" than for an action lets one more action stay
+  assert.equal(actionsFit(97, [30, 30, 30], 20, 4), 3 - 1);
+  assert.equal(actionsFit(60, [30, 30, 30], 20, 4), 1);
+});
+
+test("an action's icon is a built-in name or the page's own safe path data, and anything else is the dot", () => {
+  assert.equal(iconPaths(undefined), undefined);
+  assert.deepEqual(iconPaths("star"), SEARCH_ICONS.star);
+  assert.deepEqual(iconPaths("eye"), SEARCH_ICONS.show);
+  assert.deepEqual(iconPaths("arrow"), SEARCH_ICONS.go);
+  assert.deepEqual(iconPaths("dot"), SEARCH_ICONS.dot);
+  // a name nobody knows is seen as the dot, not dropped
+  assert.deepEqual(iconPaths("starr" as "star"), SEARCH_ICONS.dot);
+  assert.deepEqual(iconPaths({ path: "M4 12h16" }), ["M4 12h16"]);
+  assert.deepEqual(iconPaths({ path: ["M4 12h16", "M12 4v16"] }), ["M4 12h16", "M12 4v16"]);
+  assert.deepEqual(iconPaths({ path: "M-4.5 1e2 l.5,-2z" }), ["M-4.5 1e2 l.5,-2z"]);
+  // markup, quotes, urls and scripts are not path data
+  assert.equal(isSafePath('M0 0h1" onload="x'), false);
+  assert.equal(isSafePath("M0 0<script>"), false);
+  assert.equal(isSafePath("url(#a)"), false);
+  assert.equal(isSafePath(""), false);
+  assert.equal(isSafePath(`M0 0${"h1".repeat(500)}`), false);
+  assert.deepEqual(iconPaths({ path: 'M0 0" onload="x' }), SEARCH_ICONS.dot);
+  assert.deepEqual(iconPaths({ path: ["M0 0h1", "<svg>"] }), SEARCH_ICONS.dot);
+  assert.deepEqual(iconPaths({ path: [] }), SEARCH_ICONS.dot);
+  assert.deepEqual(iconPaths({} as { path: string }), SEARCH_ICONS.dot);
+});
+
+test("the words for the button that holds the extra actions are in both languages", () => {
+  assert.equal(WORDS.en.more, "More actions");
+  assert.equal(WORDS.ja.more, "その他の操作");
 });
