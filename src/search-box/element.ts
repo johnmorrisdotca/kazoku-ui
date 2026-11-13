@@ -821,6 +821,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#sheet = false;
     this.#loader.cancel();
     this.#applyPreview(this.#nav.length > 0);
+    this.#measure();
     this.#mark();
   }
 
@@ -861,7 +862,8 @@ export class SearchBoxElement extends HTMLElement {
   /** On a row too narrow for its actions, the last ones go behind the "more" button. Every action stays in the grid, so the arrows still reach them; only their place on the row changes. */
   #fit(): void {
     const panel = this.#root.querySelector<HTMLElement>(".panel");
-    if (!panel || panel.hidden || panel.clientWidth === 0) return;
+    // with the sheet open the rows are out of the page and have no width to measure; they are measured again when the list comes back
+    if (!panel || panel.hidden || panel.clientWidth === 0 || panel.hasAttribute("data-sheet")) return;
     const view = this.ownerDocument.defaultView;
     for (const entry of this.#nav) {
       if (entry.actions.length < 2) continue;
