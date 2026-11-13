@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- **A view is never drawn more than 30 times in any one second, on any screen.** The renderer's frame gate let a draw through when the last was a little under 1/30 s ago (a 2 ms tolerance, so a 60 Hz screen draws 30 and not 20). On a screen whose frames are 16 ms apart, such as a 62.5 Hz one, that tolerance let it draw every second frame: 31.25 a second. The gate now also keeps each view's last 30 draw times and holds a draw back until the 30th before it is a second ago (less the same 2 ms). A 60, 90, 120 or 144 Hz screen is unchanged.
+- **The 30-a-second browser tests assert on the page's own timestamps.** They timed a window with the test's wait and counted the draws the page made, and a loaded runner ran the page a little longer than the wait (a frame's callback can run 70 ms after its timestamp). The page now records the timestamp of every frame and draw, and the test asserts no two draws are closer than 1/30 s (less 2 ms) and no 31 draws fall inside a second.
+
 ## [0.45.0] - 2026-11-13
 
 - **A search box action can be disabled, and the placeholder can be set** (KAZOKU-UI-149). An action takes `disabled` and `title`: it is drawn dimmed with `aria-disabled="true"`, the title is its tooltip and its accessible description, and Enter or a press does nothing and sends no pick. `<kazoku-search-box>` takes a `placeholder` attribute and property (left out, the word for Search as before). Backwards compatible. Also exported: `isActionEnabled`.

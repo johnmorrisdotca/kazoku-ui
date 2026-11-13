@@ -6,7 +6,10 @@
 /** Most draws of one job in a second (30): the family's rule for live 3D. A 60 Hz screen draws every second frame, a 120 Hz screen every fourth. */
 export const MAX_FPS = 30;
 // A frame's timestamp is not exact: a gap a little short of a whole number of frames still counts, so 60 Hz gives 30 draws and not 20.
-const GAP_MS = 1000 / MAX_FPS - 2;
+const TOLERANCE_MS = 2;
+const GAP_MS = 1000 / MAX_FPS - TOLERANCE_MS;
+// The gap alone lets a screen whose frame is a little under half of 33.3 ms (62.5 Hz: 16 ms) draw every second frame, 31.25 a second. So no job is also drawn a 31st time inside a second: the 30th draw back must be a second ago, less the same tolerance.
+const WINDOW_MS = 1000 - TOLERANCE_MS;
 
 export interface FrameClock {
   request(callback: (now: number) => void): number;
@@ -68,6 +71,13 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
   const lastDraw = new Map<Job, number>();
   // When each job last drew, whether or not it asked to go on: the cap holds for a view invalidated by a hand's every move as much as for an animation.
   let drewAt = new WeakMap<Job, number>();
+  // The times of each job's last MAX_FPS draws, oldest first: the count in any second.
+  const recent = new WeakMap<Job, number[]>();
+  const allowed = (job: Job, now: number): boolean => {
+    if (now - (drewAt.get(job) ?? -Infinity) < GAP_MS) return false;
+    const times = recent.get(job);
+    return times === undefined || times.length < MAX_FPS || now - times[times.length - MAX_FPS]! >= WINDOW_MS;
+  };
   const stats: SchedulerStats = { requests: 0, frames: 0, draws: 0, deferred: 0 };
   let frame = 0;
   let running = false;
@@ -87,7 +97,7 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
     const started = clock.now();
     // A job that drew less than a gap ago stays dirty and is left alone this frame (another frame is asked for below); one at rest draws at once.
     const order = [...dirty]
-      .filter(([job]) => now - (drewAt.get(job) ?? -Infinity) >= GAP_MS)
+      .filter(([job]) => allowed(job, now))
       .sort((a, b) => Number(a[1] === "ambient") - Number(b[1] === "ambient"));
     let drawn = 0;
     try {
@@ -98,6 +108,10 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
         }
         dirty.delete(job);
         drewAt.set(job, now);
+        const times = recent.get(job) ?? [];
+        times.push(now);
+        if (times.length > MAX_FPS) times.shift();
+        recent.set(job, times);
         const before = lastDraw.get(job);
         const dt = before === undefined ? 0 : Math.min(0.1, (now - before) / 1000);
         drawn += 1;
@@ -122,6 +136,7 @@ export function createScheduler(options: SchedulerOptions = {}): Scheduler {
       dirty.delete(job);
       lastDraw.delete(job);
       drewAt.delete(job);
+      recent.delete(job);
     },
     pause() {
       pauses += 1;

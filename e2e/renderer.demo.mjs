@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectAtMost30, readStamps, stampDraws, untilDrawn } from "./draw-stamps.mjs";
 import { canvasSize, COUNT_SCRIPT, drainGpu, gpuObjects, readCounts, withinPixelBudget } from "../dist/testing/index.js";
 
 // The shared 3D renderer on demo/renderer.html: thirty views, one WebGL context. The budgets every 3D package asserts: contexts = 1, draws and frames at rest = 0,
@@ -113,22 +114,14 @@ test("turning draws once a frame, asks for one frame at a time, and stops when t
 test("a turning view is drawn at most 30 times a second, whatever the screen's rate", async ({ page }) => {
   await ready(page);
   await quiet(page);
+  // The page records the timestamp of every frame and every draw; the rule is asserted on those, not on a wait in this process.
+  await stampDraws(page);
   await page.evaluate(() => window.kazokuDemo.controls.play());
-  // A slow software frame holds the turn back: wait until it is drawing, then time a window by the page's own clock.
-  const first = await demo(page);
-  await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 15_000 }).toBeGreaterThan(3);
-  // The clock and the renderer's count are read in one call each, so the draws in the window are the ones the seconds belong to (two calls on a loaded runner leave a frame or two between them).
-  const mark = () => page.evaluate(() => ({ at: window.performance.now(), draws: window.kazokuDemo.renderer.stats.draws }));
-  const from = await mark();
-  await page.waitForTimeout(3000);
-  const to = await mark();
-  const draws = to.draws - from.draws;
-  const seconds = (to.at - from.at) / 1000;
-  // Software drawing may be slower than 30, never faster; the page's frames may come at 60 or more.
-  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * seconds) + 1);
-  expect(draws).toBeGreaterThan(0);
+  // A slow software frame holds the turn back: wait for two seconds' worth of draws, however long they take.
+  await untilDrawn(page, 61);
   await page.evaluate(() => window.kazokuDemo.controls.pause());
-  // Three seconds of drawing leave the software GPU behind the page; pay for it here, not in the next test's clock.
+  expectAtMost30(await readStamps(page));
+  // Seconds of drawing leave the software GPU behind the page; pay for it here, not in the next test's clock.
   await drainGpu(page);
 });
 

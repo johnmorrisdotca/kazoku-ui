@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectAtMost30, readStamps, stampDraws, untilDrawn } from "./draw-stamps.mjs";
 import { canvasSize, COUNT_SCRIPT, drainGpu, gpuObjects, readCounts, withinPixelBudget } from "../dist/testing/index.js";
 
 // The shared scene on demo/scene.html (the freeze test of the scene composer): four stand-in layers (stars, an Earth-sized sphere, a sphere at the Moon's distance, a satellite 400 km up),
@@ -176,19 +177,12 @@ test("paused, nothing is drawn and no frame is asked for; running, at most 30 a 
   expect(later.draws - paused.draws).toBe(0);
   expect(later.rafRequests - paused.rafRequests).toBe(0);
   expect((await demo(page)).draws - stats.draws).toBe(0);
+  await stampDraws(page);
   await page.evaluate(() => window.kazokuDemo.clock.play());
-  // A slow software frame holds the clock back: wait until it is drawing, then time a window by the page's own clock.
-  const first = await demo(page);
-  await expect.poll(async () => (await demo(page)).draws - first.draws, { timeout: 30_000 }).toBeGreaterThan(3);
-  // The page's own clock and the draw count are read in one step, so no draw falls between them.
-  const mark = () => page.evaluate(() => ({ at: window.performance.now(), draws: window.kazokuDemo.renderer.stats.draws }));
-  const from = await mark();
-  await page.waitForTimeout(3000);
-  const to = await mark();
-  const draws = to.draws - from.draws;
-  expect(draws).toBeLessThanOrEqual(Math.ceil(30 * ((to.at - from.at) / 1000)) + 1);
-  expect(draws).toBeGreaterThan(0);
+  // A slow software frame holds the clock back: wait for two seconds' worth of draws, however long they take. The page records the timestamp of every frame and draw, and the rule is asserted on those.
+  await untilDrawn(page, 61, 60_000);
   await page.evaluate(() => window.kazokuDemo.clock.pause());
+  expectAtMost30(await readStamps(page));
   await settle(page);
   expect(await page.evaluate(() => window.kazokuDemo.renderer.scheduler.pending)).toBe(false);
   await drainGpu(page);

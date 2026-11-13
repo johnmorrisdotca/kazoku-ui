@@ -119,6 +119,25 @@ test("a moving view is drawn at most 30 times a second on a 60, 90, 120, 144 or 
   }
 });
 
+test("no one-second window holds more than 30 draws on a screen whose frame does not divide 33.3 ms (62.5, 63, 72, 75, 100, 165 Hz), or when frames come late and early", () => {
+  for (const hz of [62.5, 63, 72, 75, 100, 165]) {
+    const { times } = turn(hz, 20);
+    for (let i = 0; i + 30 < times.length; i += 1) assert.ok(times[i + 30]! - times[i]! >= 1000 - 2.001, `${hz} Hz: 31 draws inside ${times[i + 30]! - times[i]!} ms`);
+    assert.ok(times.length / 20 <= 30, `${hz} Hz drew ${times.length / 20} a second`);
+    assert.ok(times.length / 20 >= 24, `${hz} Hz drew only ${times.length / 20} a second`);
+  }
+  // Frames at 16 ms with a small, steady wobble: a draw a little under the nominal gap still counts, but the average may never be above 30.
+  let seed = 7;
+  const random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+  const f = fakeClock();
+  const s = createScheduler({ clock: f.clock });
+  const times: number[] = [];
+  const job: Job = { draw: (now) => { times.push(now); return true; } };
+  s.invalidate(job);
+  for (let n = 0; n < 1500; n += 1) f.frame(15 + random() * 2);
+  for (let i = 0; i + 30 < times.length; i += 1) assert.ok(times[i + 30]! - times[i]! >= 1000 - 2.001, `31 draws inside ${times[i + 30]! - times[i]!} ms`);
+});
+
 test("60 Hz draws every second frame, 120 Hz every fourth (30, not 20)", () => {
   assert.equal(turn(60, 1).times.length, 30);
   assert.equal(turn(120, 1).times.length, 30);
