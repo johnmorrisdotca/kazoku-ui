@@ -21,8 +21,10 @@ export interface PaneHandlers {
 /** What the box keeps of the pane. */
 export interface PreviewPane {
   readonly el: HTMLElement;
-  /** The row whose preview is shown, or undefined when the pane shows its hint. */
+  /** The row whose preview is shown, or undefined when the pane shows its hint. While a request is out this is still the previous row. */
   readonly shown: PaneRow | undefined;
+  /** True while a request is out, so what is shown may be the previous row's. */
+  readonly busy: boolean;
   /** The words the pane says (set again when the language changes). */
   words(words: SearchBoxWords): void;
   /** The pane says what to do, and shows nothing of any row. */
@@ -37,7 +39,7 @@ export interface PreviewPane {
   fail(): void;
   /** Set a toggle button's state in the pane without redrawing it. */
   setPressed(row: PaneRow, actionId: string, pressed: boolean): void;
-  /** Show or hide the Back button (it belongs to the sheet on a narrow screen). */
+  /** The pane is a sheet (narrow layout) or not. In a sheet the Back button and the action buttons are tab stops and are heard, since the list they are repeated from is out of the page; beside the list they are for a pointer only. */
   sheet(on: boolean): void;
 }
 
@@ -80,6 +82,8 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
   el.append(back, note, body);
 
   let shown: PaneRow | undefined;
+  let busy = false;
+  let sheetOn = false;
   let current = { hint: "", loading: "", failed: "" };
   const buttons = new Map<string, HTMLButtonElement>();
 
@@ -99,6 +103,9 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
     get shown() {
       return shown;
     },
+    get busy() {
+      return busy;
+    },
     words(words) {
       el.setAttribute("aria-label", words.preview);
       back.textContent = `‹ ${words.back}`;
@@ -107,6 +114,7 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
     },
     hint() {
       shown = undefined;
+      busy = false;
       body.hidden = true;
       el.removeAttribute("aria-busy");
       el.removeAttribute("data-stale");
@@ -115,6 +123,7 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
     },
     show(row, view, actions, pressed) {
       shown = row;
+      busy = false;
       el.removeAttribute("aria-busy");
       el.removeAttribute("data-stale");
       note.dataset.kind = "";
@@ -153,7 +162,7 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
       for (const action of actions) {
         const button = doc.createElement("button");
         button.type = "button";
-        button.tabIndex = -1;
+        button.tabIndex = sheetOn ? 0 : -1;
         button.dataset.act = action.id;
         const paths = iconPaths(action.icon);
         if (paths) button.append(drawPaths(doc, paths));
@@ -170,6 +179,7 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
       acts.hidden = actions.length === 0;
     },
     wait() {
+      busy = true;
       if (shown === undefined) {
         note.dataset.kind = "loading";
         say(current.loading);
@@ -180,6 +190,7 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
       el.setAttribute("data-stale", "");
     },
     fail() {
+      busy = false;
       el.removeAttribute("aria-busy");
       el.removeAttribute("data-stale");
       note.dataset.kind = "failed";
@@ -189,7 +200,12 @@ export function createPreviewPane(doc: Document, handlers: PaneHandlers): Previe
       if (shown?.group === row.group && shown.id === row.id) buttons.get(actionId)?.setAttribute("aria-pressed", String(pressed));
     },
     sheet(on) {
+      sheetOn = on;
       back.hidden = !on;
+      back.tabIndex = on ? 0 : -1;
+      if (on) acts.removeAttribute("aria-hidden");
+      else acts.setAttribute("aria-hidden", "true");
+      for (const button of buttons.values()) button.tabIndex = on ? 0 : -1;
     },
   };
 }

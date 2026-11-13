@@ -108,7 +108,12 @@ export interface SearchPickDetail {
 /** The most actions a row shows. */
 export const MAX_ACTIONS = 3;
 
-/** The id of the action the box adds to a row on a narrow screen, which opens the preview; it is never reported by `kazoku-search-pick`. */
+/**
+ * The id of the action the box adds to a row on a narrow screen, which opens the preview; it is never reported by `kazoku-search-pick`.
+ *
+ * @example
+ * box.addEventListener("kazoku-search-pick", (event) => console.log(event.detail.action !== PREVIEW_ACTION_ID)); // always true
+ */
 export const PREVIEW_ACTION_ID = "kazoku-preview";
 
 /** One line of the plan the box draws. */

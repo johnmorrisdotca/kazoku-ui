@@ -3,13 +3,11 @@
 // and a preview; the highlighted row's preview is drawn beside the list on a wide screen and in a sheet on a narrow one, asked for only when the row is highlighted.
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
-import { EVENT, TAG } from "./index.ts";
-import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreview, type SearchPreviewSource, type SearchSource } from "./model.ts";
+import { EVENT, TAG } from "./names.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreviewSource, type SearchSource } from "./model.ts";
 import { drawPaths, drawRowIcon } from "./draw.ts";
 import { iconPaths, rowIconSpec } from "./icons.ts";
-import { createPreviewPane, type PreviewPane } from "./pane.ts";
-import { createPreviewLoader, type PreviewLoader, type PreviewTarget } from "./preview.ts";
-import { previewView } from "./preview-view.ts";
+import type { PreviewControl, PreviewHost } from "./preview-ui.ts";
 import { highlight } from "./rank.ts";
 import { createSearchRunner, type SearchRunner } from "./runner.ts";
 import { STYLES } from "./styles.ts";
@@ -41,12 +39,6 @@ const DEFAULT_PER_GROUP = 3;
 const DEFAULT_WINDOW = 20;
 /** The least width a row keeps for its name before actions go behind "more". */
 const MIN_NAME_WIDTH = 96;
-/** The popup's width from which the preview sits beside the list, in px; under it, the preview opens as a sheet from a Details button. */
-const SIDE_MIN = 540;
-/** The width the popup grows to, when the page has room, to make a second column. */
-const SIDE_WIDTH = 672;
-const DEFAULT_PREVIEW_DELAY = 150;
-type Layout = "side" | "sheet";
 
 const whole = (value: string | null, fallback: number, min = 0): number => {
   const n = Number(value);
@@ -127,21 +119,11 @@ export class SearchBoxElement extends HTMLElement {
   /** True while the box gives its own focus back to itself, so the focus handler does not reopen a popup that was just closed. */
   #refocus = false;
   #loadPreview: SearchPreviewSource | undefined;
-  #loader: PreviewLoader;
-  #pane: PreviewPane | undefined;
-  /** True while the preview is in use for the drawn answer: a row carries one, or the page set `loadPreview`, and the attribute `preview` is not `off`. */
-  #pv = false;
-  #layout: Layout = "side";
-  /** The width the popup is given to make room for the second column, or 0 for the box's own width. */
-  #panelWidth = 0;
-  /** True while the sheet is open (narrow layout only). */
-  #sheet = false;
-  /** True when each row has the Details action: on a narrow layout, and for a finger. */
-  #info = false;
+  /** The preview feature (the pane, the loader, the layout), made when the box first has a preview to show: its code is loaded then, not with the box. */
+  #pc: PreviewControl | undefined;
+  #pcAsked = false;
   #hasIcons = false;
   #wasOpen = false;
-  #described: HTMLElement | undefined;
-  #pointer = "";
 
   constructor() {
     super();
@@ -157,18 +139,57 @@ export class SearchBoxElement extends HTMLElement {
       onAnswer: (groups, _query, group) => this.#onAnswer(groups, group),
       onFail: () => this.#onFail(),
     });
-    const delay = (): number => whole(this.getAttribute("preview-delay"), DEFAULT_PREVIEW_DELAY, 0);
-    this.#loader = createPreviewLoader({
-      fallback: () => this.#loadPreview,
-      get debounceMs() {
-        return delay();
+  }
+
+  /** True when each row has the Details action: on a narrow layout, and for a finger. */
+  get #info(): boolean {
+    return this.#pc?.info ?? false;
+  }
+
+  /** Load the preview code, once, and draw again with it. A page without previews never gets here. If the code cannot be loaded the box stays as it is, without previews. */
+  #askPreview(): void {
+    if (this.#pcAsked) return;
+    this.#pcAsked = true;
+    import("./preview-ui.ts").then(
+      (module) => {
+        this.#pc = module.createPreviewControl(this.#previewHost());
+        if (this.isConnected) this.#redrawKeeping();
       },
-      staleMs: 300,
-      cacheSize: 200,
-      onShow: (target, preview, failed) => this.#showPreview(target, preview, failed),
-      onWait: () => this.#pane?.wait(),
-      onStale: () => this.#pane?.stale(),
-    });
+      () => undefined,
+    );
+  }
+
+  /** What the preview module reads and moves of the box. */
+  #previewHost(): PreviewHost {
+    return {
+      root: this.#root,
+      element: this,
+      nonce: this.nonce ?? "",
+      words: () => this.#words(),
+      lang: () => this.#lang(),
+      groups: () => this.#groups,
+      rows: () => this.#nav,
+      active: () => this.#active,
+      setActive: (index, col) => {
+        this.#active = index;
+        this.#col = col;
+        this.#moreOpen = -1;
+      },
+      mark: (scroll) => this.#mark(scroll),
+      activate: (entry, col) => this.#activate(entry as NavEntry, col),
+      measure: () => this.#measure(),
+      redraw: () => this.#redrawKeeping(),
+      pressed: (group, id, action) => this.#flips.get(`${group}\u0000${id}\u0000${action}`),
+      loadPreview: () => this.#loadPreview,
+      delay: () => whole(this.getAttribute("preview-delay"), 150, 0),
+      say: (text) => void (this.#el("#status").textContent = text),
+      input: () => this.#input(),
+      focusInput: () => {
+        this.#refocus = true;
+        this.#input()?.focus();
+        this.#refocus = false;
+      },
+    };
   }
 
   /** The page's search: `(query, { signal, group }) => groups`. The box calls it, and only it. */
@@ -183,6 +204,10 @@ export class SearchBoxElement extends HTMLElement {
   /**
    * The page's function for a row's preview, used for the rows that carry no `preview` of their own: `(row, { signal, group }) => preview`. It is called when a row is highlighted, after a short quiet time (`preview-delay`, 150 ms),
    * only if that row is still the highlighted one; moving on aborts the call, an answer that comes late is dropped, and an answer is kept by row and language, so the same row again asks for nothing.
+   * Setting it forgets what was kept and ends a call that is out.
+   *
+   * @example
+   * box.loadPreview = async (row, { signal, group }) => (await fetch(`/previews/${group}/${row.id}.json`, { signal })).json();
    */
   get loadPreview(): SearchPreviewSource | undefined {
     return this.#loadPreview;
@@ -190,15 +215,18 @@ export class SearchBoxElement extends HTMLElement {
 
   set loadPreview(load: SearchPreviewSource | undefined) {
     this.#loadPreview = load;
-    this.#loader.clear();
+    this.#pc?.loader.clear();
     if (this.#root.querySelector(".field")) this.#redrawKeeping();
   }
 
-  /** Forget every preview kept, so the next highlight asks again (the page's data changed). */
+  /**
+   * Forget every preview kept and end a call that is out, so the highlighted row is asked for again (the page's data changed).
+   *
+   * @example
+   * box.clearPreviews();
+   */
   clearPreviews(): void {
-    this.#loader.clear();
-    this.#pane?.hint();
-    this.#follow();
+    this.#pc?.clearAll();
   }
 
   /** The hint shown in the empty box. Left out or empty, the word for Search in the box's language. Reads as the text shown; setting it writes the `placeholder` attribute. */
@@ -237,7 +265,7 @@ export class SearchBoxElement extends HTMLElement {
     // the popup's width decides how many actions a row can show and whether the chips fade at an edge; both are read again when it changes, and when it is first shown
     if (typeof ResizeObserver !== "undefined") {
       this.#ro ??= new ResizeObserver(() => {
-        this.#relayout();
+        this.#pc?.relayout();
         this.#measure();
       });
       this.#ro.observe(this.#el(".panel"));
@@ -252,7 +280,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#stop = undefined;
     this.#ro?.disconnect();
     this.ownerDocument.defaultView?.removeEventListener("resize", this.#onResize);
-    this.#loader.cancel();
+    this.#pc?.loader.cancel();
     this.#runner.cancel();
     if (this.#mode === "busy") this.#mode = this.#nav.length > 0 ? "answer" : "idle";
     this.#root.querySelector("#grid")?.removeAttribute("aria-busy");
@@ -271,7 +299,7 @@ export class SearchBoxElement extends HTMLElement {
     else if (name === "preview") this.#redrawKeeping();
   }
 
-  #onResize = (): void => this.#relayout();
+  #onResize = (): void => this.#pc?.relayout();
 
   /** Focus the box. */
   override focus(options?: FocusOptions): void {
@@ -302,7 +330,7 @@ export class SearchBoxElement extends HTMLElement {
         if (one.id === action && one.pressed !== undefined) entry.buttons[i]?.setAttribute("aria-pressed", String(pressed));
       });
     }
-    this.#pane?.setPressed({ group, id }, action, pressed);
+    this.#pc?.pane.setPressed({ group, id }, action, pressed);
   }
 
   #lang(): "en" | "ja" {
@@ -357,15 +385,7 @@ export class SearchBoxElement extends HTMLElement {
     note.hidden = true;
     const list = make("div", "list");
     list.append(chips, grid, note);
-    const pane = createPreviewPane(doc, {
-      action: (row, actionId) => {
-        const entry = this.#nav.find((one) => one.line.type === "row" && one.line.group.id === row.group && one.line.row.id === row.id);
-        if (entry) this.#activate(entry, Math.max(0, entry.actions.findIndex((one) => one.id === actionId)));
-      },
-      back: () => this.#closeSheet(),
-    });
-    this.#pane = pane;
-    panel.append(list, pane.el);
+    panel.append(list);
     const status = make("div", "vh");
     status.id = "status";
     status.setAttribute("role", "status");
@@ -382,6 +402,14 @@ export class SearchBoxElement extends HTMLElement {
       // Escape from a chip closes the popup and brings the reader back to the box
       if (event.key === "Escape" && event.target !== input) {
         event.preventDefault();
+        // from the sheet's own buttons, Escape closes the sheet first
+        if (this.#pc?.sheet) {
+          this.#pc.closeSheet();
+          this.#refocus = true;
+          input.focus();
+          this.#refocus = false;
+          return;
+        }
         this.close();
         this.#refocus = true;
         input.focus();
@@ -404,7 +432,7 @@ export class SearchBoxElement extends HTMLElement {
     chips.addEventListener("scroll", () => this.#fades(), { passive: true });
     panel.addEventListener("mousedown", (event) => event.preventDefault());
     panel.addEventListener("click", (event) => this.#onClick(event));
-    panel.addEventListener("pointermove", (event) => this.#onHover(event));
+    panel.addEventListener("pointermove", (event) => this.#pc?.hover(event));
   }
 
   #paintWords(): void {
@@ -416,7 +444,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#paintPlaceholder();
     this.#el("[role=group]").setAttribute("aria-label", words.kinds);
     this.#el("#grid").setAttribute("aria-label", words.results);
-    this.#pane?.words(words);
+    this.#pc?.pane.words(words);
     this.#paintShortcut();
     this.#chipKey = "";
     this.#draw();
@@ -502,7 +530,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#windowCount = whole(this.getAttribute("window"), DEFAULT_WINDOW, 1);
     this.#mode = "answer";
     // the rows are new, so the highlight is gone: the pane goes back to its hint and what it kept is let go
-    this.#resetPreview();
+    this.#pc?.reset();
     // an answer waits for a reader who has gone elsewhere, and leaves a popup the reader closed (Escape) closed until they type or press Down
     if (this.#root.activeElement === null) this.#closed = true;
     this.#active = -1;
@@ -531,10 +559,9 @@ export class SearchBoxElement extends HTMLElement {
     this.#lines = planLines(this.#groups, this.#narrowed, perGroup, whole(this.getAttribute("window"), DEFAULT_WINDOW, 1), this.#windowCount);
     this.#hasIcons = this.#lines.some((line) => line.type === "row" && rowIconSpec(line.row.icon) !== undefined);
     // the preview is in use when a drawn row carries one, or the page can make one; a narrow popup, or a finger, gets a Details action on each row
-    this.#pv = this.getAttribute("preview") !== "off" && (this.#loadPreview !== undefined || this.#lines.some((line) => line.type === "row" && line.row.preview !== undefined));
-    this.#layout = this.#pv ? this.#layoutNow() : "side";
-    if (!this.#pv) this.#panelWidth = 0;
-    this.#info = this.#pv && (this.#layout === "sheet" || doc.defaultView?.matchMedia?.("(pointer: coarse)").matches === true);
+    const wanted = this.getAttribute("preview") !== "off" && (this.#loadPreview !== undefined || this.#lines.some((line) => line.type === "row" && line.row.preview !== undefined));
+    if (wanted && this.#pc === undefined) this.#askPreview();
+    this.#pc?.prepare(wanted);
     this.#draws += 1;
     grid.replaceChildren();
     this.#nav = [];
@@ -720,29 +747,6 @@ export class SearchBoxElement extends HTMLElement {
     this.#fades();
   }
 
-  /** Where the preview goes: beside the list when the popup is, or can be made, wide enough; otherwise in a sheet. Also works out the width the popup is to grow to. */
-  #layoutNow(): Layout {
-    const view = this.ownerDocument.defaultView;
-    const rect = this.getBoundingClientRect();
-    const viewport = this.ownerDocument.documentElement.clientWidth || view?.innerWidth || 0;
-    const room = viewport - rect.left - 8;
-    const width = Math.max(rect.width, Math.min(SIDE_WIDTH, room));
-    const side = rect.width > 0 && width >= SIDE_MIN;
-    this.#panelWidth = side && width > rect.width + 1 ? Math.floor(width) : 0;
-    return side ? "side" : "sheet";
-  }
-
-  /** The box or the window changed size: the preview may need its own column, or lose it. The rows are drawn again only when the layout changed. */
-  #relayout(): void {
-    if (!this.#pv) return;
-    const before = this.#layout;
-    const next = this.#layoutNow();
-    if (next !== before) {
-      this.#sheet = false;
-      this.#redrawKeeping();
-    } else this.#applyPreview(this.#nav.length > 0);
-  }
-
   /** Draw the rows again (a layout or an option changed) and put the highlight back on the same row and column. */
   #redrawKeeping(): void {
     if (!this.#root.querySelector(".field")) return;
@@ -754,91 +758,6 @@ export class SearchBoxElement extends HTMLElement {
     if (i < 0) return;
     this.#active = i;
     this.#col = Math.min(keep.col, (this.#nav[i]?.actions.length ?? 1) - 1);
-    this.#mark(false);
-  }
-
-  /** Show or hide the pane, and set the popup's attributes for the layout: a second column, a sheet, or neither. */
-  #applyPreview(hasRows: boolean): void {
-    const panel = this.#root.querySelector<HTMLElement>(".panel");
-    const pane = this.#pane;
-    if (!panel || !pane) return;
-    const side = this.#pv && this.#layout === "side";
-    panel.toggleAttribute("data-pv", this.#pv);
-    panel.setAttribute("data-layout", this.#layout);
-    panel.toggleAttribute("data-sheet", this.#pv && this.#layout === "sheet" && this.#sheet);
-    // the popup is made wider than the box only to make room for the second column
-    panel.style.width = side && this.#panelWidth > 0 ? `${this.#panelWidth}px` : "";
-    panel.style.right = side && this.#panelWidth > 0 ? "auto" : "";
-    pane.el.hidden = !(this.#pv && hasRows && (side || this.#sheet));
-    pane.sheet(this.#layout === "sheet");
-  }
-
-  /** The reader has highlighted a row: ask for its preview, once. In the sheet layout nothing is asked for until the sheet is open. */
-  #follow(): void {
-    const pane = this.#pane;
-    if (!this.#pv || !pane || pane.el.hidden) return;
-    const entry = this.#nav[this.#active];
-    if (!entry || entry.line.type !== "row") return;
-    const { group, row } = entry.line;
-    this.#loader.highlight(`${this.#lang()}\u0000${group.id}\u0000${row.id}`, row, group.id);
-  }
-
-  /** Back to the pane's hint, with nothing asked for and the sheet shut. What the loader has kept stays. */
-  #resetPreview(): void {
-    this.#loader.cancel();
-    this.#pane?.hint();
-    this.#sheet = false;
-  }
-
-  /** What the loader has for the pane. The pane keeps what it shows until this is called with the next row's preview. */
-  #showPreview(target: PreviewTarget, preview: SearchPreview | undefined, failed: boolean): void {
-    const pane = this.#pane;
-    if (!pane) return;
-    const words = this.#words();
-    const group = this.#groups.find((one) => one.id === target.group);
-    const actions = actionsOf(target.row, words.open);
-    const flipped = (id: string): boolean | undefined => this.#flips.get(`${target.group}\u0000${target.row.id}\u0000${id}`) ?? actions.find((one) => one.id === id)?.pressed;
-    pane.show({ group: target.group, id: target.row.id }, previewView(target.row, group?.label ?? "", preview), actions, flipped);
-    if (failed) pane.fail();
-  }
-
-  /** The Details action: on a narrow popup the sheet opens on the row; with the second column present (a finger on a wide popup) the row is highlighted, which shows its preview. */
-  #openDetails(entry: NavEntry, col: number): void {
-    const i = this.#nav.indexOf(entry);
-    if (i < 0) return;
-    this.#active = i;
-    this.#moreOpen = -1;
-    if (this.#layout === "sheet") {
-      this.#col = col;
-      this.#sheet = true;
-      this.#applyPreview(true);
-      if (entry.line.type === "row") this.#el("#status").textContent = `${this.#words().preview}${this.#words().join}${entry.line.row.label}`;
-    } else this.#col = 0;
-    this.#mark();
-  }
-
-  #closeSheet(): void {
-    if (!this.#sheet) return;
-    this.#sheet = false;
-    this.#loader.cancel();
-    this.#applyPreview(this.#nav.length > 0);
-    this.#measure();
-    this.#mark();
-  }
-
-  /** A mouse over a row highlights it, so the pane follows the pointer. Only a real move counts: a list scrolled under a still pointer, or by the keyboard, does not. */
-  #onHover(event: PointerEvent): void {
-    if (!this.#pv || this.#layout === "sheet" || event.pointerType !== "mouse") return;
-    const at = `${event.clientX},${event.clientY}`;
-    if (at === this.#pointer) return;
-    this.#pointer = at;
-    const row = (event.target as Element | null)?.closest<HTMLElement>("[role=row][data-i]");
-    const i = row ? Number(row.dataset.i) : -1;
-    const entry = this.#nav[i];
-    if (!entry || entry.line.type !== "row" || i === this.#active) return;
-    this.#active = i;
-    this.#col = 0;
-    this.#moreOpen = -1;
     this.#mark(false);
   }
 
@@ -931,10 +850,10 @@ export class SearchBoxElement extends HTMLElement {
     const open = query !== "" && !this.#closed && this.#mode !== "idle" && (hasRows || text !== "");
     panel.hidden = !open;
     // a popup that closes lets go of the preview: the next time it opens the pane starts from its hint
-    if (!open && this.#wasOpen) this.#resetPreview();
+    if (!open && this.#wasOpen) this.#pc?.reset();
     this.#wasOpen = open;
     const expanded = open && hasRows;
-    this.#applyPreview(hasRows);
+    this.#pc?.apply(hasRows);
     input.setAttribute("aria-expanded", String(expanded));
     if (!expanded) {
       this.#active = -1;
@@ -948,14 +867,14 @@ export class SearchBoxElement extends HTMLElement {
     const input = event.currentTarget as HTMLInputElement;
     const expanded = input.getAttribute("aria-expanded") === "true";
     const key = event.key;
-    if (this.#sheet) {
+    if (this.#pc?.sheet) {
       // the sheet is the first thing Escape closes, and a move to another row goes back to the list
       if (key === "Escape") {
         event.preventDefault();
-        this.#closeSheet();
+        this.#pc.closeSheet();
         return;
       }
-      if (key === "ArrowDown" || key === "ArrowUp") this.#closeSheet();
+      if (key === "ArrowDown" || key === "ArrowUp") this.#pc.closeSheet();
     }
     if (key === "ArrowDown" || key === "ArrowUp") {
       if (event.altKey && key === "ArrowDown") {
@@ -1022,34 +941,18 @@ export class SearchBoxElement extends HTMLElement {
         entry.cells[c]?.setAttribute("aria-selected", String(here));
       });
     });
-    this.#follow();
     const entry = this.#nav[this.#active];
     // with the sheet open the list is out of the page, so the box names nothing in it
-    if (!entry || this.#sheet) {
+    if (!entry || this.#pc?.sheet) {
       input.removeAttribute("aria-activedescendant");
-      this.#describe(undefined, false);
+      this.#pc?.marked(undefined);
       return;
     }
     const target = this.#col > 0 ? (entry.cells[this.#col] ?? entry.main) : entry.main;
     input.setAttribute("aria-activedescendant", target.id);
-    // the pane is the description of the cell the box names, so a screen reader hears the preview after the row
-    this.#describe(target, this.#pane !== undefined && !this.#pane.el.hidden);
+    // the preview is asked for, and described to a screen reader after the row, once it is the active row's
+    this.#pc?.marked(target);
     if (scroll) target.scrollIntoView?.({ block: "nearest" });
-  }
-
-  /** Put the pane's id in the description of `target` (and take it off the cell that had it), keeping the ids the cell had of its own. */
-  #describe(target: HTMLElement | undefined, on: boolean): void {
-    const set = (el: HTMLElement, withPane: boolean): void => {
-      const ids = [el.dataset.why, withPane ? "pv" : undefined].filter((id): id is string => id !== undefined && id !== "").join(" ");
-      if (ids === "") el.removeAttribute("aria-describedby");
-      else el.setAttribute("aria-describedby", ids);
-    };
-    const before = this.#described;
-    if (before !== undefined && (before !== target || !on)) set(before, false);
-    if (target !== undefined && on) {
-      set(target, true);
-      this.#described = target;
-    } else this.#described = undefined;
   }
 
   #onClick(event: MouseEvent): void {
@@ -1100,7 +1003,7 @@ export class SearchBoxElement extends HTMLElement {
     const action = entry.actions[col] ?? entry.actions[0];
     if (!action || !isActionEnabled(action)) return;
     if (action.id === PREVIEW_ACTION_ID) {
-      this.#openDetails(entry, col);
+      this.#pc?.openDetails(entry, col);
       return;
     }
     const detail: SearchPickDetail = { id: line.row.id, group: line.group.id, action: action.id };

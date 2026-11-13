@@ -55,7 +55,12 @@ export function iconPaths(icon: SearchIcon | undefined): readonly string[] | und
   return own.length > 0 && own.length <= 6 && own.every(isSafePath) ? own : SEARCH_ICONS.dot;
 }
 
-/** The names of the built-in icons a result row can wear in the list: `disc` and `star` and `dot` and `square` are filled, `ring` is an outline. */
+/**
+ * The names of the built-in icons a result row can wear in the list: `disc` and `star` and `dot` and `square` are filled, `ring` is an outline.
+ *
+ * @example
+ * ROW_ICON_NAMES.includes("disc"); // true
+ */
 export const ROW_ICON_NAMES = ["disc", "ring", "star", "dot", "square"] as const;
 export type RowIconName = (typeof ROW_ICON_NAMES)[number];
 
@@ -93,7 +98,12 @@ export type RowIconSpec =
   | { type: "text"; text: string; color?: string }
   | { type: "image"; src: string };
 
-/** The most characters a text icon may have (a flag is two). */
+/**
+ * The most characters a text icon may have (a flag is two).
+ *
+ * @example
+ * [...(rowIconSpec({ text: "x".repeat(50) }) as { text: string }).text].length; // MAX_ICON_TEXT (8)
+ */
 export const MAX_ICON_TEXT = 8;
 
 const BUILT_IN_ROW: Readonly<Record<RowIconName, { paths: readonly string[]; filled: boolean }>> = {

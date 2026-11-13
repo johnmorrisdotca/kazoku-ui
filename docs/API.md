@@ -2011,10 +2011,10 @@ function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/search-box`
 
-33 values and 32 types.
+39 values and 32 types.
 
 ```js
-import { actionsFit, actionsOf, announcement, chipsOf, countPhrase, createPreviewLoader, createSearchRunner, EVENT, highlight, iconPaths, isActionEnabled, isSafeColor, isSafeImageUrl, isSafePath, languageOf, MAX_ACTIONS, MAX_FACTS, MAX_ICON_PATH, MAX_ICON_TEXT, planLines, PREVIEW_ACTION_ID, previewView, rank, RANK, ROW_ICON_NAMES, rowIconSpec, SEARCH_ICON_NAMES, SEARCH_ICONS, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+import { actionsFit, actionsOf, announcement, chipsOf, countPhrase, createPreviewLoader, createSearchRunner, EVENT, highlight, iconPaths, isActionEnabled, isSafeColor, isSafeImageUrl, isSafePath, languageOf, MAX_ACTIONS, MAX_FACT_LABEL, MAX_FACT_VALUE, MAX_FACTS, MAX_ICON_PATH, MAX_ICON_TEXT, MAX_KIND, MAX_PICTURE_ALT, MAX_TITLE, planLines, PREVIEW_ACTION_ID, previewView, rank, RANK, ROW_ICON_NAMES, rowIconSpec, sanitizePreview, SEARCH_ICON_NAMES, SEARCH_ICONS, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
 ```
 
 ### actionsFit
@@ -2149,6 +2149,22 @@ const languageOf: (lang: string | null | undefined) => Language;
 const MAX_ACTIONS = 3;
 ```
 
+### MAX_FACT_LABEL
+
+*constant*. The most characters kept of a fact's label.
+
+```ts
+const MAX_FACT_LABEL = 60;
+```
+
+### MAX_FACT_VALUE
+
+*constant*. The most characters kept of a fact's value.
+
+```ts
+const MAX_FACT_VALUE = 240;
+```
+
 ### MAX_FACTS
 
 *constant*. The most facts a preview shows.
@@ -2173,6 +2189,30 @@ const MAX_ICON_PATH = 800;
 const MAX_ICON_TEXT = 8;
 ```
 
+### MAX_KIND
+
+*constant*. The most characters kept of a preview's kind.
+
+```ts
+const MAX_KIND = 80;
+```
+
+### MAX_PICTURE_ALT
+
+*constant*. The most characters kept of a picture's description.
+
+```ts
+const MAX_PICTURE_ALT = 240;
+```
+
+### MAX_TITLE
+
+*constant*. The most characters kept of a preview's title.
+
+```ts
+const MAX_TITLE = 160;
+```
+
 ### planLines
 
 *function*. What to draw for an answer. Not narrowed: each group with rows gets a header, its first `perGroup` rows, and `See all` when it has more results than it draws. Narrowed to
@@ -2191,7 +2231,7 @@ const PREVIEW_ACTION_ID = "kazoku-preview";
 
 ### previewView
 
-*function*. A row's preview as the pane draws it. The title and the kind come from the row and its group unless the preview has its own; facts with no label or no value are dropped and no more than `MAX_FACTS` are kept; a
+*function*. A row's preview as the pane draws it. The title and the kind come from the row and its group unless the preview has its own, and the row's icon is checked here. `preview` may be `undefined` or any value a page's code
 
 ```ts
 function previewView(row: SearchRow, groupLabel: string, preview: SearchPreview | undefined): PreviewView;
@@ -2233,6 +2273,14 @@ const ROW_ICON_NAMES: readonly ["disc", "ring", "star", "dot", "square"];
 
 ```ts
 function rowIconSpec(icon: RowIcon | undefined | null): RowIconSpec | undefined;
+```
+
+### sanitizePreview
+
+*function*. What a page's preview comes to once checked, or `undefined` when it is not an object. Texts are trimmed and cut (`MAX_TITLE`, `MAX_KIND`, `MAX_FACT_LABEL`, `MAX_FACT_VALUE`, `MAX_PICTURE_ALT`); `facts` that is not an array is dropped, and a fact that is not
+
+```ts
+function sanitizePreview(preview: unknown): SearchPreview | undefined;
 ```
 
 ### SEARCH_ICON_NAMES
@@ -2668,7 +2716,7 @@ interface SearchPreview {
     title?: string;
     /** The kind, in the reader's language. Left out, the group's label. */
     kind?: string;
-    /** A few facts as label and value, at most `MAX_FACTS`. Values are text, never markup. */
+    /** A few facts as label and value, at most `MAX_FACTS` (8). Values are text, never markup. */
     facts?: readonly SearchFact[];
     /** A picture's address, loaded only once this preview is shown (lazily), in a box of fixed size so nothing around it moves. Must pass `isSafeImageUrl`. */
     picture?: string;
@@ -2807,10 +2855,19 @@ class SearchBoxElement extends HTMLElement {
     /**
      * The page's function for a row's preview, used for the rows that carry no `preview` of their own: `(row, { signal, group }) => preview`. It is called when a row is highlighted, after a short quiet time (`preview-delay`, 150 ms),
      * only if that row is still the highlighted one; moving on aborts the call, an answer that comes late is dropped, and an answer is kept by row and language, so the same row again asks for nothing.
+     * Setting it forgets what was kept and ends a call that is out.
+     *
+     * @example
+     * box.loadPreview = async (row, { signal, group }) => (await fetch(`/previews/${group}/${row.id}.json`, { signal })).json();
      */
     get loadPreview(): SearchPreviewSource | undefined;
     set loadPreview(load: SearchPreviewSource | undefined);
-    /** Forget every preview kept, so the next highlight asks again (the page's data changed). */
+    /**
+     * Forget every preview kept and end a call that is out, so the highlighted row is asked for again (the page's data changed).
+     *
+     * @example
+     * box.clearPreviews();
+     */
     clearPreviews(): void;
     /** The hint shown in the empty box. Left out or empty, the word for Search in the box's language. Reads as the text shown; setting it writes the `placeholder` attribute. */
     get placeholder(): string;

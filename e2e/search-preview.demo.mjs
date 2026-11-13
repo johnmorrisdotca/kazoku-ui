@@ -367,3 +367,237 @@ test("the open popup with a preview has no accessibility violations in light or 
     expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`), theme).toEqual([]);
   }
 });
+
+/** The box's description target: what the active cell (or, with the sheet open, the box) says it is described by. */
+const describedBy = (page) => host(page).evaluate((el) => {
+  const input = el.shadowRoot.querySelector("input");
+  const cell = el.shadowRoot.getElementById(input.getAttribute("aria-activedescendant") ?? "");
+  return { cell: cell?.getAttribute("aria-describedby") ?? null, input: input.getAttribute("aria-describedby") };
+});
+/** A moment for something that must NOT happen. The only wait on a clock in this file, and only for a negative. */
+const quiet = (page, ms) => page.evaluate((wait) => new Promise((resolve) => setTimeout(resolve, wait)), ms);
+
+test("a screen reader is never told the previous row's preview is the active row's: the pane describes the cell only once it shows that row", async ({ page }) => {
+  test.skip(isPhone(page), "a narrow popup has a sheet instead");
+  await ready(page);
+  await type(page, "u");
+  await narrow(page, "Planets");
+  await page.locator("#slowpv").evaluate((el) => el.click());
+  await page.keyboard.press("ArrowDown");
+  // nothing is shown yet: no description
+  expect((await describedBy(page)).cell).toBeNull();
+  await expect(title(page)).toHaveText("Uranus");
+  await expect.poll(async () => (await describedBy(page)).cell).toBe("pv");
+  // the next row is on its way; the pane still shows Uranus, which must not be read as Mercury's
+  await page.keyboard.press("ArrowDown");
+  await expect(pane(page)).toHaveAttribute("aria-busy", "true");
+  expect((await describedBy(page)).cell).toBeNull();
+  await expect(title(page)).toHaveText("Mercury");
+  await expect.poll(async () => (await describedBy(page)).cell).toBe("pv");
+});
+
+test("a failed preview is asked for again only after another row, not by every arrow along the row", async ({ page }) => {
+  test.skip(isPhone(page), "a narrow popup has a sheet instead");
+  await ready(page);
+  await type(page, "u");
+  await narrow(page, "Planets");
+  await page.locator("#failpv").evaluate((el) => el.click());
+  await page.keyboard.press("ArrowDown");
+  await expect(pane(page).locator(".pv-note")).toHaveText("The preview could not be loaded.");
+  await expect(calls(page)).toHaveText("1");
+  for (let i = 0; i < 3; i += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowLeft");
+  }
+  // longer than the quiet time, so a repeat would have been asked for by now
+  await quiet(page, 500);
+  await expect(calls(page)).toHaveText("1");
+  await page.locator("#failpv").evaluate((el) => el.click());
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowUp");
+  await expect(pane(page).locator(".pv-note")).toBeHidden();
+  await expect(calls(page)).toHaveText("3");
+});
+
+test("turning the preview off while a call is waiting asks for nothing, and while the sheet is open closes it", async ({ page }) => {
+  await ready(page);
+  await type(page, "u");
+  await narrow(page, "Planets");
+  if (isPhone(page)) {
+    await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+    await expect(title(page)).toHaveText("Uranus");
+    await host(page).evaluate((el) => el.setAttribute("preview", "off"));
+    await expect(pane(page)).toBeHidden();
+    await expect(list(page)).toBeVisible();
+    await expect(box(page)).toHaveAttribute("aria-activedescendant", /.+/);
+    // the first Escape closes the popup: the sheet is not still holding it
+    await page.keyboard.press("Escape");
+    await expect(panel(page)).toBeHidden();
+    return;
+  }
+  await page.keyboard.press("ArrowDown");
+  await host(page).evaluate((el) => el.setAttribute("preview", "off"));
+  await expect(pane(page)).toBeHidden();
+  await quiet(page, 400);
+  await expect(calls(page)).toHaveText("0");
+  await host(page).evaluate((el) => el.removeAttribute("preview"));
+  await expect(pane(page)).toBeVisible();
+});
+
+test("a sheet left open when the popup grows wide closes, and the list and the highlight are back", async ({ page }) => {
+  test.skip(isPhone(page), "this resizes a desk window");
+  await ready(page);
+  await page.setViewportSize({ width: 480, height: 900 });
+  await type(page, "mars");
+  await expect(panel(page)).toHaveAttribute("data-layout", "sheet");
+  await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+  await expect(pane(page)).toBeVisible();
+  await expect(list(page)).toBeHidden();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(panel(page)).toHaveAttribute("data-layout", "side");
+  await expect(panel(page)).not.toHaveAttribute("data-sheet", "");
+  await expect(list(page)).toBeVisible();
+  await expect(box(page)).toHaveAttribute("aria-activedescendant", /.+/);
+  await expect(title(page)).toHaveText("Mars");
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+});
+
+/** A box whose one preview has labels, kinds and values with no place to break. */
+const longText = async (page) => {
+  const long = "Supercalifragilisticexpialidocious".repeat(4);
+  await page.evaluate((word) => {
+    const b = document.querySelector("#pbox");
+    b.loadPreview = undefined;
+    b.source = () => [{ id: "k", label: "Things", total: 1, rows: [{ id: "x", label: "Thing", preview: { title: word, kind: word, facts: [{ label: word, value: word }, { label: "Short", value: "ok" }] } }] }];
+  }, long);
+};
+
+test("long unbroken text in a preview wraps inside the pane, on a 320 px screen and a wide one, and nothing scrolls sideways", async ({ page }) => {
+  await ready(page);
+  await longText(page);
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await box(page).fill("");
+    await type(page, "thing");
+    if (width < 540) await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+    else await page.keyboard.press("ArrowDown");
+    await expect(pane(page).locator(".pv-facts dt").first()).toBeVisible();
+    const over = await host(page).evaluate((el) => {
+      const panelEl = el.shadowRoot.querySelector(".panel");
+      const p = el.shadowRoot.querySelector(".preview").getBoundingClientRect();
+      const o = panelEl.getBoundingClientRect();
+      return { scroll: panelEl.scrollWidth - panelEl.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth, inside: p.left >= o.left - 1 && p.right <= o.right + 1 };
+    });
+    expect(over, `${width} px`).toEqual({ scroll: 0, page: 0, inside: true });
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("with the sheet open the box is described by the sheet, Tab reaches Back and the actions, and a press there returns the focus to the box", async ({ page }) => {
+  test.skip(!isPhone(page), "a wide popup has the pane beside the list");
+  await ready(page);
+  await type(page, "mars");
+  await page.keyboard.press("ArrowDown");
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(title(page)).toHaveText("Mars");
+  await expect.poll(async () => (await describedBy(page)).input).toBe("pv");
+  // Tab: Back first, then the actions; none of them is hidden from a screen reader in the sheet
+  await page.keyboard.press("Tab");
+  expect(await host(page).evaluate((el) => el.shadowRoot.activeElement?.className)).toBe("pv-back");
+  await expect(pane(page).locator(".pv-acts")).not.toHaveAttribute("aria-hidden", "true");
+  await page.keyboard.press("Tab");
+  expect(await host(page).evaluate((el) => el.shadowRoot.activeElement?.dataset.act)).toBe("show");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Enter");
+  await expect(list(page)).toBeVisible();
+  await expect(box(page)).toBeFocused();
+  // an action pressed from the keyboard does it, and the focus is back in the box
+  await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+  await expect(title(page)).toHaveText("Mars");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#picked")).toHaveText("show planets/mars");
+  await expect(box(page)).toBeFocused();
+});
+
+test("clearPreviews and a new loadPreview during a call end it and ask again; the box leaving the page during a call is quiet", async ({ page }) => {
+  test.skip(isPhone(page), "a narrow popup has a sheet instead");
+  const errors = await ready(page);
+  await type(page, "u");
+  await narrow(page, "Planets");
+  await page.locator("#slowpv").evaluate((el) => el.click());
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("#plast")).toHaveText("planets/uranus");
+  await host(page).evaluate((el) => el.clearPreviews());
+  await expect(page.locator("#paborts")).toHaveText("1");
+  await expect(calls(page)).toHaveText("2");
+  const load = await host(page).evaluate((el) => (window.__load = el.loadPreview, 1));
+  expect(load).toBe(1);
+  await host(page).evaluate((el) => { el.loadPreview = window.__load; });
+  await expect(page.locator("#paborts")).toHaveText("2");
+  await expect(calls(page)).toHaveText("3");
+  await expect(title(page)).toHaveText("Uranus");
+  // a new call is out, and the box leaves the page: it is stopped, and nothing is drawn or thrown
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("#plast")).toHaveText("planets/mercury");
+  await host(page).evaluate((el) => el.remove());
+  await expect(page.locator("#paborts")).toHaveText("3");
+  await quiet(page, 1200);
+  expect(errors).toEqual([]);
+});
+
+test("preview-delay is an attribute: a longer quiet time asks later", async ({ page }) => {
+  test.skip(isPhone(page), "a narrow popup has a sheet instead");
+  await ready(page);
+  await host(page).evaluate((el) => el.setAttribute("preview-delay", "700"));
+  await type(page, "u");
+  await narrow(page, "Planets");
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("#pcalls")).toHaveText("0");
+  await expect(title(page)).toHaveText("Uranus");
+  await expect(calls(page)).toHaveText("1");
+});
+
+test("a kept preview is for one language: the same row in the other language is asked for again", async ({ page }) => {
+  test.skip(isPhone(page), "a narrow popup has a sheet instead");
+  await ready(page);
+  await type(page, "mars");
+  await page.keyboard.press("ArrowDown");
+  await expect(title(page)).toHaveText("Mars");
+  await expect(calls(page)).toHaveText("1");
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await type(page, "火星");
+  await page.keyboard.press("ArrowDown");
+  await expect(title(page)).toHaveText("火星");
+  await expect(calls(page)).toHaveText("2");
+});
+
+test("a row icon picture that cannot be loaded is taken away and leaves the box in place", async ({ page }) => {
+  await ready(page);
+  await page.evaluate(() => {
+    document.querySelector("#pbox").source = () => [{ id: "k", label: "Things", total: 2, rows: [{ id: "a", label: "Alpha", icon: { src: "/no-such-flag.svg" } }, { id: "b", label: "Beta", icon: { name: "disc" } }] }];
+  });
+  await type(page, "a");
+  await expect(rows(page)).toHaveCount(2);
+  await expect(rows(page).first().locator(".ico")).toHaveCount(1);
+  await expect(rows(page).first().locator(".ico img")).toHaveCount(0);
+  const widths = await rows(page).evaluateAll((els) => els.map((el) => el.querySelector(".ico").getBoundingClientRect().width));
+  expect(widths[0]).toBe(widths[1]);
+});
+
+test("on a finger the sheet's Back and action buttons are 44 px tall", async ({ page }) => {
+  test.skip(!isPhone(page), "a wide popup has the pane beside the list");
+  await ready(page);
+  const coarse = await page.evaluate(() => window.matchMedia("(pointer: coarse)").matches);
+  test.skip(!coarse, "this browser does not report a coarse pointer at phone width");
+  await type(page, "mars");
+  await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+  await expect(title(page)).toHaveText("Mars");
+  const sizes = await pane(page).evaluate((el) => [el.querySelector(".pv-back"), ...el.querySelectorAll(".pv-acts button")].map((b) => b.getBoundingClientRect().height));
+  expect(sizes.length).toBeGreaterThan(2);
+  for (const height of sizes) expect(height).toBeGreaterThanOrEqual(44);
+});

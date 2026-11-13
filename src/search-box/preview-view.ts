@@ -3,17 +3,47 @@
 import { isSafeImageUrl, rowIconSpec, type RowIconSpec } from "./icons.ts";
 import type { SearchFact, SearchPreview, SearchRow } from "./model.ts";
 
-/** The most facts a preview shows. */
+/**
+ * The most facts a preview shows.
+ *
+ * @example
+ * sanitizePreview({ facts: Array.from({ length: 20 }, (_, i) => ({ label: `L${i}`, value: "v" })) })?.facts?.length; // MAX_FACTS (8)
+ */
 export const MAX_FACTS = 8;
-/** The most characters kept of a preview's title. */
+/**
+ * The most characters kept of a preview's title.
+ *
+ * @example
+ * [...(sanitizePreview({ title: "t".repeat(500) })?.title ?? "")].length; // MAX_TITLE (160)
+ */
 export const MAX_TITLE = 160;
-/** The most characters kept of a preview's kind. */
+/**
+ * The most characters kept of a preview's kind.
+ *
+ * @example
+ * [...(sanitizePreview({ kind: "k".repeat(500) })?.kind ?? "")].length; // MAX_KIND (80)
+ */
 export const MAX_KIND = 80;
-/** The most characters kept of a fact's label. */
+/**
+ * The most characters kept of a fact's label.
+ *
+ * @example
+ * sanitizePreview({ facts: [{ label: "l".repeat(500), value: "v" }] })?.facts?.[0]?.label.length; // MAX_FACT_LABEL (60)
+ */
 export const MAX_FACT_LABEL = 60;
-/** The most characters kept of a fact's value. */
+/**
+ * The most characters kept of a fact's value.
+ *
+ * @example
+ * sanitizePreview({ facts: [{ label: "l", value: "v".repeat(500) }] })?.facts?.[0]?.value.length; // MAX_FACT_VALUE (240)
+ */
 export const MAX_FACT_VALUE = 240;
-/** The most characters kept of a picture's description. */
+/**
+ * The most characters kept of a picture's description.
+ *
+ * @example
+ * sanitizePreview({ pictureAlt: "p".repeat(500) })?.pictureAlt?.length; // MAX_PICTURE_ALT (240)
+ */
 export const MAX_PICTURE_ALT = 240;
 
 /** A preview as the pane draws it: every part checked, with the row's own name, kind and icon where the preview leaves them out. */
