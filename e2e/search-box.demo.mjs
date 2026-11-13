@@ -1,0 +1,289 @@
+import { createRequire } from "node:module";
+import { expect, test } from "@playwright/test";
+
+// The search box on demo/search-box.html: a reader types, narrows, moves with the keyboard, and picks. Every wait is on the page's state, never on a timer.
+const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+const ready = async (page) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/search-box.html");
+  await expect(page.locator("kazoku-search-box")).toBeVisible();
+  return errors;
+};
+const box = (page) => page.locator("kazoku-search-box").locator("input");
+const rows = (page) => page.locator("kazoku-search-box").locator("[role=row][data-i]");
+const heads = (page) => page.locator("kazoku-search-box").locator("[role=rowheader]");
+const chips = (page) => page.locator("kazoku-search-box").locator(".chips button");
+const panel = (page) => page.locator("kazoku-search-box").locator(".panel");
+const type = async (page, text) => {
+  await box(page).fill(text);
+  await expect(page.locator("#last")).toHaveText(new RegExp(`^${text}`));
+  await expect(page.locator("kazoku-search-box").locator("#grid")).not.toHaveAttribute("aria-busy", "true");
+};
+const state = (page) => page.locator("kazoku-search-box").evaluate((el) => {
+  const input = el.shadowRoot.querySelector("input");
+  const target = el.shadowRoot.getElementById(input.getAttribute("aria-activedescendant") ?? "");
+  return { expanded: input.getAttribute("aria-expanded"), active: target ? (target.getAttribute("role") === "row" ? `row ${target.dataset.i}` : `button ${target.dataset.act}`) : null, pressed: target?.getAttribute("aria-pressed") ?? null };
+});
+
+test("typing shows each kind with its count, a few rows of each, and See all where there are more", async ({ page }) => {
+  const errors = await ready(page);
+  await type(page, "mar");
+  await expect(heads(page)).toHaveText([/^Stars\s*1$/, /^Planets and moons\s*1$/, /^Craft\s*5$/, /^Places\s*4$/, /^Cities\s*4$/]);
+  await expect(page.locator("kazoku-search-box").locator("#grid")).toHaveAttribute("role", "grid");
+  await expect(page.locator("kazoku-search-box").locator("[role=rowgroup]").first()).toHaveAttribute("aria-labelledby", /./);
+  // three rows of Craft, then See all 5
+  const craft = page.locator("kazoku-search-box").locator("[role=rowgroup]").nth(2);
+  await expect(craft.locator("[role=row][data-i]")).toHaveCount(4);
+  await expect(craft.locator("[data-kind=all]")).toHaveText("See all 5");
+  await expect(craft.locator("mark").first()).toHaveText("Mar");
+  // the combobox says what it controls, and the answer is announced politely
+  await expect(box(page)).toHaveAttribute("role", "combobox");
+  await expect(box(page)).toHaveAttribute("aria-haspopup", "grid");
+  await expect(box(page)).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("kazoku-search-box").locator("[role=status]")).toHaveText("15 results: Stars 1, Planets and moons 1, Craft 5, Places 4, Cities 4");
+  expect(errors).toEqual([]);
+});
+
+test("the chips narrow to one kind and back, and are buttons with a pressed state", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  await expect(chips(page)).toHaveText(["All", "Stars1", "Planets and moons1", "Craft5", "Places4", "Cities4"]);
+  await expect(chips(page).first()).toHaveAttribute("aria-pressed", "true");
+  await chips(page).nth(3).click();
+  await expect(page.locator("#last")).toHaveText("mar (craft)");
+  await expect(chips(page).nth(3)).toHaveAttribute("aria-pressed", "true");
+  await expect(chips(page).first()).toHaveAttribute("aria-pressed", "false");
+  await expect(heads(page)).toHaveCount(1);
+  await expect(rows(page)).toHaveCount(5);
+  // the chips keep every kind's count while one is chosen
+  await expect(chips(page)).toHaveCount(6);
+  await chips(page).first().click();
+  await expect(heads(page)).toHaveCount(5);
+  // the box still has the keyboard through all of it
+  await expect(box(page)).toBeFocused();
+});
+
+test("down arrow to a row and Enter does its first action, and the box lets go of the list", async ({ page }) => {
+  await ready(page);
+  await type(page, "mars");
+  await expect(box(page)).toHaveAttribute("aria-expanded", "true");
+  expect((await state(page)).active).toBeNull();
+  await page.keyboard.press("ArrowDown");
+  expect((await state(page)).active).toBe("row 0");
+  await expect(rows(page).first()).toHaveAttribute("aria-selected", "true");
+  await expect(rows(page).first()).toContainText("Mars");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#picked")).toHaveText("show planets/mars");
+  await expect(panel(page)).toBeHidden();
+  await expect(box(page)).toHaveValue("mars");
+  await expect(box(page)).toBeFocused();
+});
+
+test("moving the active row does not draw the list again", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  const host = page.locator("kazoku-search-box");
+  const before = await host.evaluate((el) => {
+    window.__first = el.shadowRoot.querySelector("[role=row][data-i='0']");
+    return el.drawCount;
+  });
+  // one answer, one draw: the source was called once for this query
+  expect(before).toBeGreaterThan(0);
+  for (let i = 0; i < 4; i += 1) await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowUp");
+  const after = await host.evaluate((el) => ({ draws: el.drawCount, same: el.shadowRoot.querySelector("[role=row][data-i='0']") === window.__first }));
+  expect(after).toEqual({ draws: before, same: true });
+});
+
+test("a keystroke is one draw, however fast the typing", async ({ page }) => {
+  await ready(page);
+  const host = page.locator("kazoku-search-box");
+  const start = await host.evaluate((el) => el.drawCount);
+  await box(page).click();
+  await page.keyboard.type("mars", { delay: 0 });
+  await expect(page.locator("#last")).toHaveText("mars");
+  await expect(page.locator("#calls")).toHaveText("1");
+  await expect(heads(page).first()).toBeVisible();
+  expect(await host.evaluate((el) => el.drawCount)).toBe(start + 1);
+});
+
+test("an older, slower answer never replaces a newer one", async ({ page }) => {
+  await ready(page);
+  await page.locator("#slow").click();
+  await expect(page.locator("#slow")).toHaveAttribute("aria-pressed", "true");
+  await box(page).fill("vega");
+  await expect(page.locator("#last")).toHaveText("vega");
+  // the slow answer for vega is on its way: the popup lies over the switch, so it is pressed from the page; then ask for something else
+  await page.locator("#slow").evaluate((el) => el.click());
+  await box(page).fill("mars");
+  await expect(page.locator("#last")).toHaveText("mars");
+  await expect(rows(page).first()).toContainText("Mars");
+  // the slow answer comes back (the demo's source cannot stop it): the box still shows Mars, and no Vega
+  await expect(page.locator("#answered")).toHaveText("2");
+  await expect(rows(page).first()).toContainText("Mars");
+  await expect(page.locator("kazoku-search-box").locator("[role=rowgroup]").filter({ hasText: "Vega" })).toHaveCount(0);
+});
+
+test("Right and Left move across a row's actions, Enter does the one it stands on, and Favourite toggles from the keyboard", async ({ page }) => {
+  await ready(page);
+  await type(page, "mars");
+  await page.keyboard.press("ArrowDown");
+  const mars = rows(page).first();
+  await expect(mars.locator("button")).toHaveText(["Show", "Go", "Favourite"]);
+  await expect(mars.locator("button").nth(2)).toHaveAttribute("aria-pressed", "false");
+  await expect(mars.locator("button").nth(2)).toHaveAccessibleName("Favourite Mars");
+  await page.keyboard.press("ArrowRight");
+  expect((await state(page)).active).toBe("button go");
+  await page.keyboard.press("ArrowRight");
+  expect(await state(page)).toMatchObject({ active: "button fav", pressed: "false" });
+  // the end of the row: Right leaves the position where it is
+  await page.keyboard.press("ArrowRight");
+  expect((await state(page)).active).toBe("button fav");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#picked")).toHaveText("fav planets/mars on");
+  await expect(page.locator("#favs")).toHaveText("planets:mars");
+  expect(await state(page)).toMatchObject({ active: "button fav", pressed: "true" });
+  // a toggle keeps the list open for the next one
+  await expect(panel(page)).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#picked")).toHaveText("fav planets/mars off");
+  await expect(page.locator("#favs")).toHaveText("none");
+  expect((await state(page)).pressed).toBe("false");
+  // Left walks back to the row, and a move to another row starts at its first action
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("ArrowLeft");
+  expect((await state(page)).active).toBe("row 0");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowDown");
+  expect((await state(page)).active).toBe("row 1");
+  // Home and End move the caret in the box, not the list
+  await page.keyboard.press("Home");
+  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(0);
+  await page.keyboard.press("End");
+  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(4);
+  expect((await state(page)).active).toBe("row 1");
+});
+
+test("a press on an action or on a row does what a key does", async ({ page }) => {
+  await ready(page);
+  await type(page, "mars");
+  await rows(page).first().locator("button").nth(1).click();
+  await expect(page.locator("#picked")).toHaveText("go planets/mars");
+  await box(page).fill("mars");
+  await expect(rows(page).first()).toContainText("Mars");
+  await rows(page).first().locator(".main").click();
+  await expect(page.locator("#picked")).toHaveText("show planets/mars");
+});
+
+test("See all shows one kind's whole list in windows, and Show more draws the next window", async ({ page }) => {
+  await ready(page);
+  await type(page, "a");
+  const cities = page.locator("kazoku-search-box").locator("[role=rowgroup]").filter({ has: page.locator("[role=rowheader]", { hasText: "Cities" }) });
+  const total = Number((await cities.locator("[role=rowheader] .n").textContent()) ?? "0");
+  expect(total).toBeGreaterThan(40);
+  // the keyboard: up from the box wraps to the last row, which is Cities' See all
+  await page.keyboard.press("ArrowUp");
+  await expect(rows(page).last()).toHaveText(`See all ${total}`);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#last")).toHaveText("a (cities)");
+  await expect(heads(page)).toHaveCount(1);
+  await expect(rows(page)).toHaveCount(21);
+  await expect(rows(page).last()).toHaveText("Show more");
+  await expect(page.locator("kazoku-search-box").locator("[role=status]")).toHaveText(`Cities, ${total} results`);
+  // only what is shown is drawn
+  expect(await page.locator("kazoku-search-box").evaluate((el) => el.shadowRoot.querySelectorAll("*").length)).toBeLessThan(400);
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await expect(rows(page)).toHaveCount(41);
+  await expect(chips(page).filter({ hasText: "Cities" })).toHaveAttribute("aria-pressed", "true");
+  // All brings the groups back
+  await chips(page).first().click();
+  await expect(heads(page)).toHaveCount(5);
+});
+
+test("Escape closes the popup, then clears the box", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  await expect(panel(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await expect(box(page)).toHaveAttribute("aria-expanded", "false");
+  await expect(box(page)).toHaveValue("mar");
+  await page.keyboard.press("Escape");
+  await expect(box(page)).toHaveValue("");
+  // typing again brings the popup back
+  await type(page, "ven");
+  await expect(panel(page)).toBeVisible();
+  // Down opens a closed popup again
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await page.keyboard.press("ArrowDown");
+  await expect(panel(page)).toBeVisible();
+  expect((await state(page)).active).toBe("row 0");
+});
+
+test("the shortcut keys focus the box, and never take a key from another field", async ({ page }) => {
+  await ready(page);
+  await expect(box(page)).toHaveAttribute("aria-keyshortcuts", "/ Control+K Meta+K");
+  await page.locator("h1").click();
+  await page.keyboard.press("/");
+  await expect(box(page)).toBeFocused();
+  // typing a slash in the box is typing
+  await page.keyboard.type("a/b");
+  await expect(box(page)).toHaveValue("a/b");
+  await box(page).fill("");
+  // in another field, the slash is a slash and the box does not take the focus
+  await page.locator("#other").focus();
+  await page.keyboard.press("/");
+  await expect(page.locator("#other")).toHaveValue("/");
+  await expect(page.locator("#other")).toBeFocused();
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(page.locator("#other")).toBeFocused();
+  // out of any field, Control or Command and K comes back
+  await page.locator("h1").click();
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(box(page)).toBeFocused();
+});
+
+test("the words are Japanese when the page is, and the count is said in Japanese", async ({ page }) => {
+  await ready(page);
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await expect(box(page)).toHaveAttribute("placeholder", "検索");
+  await type(page, "mars");
+  await expect(rows(page).first()).toContainText("火星");
+  await expect(rows(page).first().locator("button")).toHaveText(["見る", "行く", "お気に入り"]);
+  await expect(page.locator("kazoku-search-box").locator("[role=status]")).toHaveText(/^\d+件：/);
+  await type(page, "mar");
+  await expect(page.locator("kazoku-search-box").locator("[data-kind=all]").first()).toHaveText("5件をすべて見る");
+});
+
+test("the popup fills the box's width, actions are touch-sized, and nothing makes the page scroll sideways", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  const sizes = await page.locator("kazoku-search-box").evaluate((el) => {
+    const host = el.getBoundingClientRect();
+    const panelBox = el.shadowRoot.querySelector(".panel").getBoundingClientRect();
+    const small = [...el.shadowRoot.querySelectorAll(".row button, .chips button, .row[data-kind]")].filter((b) => b.getBoundingClientRect().height < 43.5).length;
+    return { hostWidth: Math.round(host.width), panelWidth: Math.round(panelBox.width), small, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+  });
+  expect(sizes.panelWidth).toBe(sizes.hostWidth);
+  expect(sizes.small).toBe(0);
+  expect(sizes.overflow).toBe(false);
+});
+
+test("the open popup, with a row and an action active, has no accessibility violations in light or dark", async ({ page }) => {
+  await ready(page);
+  await page.addScriptTag({ path: axePath });
+  await type(page, "mar");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    await expect(page.locator("kazoku-search-box")).toHaveAttribute("data-scheme", theme);
+    const result = await page.evaluate(() => window.axe.run({ include: [["kazoku-search-box"]] }));
+    expect(result.passes.length, "axe ran on the box").toBeGreaterThan(5);
+    expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`), theme).toEqual([]);
+  }
+});
