@@ -1,0 +1,128 @@
+// What a page's source returns, and the plan of what the box draws from it. Nothing here touches the DOM, so it imports on a server.
+import { countPhrase, type SearchBoxWords } from "./words.ts";
+
+/** What a row can do. A row carries up to three. */
+export interface SearchAction {
+  /** What `kazoku-search-pick` reports in `detail.action`. */
+  id: string;
+  /** The word on the button, and for a screen reader the word and the row (`Favourite Mars`). */
+  label: string;
+  /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
+  pressed?: boolean;
+}
+
+/** One result. */
+export interface SearchRow {
+  /** Stable id, reported by the pick. */
+  id: string;
+  /** The name a reader sees, in their language. The part the query matched is marked. */
+  label: string;
+  /** A second line (a kind, a place, a figure). Not matched, not marked. */
+  detail?: string;
+  /** Up to three actions. The first is the default: Enter, and a press on the row's text, fire it. Left out, the row has one, `open`. */
+  actions?: readonly SearchAction[];
+}
+
+/** The results of one kind. */
+export interface SearchGroup {
+  /** Stable id: `stars`, `planets`. Reported by the pick, and passed back to the source as `group` when the reader narrows to it. */
+  id: string;
+  /** The kind's name, in the reader's language. */
+  label: string;
+  /** How many results the kind has in all, which may be more than `rows` holds. */
+  total: number;
+  /** The rows to draw. The box draws a few of them (`per-group`), or a window of them once narrowed. */
+  rows: readonly SearchRow[];
+}
+
+/** What the box tells a source with each call. */
+export interface SearchContext {
+  /** Aborted when a newer call replaces this one. A source that can stop its request does; one that cannot is not harmed, because its late answer is dropped. */
+  signal: AbortSignal;
+  /** The id of the group the reader narrowed to (a chip, or See all), or "" for every group. */
+  group: string;
+}
+
+/**
+ * The page's search. It returns groups, or a promise of them. When `group` is set it should give that group all the rows it can (the box draws them in windows) and may send
+ * the other groups with `rows: []` and their `total`, so the chips keep their counts.
+ */
+export type SearchSource = (query: string, context: SearchContext) => Promise<readonly SearchGroup[]> | readonly SearchGroup[];
+
+/** What `kazoku-search-pick` carries in `detail`. */
+export interface SearchPickDetail {
+  /** The row's id. */
+  id: string;
+  /** The id of the group the row is in. */
+  group: string;
+  /** The action's id. */
+  action: string;
+  /** For a toggle action: the state it is in now. Left out for a plain button. */
+  pressed?: boolean;
+}
+
+/** The most actions a row shows. */
+export const MAX_ACTIONS = 3;
+
+/** One line of the plan the box draws. */
+export type PlanLine =
+  | { type: "header"; group: SearchGroup; shown: number }
+  | { type: "row"; group: SearchGroup; row: SearchRow }
+  | { type: "all"; group: SearchGroup }
+  | { type: "more"; group: SearchGroup; remaining: number };
+
+/** A row's actions: its own, at most three, or the one default `open`. */
+export function actionsOf(row: SearchRow, openLabel = "Open"): SearchAction[] {
+  const own = (row.actions ?? []).slice(0, MAX_ACTIONS);
+  return own.length > 0 ? own : [{ id: "open", label: openLabel }];
+}
+
+/**
+ * What to draw for an answer. Not narrowed: each group with rows gets a header, its first `perGroup` rows, and `See all` when it has more results than it draws. Narrowed to
+ * one group: that group's header and its first `windowSize` rows, then `Show more` while rows are left. Groups with no rows and no total are left out.
+ *
+ * @example
+ * planLines([{ id: "stars", label: "Stars", total: 9, rows: [{ id: "a", label: "Vega" }] }], "", 3, 20).map((line) => line.type); // ["header", "row", "all"]
+ */
+export function planLines(groups: readonly SearchGroup[], narrowed: string, perGroup: number, windowSize: number, drawn = windowSize): PlanLine[] {
+  const lines: PlanLine[] = [];
+  for (const group of groups) {
+    if (narrowed !== "" && group.id !== narrowed) continue;
+    if (group.rows.length === 0) continue;
+    if (narrowed === "") {
+      const shown = group.rows.slice(0, Math.max(1, perGroup));
+      lines.push({ type: "header", group, shown: shown.length });
+      for (const row of shown) lines.push({ type: "row", group, row });
+      if (group.total > shown.length) lines.push({ type: "all", group });
+    } else {
+      const shown = group.rows.slice(0, Math.max(1, drawn));
+      lines.push({ type: "header", group, shown: shown.length });
+      for (const row of shown) lines.push({ type: "row", group, row });
+      if (group.rows.length > shown.length) lines.push({ type: "more", group, remaining: group.rows.length - shown.length });
+    }
+  }
+  return lines;
+}
+
+/** The chips for an answer: every group with results, in the source's order. */
+export function chipsOf(groups: readonly SearchGroup[]): Array<{ id: string; label: string; total: number }> {
+  return groups.filter((group) => group.total > 0 || group.rows.length > 0).map((group) => ({ id: group.id, label: group.label, total: Math.max(group.total, group.rows.length) }));
+}
+
+/** The sentence said politely when an answer arrives: how many results, then each kind and its count. Nothing matched gives the empty word. */
+export function announcement(words: SearchBoxWords, groups: readonly SearchGroup[]): string {
+  const chips = chipsOf(groups);
+  if (chips.length === 0) return words.empty;
+  const total = chips.reduce((sum, chip) => sum + chip.total, 0);
+  const kinds = chips.map((chip) => `${chip.label} ${chip.total}`).join(", ");
+  return words.announce.replace("{count}", countPhrase(words, total)).replace("{kinds}", kinds);
+}
+
+/** The next place in a list of `count` rows: wraps past either end, and `-1` (the box itself) is where a move up from the first row or a move down from the last goes first. */
+export function stepIndex(current: number, count: number, step: 1 | -1): number {
+  if (count <= 0) return -1;
+  if (current < 0) return step === 1 ? 0 : count - 1;
+  const next = current + step;
+  if (next < 0 || next >= count) return -1;
+  return next;
+}

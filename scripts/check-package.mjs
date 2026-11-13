@@ -165,6 +165,13 @@ const PARTS = [
   assert.equal(pure.parseWhich(null), "settings");
   assert.equal(pure.TAG, "kazoku-menu");`,
   },
+  {
+    name: "search-box", tag: "kazoku-search-box", cls: "SearchBoxElement", define: "defineSearchBox",
+    pure: ["rank", "RANK", "highlight", "planLines", "chipsOf", "announcement", "actionsOf", "stepIndex", "MAX_ACTIONS", "createSearchRunner", "countPhrase", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    run: `assert.equal(pure.rank("mar", "Mars"), pure.RANK.prefix);
+  assert.deepEqual(pure.highlight("Mars", "ar").map((part) => part.match), [false, true, false]);
+  assert.equal(pure.TAG, "kazoku-search-box");`,
+  },
 ];
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const windows = process.platform === "win32";
