@@ -16,41 +16,62 @@ export interface Segment {
 interface Folded {
   /** The folded text. */
   text: string;
-  /** For each UTF-16 unit of `text`, the index in the original text of the character it came from. */
+  /** For each UTF-16 unit of `text`, the index in the original text where the character it came from starts. */
   from: number[];
+  /** For each UTF-16 unit of `text`, the index in the original text where that character ends (a letter and its combining marks are one character). */
+  to: number[];
 }
 
 /** A hiragana or katakana letter, as hiragana: the two scripts are one to a reader who types either. */
 const kana = (char: string): string => char.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
 
-/** One character, folded: compatibility forms (full-width letters, half-width katakana) to their plain ones, accents off, lower case, katakana to hiragana. */
-function foldChar(char: string): string {
-  return kana(char.normalize("NFKC").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase());
+const ASCII = /^[\u0000-\u007f]*$/;
+const MARKS = /[\u0300-\u036f]/g;
+/** A letter with the marks that follow it (an accent, a half-width voiced or half-voiced mark), or marks with no letter before them. */
+const CLUSTER = /[^\p{M}\uFF9E\uFF9F][\p{M}\uFF9E\uFF9F]*|[\p{M}\uFF9E\uFF9F]+/gu;
+
+/**
+ * One character with its marks, folded: compatibility forms (full-width letters, half-width katakana and their voiced marks) to their plain ones, Latin accents off,
+ * lower case, katakana to hiragana. The voiced marks of kana stay: か and が are different letters.
+ */
+function foldCluster(cluster: string): string {
+  return kana(cluster.normalize("NFKC").normalize("NFD").replace(MARKS, "").normalize("NFC").toLowerCase());
+}
+
+/** `text` folded. Plain ASCII, the usual case, takes the short way. */
+function foldText(text: string): string {
+  if (ASCII.test(text)) return text.toLowerCase();
+  let out = "";
+  for (const match of text.matchAll(CLUSTER)) out += foldCluster(match[0]);
+  return out;
 }
 
 function fold(text: string): Folded {
   let out = "";
   const from: number[] = [];
-  let index = 0;
-  for (const char of text) {
-    const folded = foldChar(char);
-    for (let i = 0; i < folded.length; i += 1) from.push(index);
+  const to: number[] = [];
+  for (const match of text.matchAll(CLUSTER)) {
+    const folded = foldCluster(match[0]);
+    const start = match.index ?? 0;
+    for (let i = 0; i < folded.length; i += 1) {
+      from.push(start);
+      to.push(start + match[0].length);
+    }
     out += folded;
-    index += char.length;
   }
-  return { text: out, from };
+  return { text: out, from, to };
 }
 
 /** The text a query is matched as: folded, with runs of spaces made one and the ends trimmed. */
 function needleOf(query: string): string {
-  return fold(query).text.replace(/\s+/g, " ").trim();
+  return foldText(query).replace(/\s+/g, " ").trim();
 }
 
 /** Where a word could start: the start of the text, or after anything that is not a letter or a digit. */
 const startsWord = (text: string, at: number): boolean => at === 0 || !/[\p{L}\p{N}]/u.test(text[at - 1] ?? "");
 
 function rankOne(needle: string, candidate: string): Rank {
-  const hay = fold(candidate).text.replace(/\s+/g, " ").trim();
+  const hay = foldText(candidate).replace(/\s+/g, " ").trim();
   if (hay === needle) return RANK.exact;
   if (hay.startsWith(needle)) return RANK.prefix;
   let best: Rank = RANK.none;
@@ -105,15 +126,8 @@ export function highlight(text: string, query: string): Segment[] {
   find(needle);
   if (spans.length === 0) for (const word of needle.split(" ")) find(word);
   if (spans.length === 0) return [{ text, match: false }];
-  // back to the original text: a span starts at its first character and ends after its last one, which may be a surrogate pair
-  const ranges = spans
-    .map(([a, b]): [number, number] => {
-      const start = folded.from[a] ?? 0;
-      const last = folded.from[b - 1] ?? start;
-      const char = String.fromCodePoint(text.codePointAt(last) ?? 0);
-      return [start, last + char.length];
-    })
-    .sort((x, y) => x[0] - y[0]);
+  // back to the original text: a span starts at its first character and ends after its last one, with the marks that follow it
+  const ranges = spans.map(([a, b]): [number, number] => [folded.from[a] ?? 0, folded.to[b - 1] ?? text.length]).sort((x, y) => x[0] - y[0]);
   const merged: Array<[number, number]> = [];
   for (const range of ranges) {
     const last = merged[merged.length - 1];

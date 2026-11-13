@@ -65,6 +65,20 @@ test("highlight cuts a name where the query matched and joins back to the same t
   }
 });
 
+test("folding keeps voiced kana apart, treats a letter and its combining marks as one, and highlights whole characters", () => {
+  // か and が are different letters; a half-width letter and its voiced mark are one
+  assert.equal(rank("か", "がく"), RANK.none);
+  assert.equal(rank("ぱ", "ﾊﾟｸ"), RANK.prefix);
+  assert.equal(rank("が", "ｶﾞｸ"), RANK.prefix);
+  assert.equal(rank("etoile", "e\u0301toile"), RANK.exact);
+  // the accent of a decomposed letter stays inside the marked part, and a surrogate pair is not cut
+  assert.deepEqual(highlight("e\u0301cole", "e").map((part) => part.text), ["e\u0301", "col", "e"]);
+  assert.deepEqual(highlight("ｶﾞｸ", "が").map((part) => [part.text, part.match]), [["ｶﾞ", true], ["ｸ", false]]);
+  assert.deepEqual(highlight("Ｅ\u0301x", "ｅ").map((part) => [part.text, part.match]), [["Ｅ\u0301", true], ["x", false]]);
+  assert.deepEqual(highlight("a😀b😀c", "😀").filter((part) => part.match).map((part) => part.text), ["😀", "😀"]);
+  assert.equal(highlight("Straße ﬁsh", "fi").map((part) => part.text).join(""), "Straße ﬁsh");
+});
+
 test("the plan shows a few rows of each group and See all only where there are more", () => {
   const groups = [group("stars", 120, 5), group("planets", 2, 2), group("empty", 0, 0)];
   const lines = planLines(groups, "", 3, 20);
@@ -199,6 +213,31 @@ test("a failure of an older call is not shown, and a failure of the newest is", 
   calls[1]?.reject(new Error("new"));
   await tick();
   assert.equal((failures[0] as Error).message, "new");
+});
+
+test("a source that throws at once, or answers without a promise, is handled", async () => {
+  const answers: string[] = [];
+  const failures: unknown[] = [];
+  let calls = 0;
+  const runner = createSearchRunner({
+    debounceMs: 0,
+    source: () => (query) => {
+      calls += 1;
+      if (query === "boom") throw new Error("sync");
+      return [{ id: query, label: query, total: 1, rows: [] }];
+    },
+    onAnswer: (groups) => answers.push(groups.map((one) => one.id).join(",")),
+    onFail: (error) => failures.push(error),
+  });
+  runner.request("boom");
+  await tick();
+  assert.equal((failures[0] as Error).message, "sync");
+  assert.equal(runner.busy, false);
+  runner.request("ok");
+  await tick();
+  assert.deepEqual(answers, ["ok"]);
+  assert.equal(calls, 2);
+  assert.equal(runner.busy, false);
 });
 
 test("cancel drops the waiting request and aborts the one in flight, and a late answer is ignored", async () => {
