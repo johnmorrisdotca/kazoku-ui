@@ -97,7 +97,7 @@ test("chips and the spoken count list each kind with its total", () => {
   assert.deepEqual(chipsOf(groups).map((chip) => [chip.id, chip.total]), [["stars", 120], ["planets", 2]]);
   assert.equal(announcement(WORDS.en, groups), "122 results: STARS 120, PLANETS 2");
   assert.equal(announcement(WORDS.en, [group("a", 1, 1)]), "1 result: A 1");
-  assert.equal(announcement(WORDS.ja, [group("a", 3, 1)]), "3件：A 3");
+  assert.equal(announcement(WORDS.ja, [group("a", 3, 1)]), "3件：A3件");
   assert.equal(announcement(WORDS.en, []), "No matches");
 });
 

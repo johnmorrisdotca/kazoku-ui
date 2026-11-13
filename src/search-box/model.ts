@@ -114,7 +114,7 @@ export function announcement(words: SearchBoxWords, groups: readonly SearchGroup
   const chips = chipsOf(groups);
   if (chips.length === 0) return words.empty;
   const total = chips.reduce((sum, chip) => sum + chip.total, 0);
-  const kinds = chips.map((chip) => `${chip.label} ${chip.total}`).join(", ");
+  const kinds = chips.map((chip) => words.kindCount.replace("{label}", chip.label).replace("{n}", String(chip.total))).join(words.join);
   return words.announce.replace("{count}", countPhrase(words, total)).replace("{kinds}", kinds);
 }
 

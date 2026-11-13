@@ -253,10 +253,10 @@ test("the words are Japanese when the page is, and the count is said in Japanese
   await expect(box(page)).toHaveAttribute("placeholder", "検索");
   await type(page, "mars");
   await expect(rows(page).first()).toContainText("火星");
-  await expect(rows(page).first().locator("button")).toHaveText(["見る", "行く", "お気に入り"]);
+  await expect(rows(page).first().locator("button")).toHaveText(["表示", "移動", "お気に入り"]);
   await expect(page.locator("kazoku-search-box").locator("[role=status]")).toHaveText(/^\d+件：/);
   await type(page, "mar");
-  await expect(page.locator("kazoku-search-box").locator("[data-kind=all]").first()).toHaveText("5件をすべて見る");
+  await expect(page.locator("kazoku-search-box").locator("[data-kind=all]").first()).toHaveText("5件すべてを見る");
 });
 
 test("the popup fills the box's width, actions are touch-sized, and nothing makes the page scroll sideways", async ({ page }) => {

@@ -129,13 +129,13 @@ const KINDS = {
 };
 const LABELS = {
   en: { stars: "Stars", planets: "Planets and moons", craft: "Craft", places: "Places", cities: "Cities", show: "Show", go: "Go", fav: "Favourite", nothing: "nothing yet", none: "none", notDone: "none" },
-  ja: { stars: "星", planets: "惑星と衛星", craft: "機体", places: "場所", cities: "都市", show: "見る", go: "行く", fav: "お気に入り", nothing: "まだありません", none: "なし", notDone: "なし" },
+  ja: { stars: "星", planets: "惑星・衛星", craft: "宇宙機", places: "場所", cities: "都市", show: "表示", go: "移動", fav: "お気に入り", nothing: "まだありません", none: "なし", notDone: "なし" },
 };
 // which actions each kind carries; `fav` is the toggle
 const ACTIONS = { stars: ["show", "go", "fav"], planets: ["show", "go", "fav"], craft: ["go", "fav"], places: ["go"], cities: ["go", "fav"] };
 const DETAIL = {
   en: { stars: "Star", planets: "Planet or moon", craft: "Craft", places: "Place", cities: "City" },
-  ja: { stars: "星", planets: "惑星・衛星", craft: "機体", places: "場所", cities: "都市" },
+  ja: { stars: "星", planets: "惑星・衛星", craft: "宇宙機", places: "場所", cities: "都市" },
 };
 
 const language = () => (document.documentElement.lang === "ja" ? "ja" : "en");

@@ -24,6 +24,10 @@ export interface SearchBoxWords {
   countMany: string;
   /** Said once an answer arrives: how many in all, then the kinds. `{count}` is the phrase for the total, `{kinds}` the list. */
   announce: string;
+  /** One kind and its count inside the announcement. `{label}` is the kind's name, `{n}` its total. */
+  kindCount: string;
+  /** What separates the kinds in the announcement, and a kind from its count once narrowed. */
+  join: string;
   /** What a row without actions of its own does, as an action id's label. */
   open: string;
 }
@@ -44,21 +48,25 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     countOne: "{n} result",
     countMany: "{n} results",
     announce: "{count}: {kinds}",
+    kindCount: "{label} {n}",
+    join: ", ",
     open: "Open",
   },
   ja: {
     search: "検索",
     kinds: "種類",
     all: "すべて",
-    seeAll: "{n}件をすべて見る",
+    seeAll: "{n}件すべてを見る",
     showMore: "もっと見る",
-    empty: "見つかりません",
+    empty: "一致するものはありません",
     searching: "検索中…",
     failed: "検索できませんでした",
     results: "検索結果",
     countOne: "{n}件",
     countMany: "{n}件",
     announce: "{count}：{kinds}",
+    kindCount: "{label}{n}件",
+    join: "、",
     open: "開く",
   },
 };

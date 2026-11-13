@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker", "menu"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker", "menu", "search-box"];
 ```
 
 ### Part
@@ -2007,6 +2007,465 @@ import { defineCollectionPicker } from '@johnmorrisdotca/kazoku-ui/collection-pi
 
 ```ts
 function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/search-box`
+
+16 values and 14 types.
+
+```js
+import { actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, languageOf, MAX_ACTIONS, planLines, rank, RANK, stepIndex, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+```
+
+### actionsOf
+
+*function*. A row's actions: its own, at most three, or the one default `open`.
+
+```ts
+function actionsOf(row: SearchRow, openLabel?: string): SearchAction[];
+```
+
+### announcement
+
+*function*. The sentence said politely when an answer arrives: how many results, then each kind and its count. Nothing matched gives the empty word.
+
+```ts
+function announcement(words: SearchBoxWords, groups: readonly SearchGroup[]): string;
+```
+
+### chipsOf
+
+*function*. The chips for an answer: every group with results, in the source's order.
+
+```ts
+function chipsOf(groups: readonly SearchGroup[]): Array<{
+    id: string;
+    label: string;
+    total: number;
+}>;
+```
+
+### countPhrase
+
+*function*. `n` as a phrase: "1 result", "12 results" (English), "12`件`" (Japanese).
+
+```ts
+function countPhrase(words: SearchBoxWords, n: number): string;
+```
+
+### createSearchRunner
+
+*function*. The stale guard. Each call to the source gets its own `AbortController`; a new request aborts the one before it, and an answer that arrives after a newer call has started is
+
+```ts
+function createSearchRunner(options: SearchRunnerOptions): SearchRunner;
+```
+
+### EVENT
+
+*constant*. Fired on the element when the reader picks a result's action. `detail` is `{ id, group, action, pressed? }`.
+
+```ts
+const EVENT = "kazoku-search-pick";
+```
+
+### highlight
+
+*function*. `text` cut into pieces, the part `query` matched marked. The whole query is looked for first; when it is not there, each word of it is. Case, accents, width and kana
+
+```ts
+function highlight(text: string, query: string): Segment[];
+```
+
+### languageOf
+
+*constant*. Japanese for a `lang` that starts with ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### MAX_ACTIONS
+
+*constant*. The most actions a row shows.
+
+```ts
+const MAX_ACTIONS = 3;
+```
+
+### planLines
+
+*function*. What to draw for an answer. Not narrowed: each group with rows gets a header, its first `perGroup` rows, and `See all` when it has more results than it draws. Narrowed to
+
+```ts
+function planLines(groups: readonly SearchGroup[], narrowed: string, perGroup: number, windowSize: number, drawn?: number): PlanLine[];
+```
+
+### rank
+
+*function*. How well `query` matches a name or any of its aliases: `RANK.exact` (4) for the whole name, then `RANK.prefix` (3), `RANK.wordStart` (2) for the start of a later word,
+
+```ts
+function rank(query: string, name: string, aliases?: readonly string[]): Rank;
+```
+
+### RANK
+
+*constant*. The tiers `rank` returns, best first. A larger number is a better match.
+
+```ts
+const RANK: {
+    readonly none: 0;
+    readonly contains: 1;
+    readonly wordStart: 2;
+    readonly prefix: 3;
+    readonly exact: 4;
+};
+```
+
+### stepIndex
+
+*function*. The next place in a list of `count` rows: wraps past either end, and `-1` (the box itself) is where a move up from the first row or a move down from the last goes first.
+
+```ts
+function stepIndex(current: number, count: number, step: 1 | -1): number;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-search-box";
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, SearchBoxWords>;
+```
+
+### wordsFor
+
+*constant*. The words for a language, with any key a page wants said another way replaced.
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<SearchBoxWords>) => SearchBoxWords;
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### PlanLine
+
+*type*. One line of the plan the box draws.
+
+```ts
+type PlanLine = {
+    type: "header";
+    group: SearchGroup;
+    shown: number;
+} | {
+    type: "row";
+    group: SearchGroup;
+    row: SearchRow;
+} | {
+    type: "all";
+    group: SearchGroup;
+} | {
+    type: "more";
+    group: SearchGroup;
+    remaining: number;
+};
+```
+
+### Rank
+
+*type*. One of the numbers in `RANK`.
+
+```ts
+type Rank = (typeof RANK)[keyof typeof RANK];
+```
+
+### SearchAction
+
+*interface*. What a row can do. A row carries up to three.
+
+```ts
+interface SearchAction {
+    /** What `kazoku-search-pick` reports in `detail.action`. */
+    id: string;
+    /** The word on the button, and for a screen reader the word and the row (`Favourite Mars`). */
+    label: string;
+    /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
+    pressed?: boolean;
+}
+```
+
+### SearchBoxWords
+
+*interface*
+
+```ts
+interface SearchBoxWords {
+    /** The box's accessible name and its placeholder. */
+    search: string;
+    /** The name of the row of kind chips. */
+    kinds: string;
+    /** The chip that clears the narrowing. */
+    all: string;
+    /** The row that narrows to one group. `{n}` is the group's total. */
+    seeAll: string;
+    /** The row that draws the next window of a narrowed group. */
+    showMore: string;
+    /** What the popup says when nothing matches. */
+    empty: string;
+    /** What the popup says while an answer is on its way. */
+    searching: string;
+    /** What the popup says when the page's source fails. */
+    failed: string;
+    /** The name of the popup of results. */
+    results: string;
+    /** One result, as a phrase. `{n}` is the number. */
+    countOne: string;
+    /** Several results, as a phrase. `{n}` is the number. */
+    countMany: string;
+    /** Said once an answer arrives: how many in all, then the kinds. `{count}` is the phrase for the total, `{kinds}` the list. */
+    announce: string;
+    /** One kind and its count inside the announcement. `{label}` is the kind's name, `{n}` its total. */
+    kindCount: string;
+    /** What separates the kinds in the announcement, and a kind from its count once narrowed. */
+    join: string;
+    /** What a row without actions of its own does, as an action id's label. */
+    open: string;
+}
+```
+
+### SearchContext
+
+*interface*. What the box tells a source with each call.
+
+```ts
+interface SearchContext {
+    /** Aborted when a newer call replaces this one. A source that can stop its request does; one that cannot is not harmed, because its late answer is dropped. */
+    signal: AbortSignal;
+    /** The id of the group the reader narrowed to (a chip, or See all), or "" for every group. */
+    group: string;
+}
+```
+
+### SearchGroup
+
+*interface*. The results of one kind.
+
+```ts
+interface SearchGroup {
+    /** Stable id: `stars`, `planets`. Reported by the pick, and passed back to the source as `group` when the reader narrows to it. */
+    id: string;
+    /** The kind's name, in the reader's language. */
+    label: string;
+    /** How many results the kind has in all, which may be more than `rows` holds. */
+    total: number;
+    /** The rows to draw. The box draws a few of them (`per-group`), or a window of them once narrowed. */
+    rows: readonly SearchRow[];
+}
+```
+
+### SearchPickDetail
+
+*interface*. What `kazoku-search-pick` carries in `detail`.
+
+```ts
+interface SearchPickDetail {
+    /** The row's id. */
+    id: string;
+    /** The id of the group the row is in. */
+    group: string;
+    /** The action's id. */
+    action: string;
+    /** For a toggle action: the state it is in now. Left out for a plain button. */
+    pressed?: boolean;
+}
+```
+
+### SearchRow
+
+*interface*. One result.
+
+```ts
+interface SearchRow {
+    /** Stable id, reported by the pick. */
+    id: string;
+    /** The name a reader sees, in their language. The part the query matched is marked. */
+    label: string;
+    /** A second line (a kind, a place, a figure). Not matched, not marked. */
+    detail?: string;
+    /** Up to three actions. The first is the default: Enter, and a press on the row's text, fire it. Left out, the row has one, `open`. */
+    actions?: readonly SearchAction[];
+}
+```
+
+### SearchRunner
+
+*interface*. What `createSearchRunner` returns.
+
+```ts
+interface SearchRunner {
+    /** Ask for `query` after the quiet time, replacing a request that is still waiting. `immediate` skips the wait. */
+    request(query: string, group?: string, immediate?: boolean): void;
+    /** Drop the waiting request and abort the one in flight. Neither answers. */
+    cancel(): void;
+    /** True while a request waits or a call is in flight. */
+    readonly busy: boolean;
+}
+```
+
+### SearchRunnerOptions
+
+*interface*
+
+```ts
+interface SearchRunnerOptions {
+    /** The page's source, read at each call so a page can replace it. */
+    source: () => SearchSource | undefined;
+    /** Quiet time after the last keystroke before the source is asked, in ms. 0 asks at once. */
+    debounceMs: number;
+    /** Called when a call to the source starts. */
+    onStart?: (query: string, group: string) => void;
+    /** Called with the answer to the newest call, and never with an older one. */
+    onAnswer: (groups: readonly SearchGroup[], query: string, group: string) => void;
+    /** Called when the newest call failed. An aborted or replaced call is not a failure. */
+    onFail?: (error: unknown, query: string, group: string) => void;
+    /** Called when the newest call has ended, answered or failed. */
+    onIdle?: () => void;
+    /** Left out, `setTimeout` and `clearTimeout`. */
+    timers?: SearchTimers;
+}
+```
+
+### SearchSource
+
+*type*. The page's search. It returns groups, or a promise of them. When `group` is set it should give that group all the rows it can (the box draws them in windows) and may send
+
+```ts
+type SearchSource = (query: string, context: SearchContext) => Promise<readonly SearchGroup[]> | readonly SearchGroup[];
+```
+
+### SearchTimers
+
+*interface*. A timer the runner can be given, for a test that turns time by hand.
+
+```ts
+interface SearchTimers {
+    set(run: () => void, ms: number): unknown;
+    clear(handle: unknown): void;
+}
+```
+
+### Segment
+
+*interface*. A piece of a text: `match` is true for the part the query found.
+
+```ts
+interface Segment {
+    text: string;
+    match: boolean;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/search-box/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, SearchBoxElement, TAG } from '@johnmorrisdotca/kazoku-ui/search-box/element';
+```
+
+### EVENT
+
+*constant*. Fired on the element when the reader picks a result's action. `detail` is `{ id, group, action, pressed? }`.
+
+```ts
+const EVENT = "kazoku-search-pick";
+```
+
+### SearchBoxElement
+
+*class*. A search box that answers in groups. The page sets `source` (an async function `(query, { signal, group }) => groups`), and hears `kazoku-search-pick` with `{ id, group, action }`.
+
+```ts
+class SearchBoxElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The page's search: `(query, { signal, group }) => groups`. The box calls it, and only it. */
+    get source(): SearchSource | undefined;
+    set source(source: SearchSource | undefined);
+    /** What is in the box. Setting it asks the source, like typing. */
+    get value(): string;
+    set value(text: string);
+    /** How many times the box has drawn its results. A test aid: one answer is one draw, and moving the active row is none. */
+    get drawCount(): number;
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string): void;
+    /** Focus the box. */
+    focus(options?: FocusOptions): void;
+    /** Close the popup and keep the text. */
+    close(): void;
+    /** Empty the box, close the popup, and forget the narrowing. */
+    clear(): void;
+    /** Set a toggle action's state in the drawn rows without asking the source again. */
+    setPressed(group: string, id: string, action: string, pressed: boolean): void;
+}
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-search-box";
+```
+
+### SearchPickDetail
+
+*interface*. What `kazoku-search-pick` carries in `detail`.
+
+```ts
+interface SearchPickDetail {
+    /** The row's id. */
+    id: string;
+    /** The id of the group the row is in. */
+    group: string;
+    /** The action's id. */
+    action: string;
+    /** For a toggle action: the state it is in now. Left out for a plain button. */
+    pressed?: boolean;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/search-box/define`
+
+1 value and 0 types.
+
+```js
+import { defineSearchBox } from '@johnmorrisdotca/kazoku-ui/search-box/define';
+```
+
+### defineSearchBox
+
+*function*. Registers `<kazoku-search-box>` in `registry`, and does nothing when the tag is already taken. Returns whether it registered.
+
+```ts
+function defineSearchBox(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/address-state`

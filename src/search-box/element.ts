@@ -370,7 +370,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#draw();
     const words = this.#words();
     const found = group === "" ? undefined : this.#groups.find((one) => one.id === group);
-    this.#el("#status").textContent = found ? `${found.label}, ${countPhrase(words, Math.max(found.total, found.rows.length))}` : announcement(words, this.#groups);
+    this.#el("#status").textContent = found ? `${found.label}${words.join}${countPhrase(words, Math.max(found.total, found.rows.length))}` : announcement(words, this.#groups);
   }
 
   #onFail(): void {
