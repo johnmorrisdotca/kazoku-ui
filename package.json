@@ -62,7 +62,10 @@
     "floating-origin",
     "depth-slices",
     "globe-label",
-    "planet-label"
+    "planet-label",
+    "search-box",
+    "combobox",
+    "grouped-search"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -88,7 +91,8 @@
     "./dist/page-frame/define.js",
     "./dist/interface/define.js",
     "./dist/collection-picker/define.js",
-    "./dist/menu/define.js"
+    "./dist/menu/define.js",
+    "./dist/search-box/define.js"
   ],
   "bin": {
     "kazoku-ci-image": "./dist/testing/ci-image-cli.js",
@@ -178,6 +182,21 @@
       "types": "./dist/collection-picker/define.d.ts",
       "import": "./dist/collection-picker/define.js",
       "default": "./dist/collection-picker/define.js"
+    },
+    "./search-box": {
+      "types": "./dist/search-box/index.d.ts",
+      "import": "./dist/search-box/index.js",
+      "default": "./dist/search-box/index.js"
+    },
+    "./search-box/element": {
+      "types": "./dist/search-box/element.d.ts",
+      "import": "./dist/search-box/element.js",
+      "default": "./dist/search-box/element.js"
+    },
+    "./search-box/define": {
+      "types": "./dist/search-box/define.d.ts",
+      "import": "./dist/search-box/define.js",
+      "default": "./dist/search-box/define.js"
     },
     "./address-state": {
       "types": "./dist/address-state/index.d.ts",
@@ -382,6 +401,7 @@
     "@fontsource/ibm-plex-sans-jp": "5.3.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.0.0",
+    "axe-core": "4.10.2",
     "eslint": "^9.0.0",
     "three": "0.186.1",
     "typescript": "^5.9.0",
