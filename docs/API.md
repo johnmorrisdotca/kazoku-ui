@@ -2125,7 +2125,7 @@ const RANK: {
 
 ### stepIndex
 
-*function*. The next place in a list of `count` rows: wraps past either end, and `-1` (the box itself) is where a move up from the first row or a move down from the last goes first.
+*function*. The next place in a list of `count` rows: past either end it is `-1` (the box itself), and a move from the box goes to the first row (down) or the last (up).
 
 ```ts
 function stepIndex(current: number, count: number, step: 1 | -1): number;
@@ -2133,7 +2133,7 @@ function stepIndex(current: number, count: number, step: 1 | -1): number;
 
 ### TAG
 
-*constant*
+*constant*. The element's tag name.
 
 ```ts
 const TAG = "kazoku-search-box";
@@ -2429,7 +2429,7 @@ class SearchBoxElement extends HTMLElement {
 
 ### TAG
 
-*constant*
+*constant*. The element's tag name.
 
 ```ts
 const TAG = "kazoku-search-box";

@@ -71,13 +71,28 @@ export const WORDS: Record<Language, SearchBoxWords> = {
   },
 };
 
-/** Japanese for a `lang` that starts with ja, English for anything else. */
+/**
+ * Japanese for a `lang` that starts with ja, English for anything else.
+ *
+ * @example
+ * languageOf("ja-JP"); // "ja"
+ */
 export const languageOf = (lang: string | null | undefined): Language => (/^ja\b/i.test(lang ?? "") ? "ja" : "en");
 
-/** The words for a language, with any key a page wants said another way replaced. */
+/**
+ * The words for a language, with any key a page wants said another way replaced.
+ *
+ * @example
+ * wordsFor("en", { search: "Find a star" }).search; // "Find a star"
+ */
 export const wordsFor = (language: Language, overrides: Partial<SearchBoxWords> = {}): SearchBoxWords => ({ ...WORDS[language], ...overrides });
 
-/** `n` as a phrase: "1 result", "12 results" (English), "12件" (Japanese). */
+/**
+ * `n` as a phrase: "1 result", "12 results" (English), "12件" (Japanese).
+ *
+ * @example
+ * countPhrase(WORDS.en, 12); // "12 results"
+ */
 export function countPhrase(words: SearchBoxWords, n: number): string {
   return (n === 1 ? words.countOne : words.countMany).replace("{n}", String(n));
 }

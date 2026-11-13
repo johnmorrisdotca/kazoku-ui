@@ -71,7 +71,12 @@ export type PlanLine =
   | { type: "all"; group: SearchGroup }
   | { type: "more"; group: SearchGroup; remaining: number };
 
-/** A row's actions: its own, at most three, or the one default `open`. */
+/**
+ * A row's actions: its own, at most three, or the one default `open`.
+ *
+ * @example
+ * actionsOf({ id: "mars", label: "Mars" }).map((action) => action.id); // ["open"]
+ */
 export function actionsOf(row: SearchRow, openLabel = "Open"): SearchAction[] {
   const own = (row.actions ?? []).slice(0, MAX_ACTIONS);
   return own.length > 0 ? own : [{ id: "open", label: openLabel }];
@@ -104,12 +109,22 @@ export function planLines(groups: readonly SearchGroup[], narrowed: string, perG
   return lines;
 }
 
-/** The chips for an answer: every group with results, in the source's order. */
+/**
+ * The chips for an answer: every group with results, in the source's order.
+ *
+ * @example
+ * chipsOf([{ id: "stars", label: "Stars", total: 9, rows: [] }]); // [{ id: "stars", label: "Stars", total: 9 }]
+ */
 export function chipsOf(groups: readonly SearchGroup[]): Array<{ id: string; label: string; total: number }> {
   return groups.filter((group) => group.total > 0 || group.rows.length > 0).map((group) => ({ id: group.id, label: group.label, total: Math.max(group.total, group.rows.length) }));
 }
 
-/** The sentence said politely when an answer arrives: how many results, then each kind and its count. Nothing matched gives the empty word. */
+/**
+ * The sentence said politely when an answer arrives: how many results, then each kind and its count. Nothing matched gives the empty word.
+ *
+ * @example
+ * announcement(WORDS.en, [{ id: "stars", label: "Stars", total: 9, rows: [] }]); // "9 results: Stars 9"
+ */
 export function announcement(words: SearchBoxWords, groups: readonly SearchGroup[]): string {
   const chips = chipsOf(groups);
   if (chips.length === 0) return words.empty;
@@ -118,7 +133,13 @@ export function announcement(words: SearchBoxWords, groups: readonly SearchGroup
   return words.announce.replace("{count}", countPhrase(words, total)).replace("{kinds}", kinds);
 }
 
-/** The next place in a list of `count` rows: wraps past either end, and `-1` (the box itself) is where a move up from the first row or a move down from the last goes first. */
+/**
+ * The next place in a list of `count` rows: past either end it is `-1` (the box itself), and a move from the box goes to the first row (down) or the last (up).
+ *
+ * @example
+ * stepIndex(-1, 3, 1); // 0, down from the box
+ * stepIndex(2, 3, 1); // -1, down from the last row is the box
+ */
 export function stepIndex(current: number, count: number, step: 1 | -1): number {
   if (count <= 0) return -1;
   if (current < 0) return step === 1 ? 0 : count - 1;

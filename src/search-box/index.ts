@@ -4,6 +4,17 @@ export { actionsOf, announcement, chipsOf, MAX_ACTIONS, planLines, stepIndex, ty
 export { createSearchRunner, type SearchRunner, type SearchRunnerOptions, type SearchTimers } from "./runner.ts";
 export { countPhrase, languageOf, WORDS, wordsFor, type Language, type SearchBoxWords } from "./words.ts";
 
-/** Fired on the element when the reader picks a result's action. `detail` is `{ id, group, action, pressed? }`. */
+/**
+ * Fired on the element when the reader picks a result's action. `detail` is `{ id, group, action, pressed? }`.
+ *
+ * @example
+ * box.addEventListener(EVENT, (event) => console.log(event.detail.action));
+ */
 export const EVENT = "kazoku-search-pick";
+/**
+ * The element's tag name.
+ *
+ * @example
+ * document.createElement(TAG);
+ */
 export const TAG = "kazoku-search-box";
