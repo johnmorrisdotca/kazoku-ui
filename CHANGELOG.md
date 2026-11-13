@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.46.0] - 2026-11-13
+
 - **The search box is compact by default** (KAZOKU-UI-151). A result is one line about 40 px tall: the name with the match marked and, under it, the `detail` in a smaller, quieter size (an ellipsis, never a wrap). A row's actions are icon buttons of one size (30 px) on the right, each with a tooltip and the accessible name `label row`; a toggle's star is an outline that fills when it is on. An action takes an optional `icon`: `"star"`, `"show"` (or `"eye"`), `"go"` (or `"arrow"`), `"dot"`, or the page's own path data, `{ path: "M4 12h16" }` (24 by 24 grid, checked, drawn node by node, never from markup); an action with no icon is a small text button, not a pill. A row too narrow for its actions keeps as many as fit and puts the last ones behind one More actions button (the arrows still reach every action). The kind chips are one 24 px row that scrolls sideways with a fade at each edge that has more, counts in a lighter weight; a group's heading is small with its count and See all N on the same line at the right. On a coarse pointer rows, icon buttons, chips and See all are 44 px. Keyboard and screen-reader behaviour is unchanged. One new word, `more` (`More actions`, `その他の操作`); also exported: `iconPaths`, `isSafePath`, `SEARCH_ICONS`, `actionsFit`. The roomy look is gone, with no `density` option: nothing needs it.
 
 ## [0.45.0] - 2026-11-13
