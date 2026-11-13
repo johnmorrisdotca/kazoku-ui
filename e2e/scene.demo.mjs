@@ -35,6 +35,64 @@ const redraw = async (page) => {
   await expect.poll(async () => (await readCounts(page)).draws, { timeout: 30_000 }).toBeGreaterThan(before);
   await shown(page);
 };
+/** What the page says is true of the stage and the drawing, read in one step: the draw count, the camera, the moment and the stage's box. A picture is only the picture of a frame if these held while it was taken. */
+const holding = (page) => page.evaluate(() => {
+  const { renderer, scene } = window.kazokuDemo;
+  const box = document.querySelector('[data-testid="stage"]').getBoundingClientRect();
+  return JSON.stringify({ draws: renderer.stats.draws, pending: renderer.scheduler.pending, camera: scene.camera.state, ms: scene.frame?.ms, box: [box.x, box.y, box.width, box.height], ratio: window.devicePixelRatio });
+});
+/**
+ * The stage's picture, taken only while the page held still: the same draw count, camera, moment and box before and after the screenshot, and nothing waiting to be drawn.
+ * A screenshot taken while the page drew or moved is not the picture of any one frame, so it is taken again; the wait is on the page's own numbers, and a page that never holds still fails with them.
+ */
+const picture = async (page) => {
+  const stage = page.locator('[data-testid="stage"]');
+  const seen = [];
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    await shown(page);
+    const before = await holding(page);
+    const image = await stage.screenshot();
+    const after = await holding(page);
+    if (before === after && !JSON.parse(after).pending) return image;
+    seen.push({ before, after });
+  }
+  throw new Error(`the page did not hold still for a picture in 30 s: ${JSON.stringify(seen.slice(-2))}`);
+};
+/** How two pictures of the stage differ, read in the page: their sizes, how many pixels differ, by how much at most, and the box they are in. */
+const differ = (page, a, b) => page.evaluate(async ([x, y]) => {
+  const load = async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+    return context.getImageData(0, 0, image.width, image.height);
+  };
+  const [p, q] = [await load(x), await load(y)];
+  const out = { sizes: [[p.width, p.height], [q.width, q.height]], differing: 0, most: 0, box: null };
+  if (p.width !== q.width || p.height !== q.height) return { ...out, differing: -1 };
+  let [x0, y0, x1, y1] = [p.width, p.height, -1, -1];
+  for (let i = 0; i < p.data.length; i += 4) {
+    const d = Math.max(Math.abs(p.data[i] - q.data[i]), Math.abs(p.data[i + 1] - q.data[i + 1]), Math.abs(p.data[i + 2] - q.data[i + 2]), Math.abs(p.data[i + 3] - q.data[i + 3]));
+    if (d === 0) continue;
+    out.differing += 1;
+    out.most = Math.max(out.most, d);
+    const [px, py] = [(i / 4) % p.width, Math.floor(i / 4 / p.width)];
+    [x0, y0, x1, y1] = [Math.min(x0, px), Math.min(y0, py), Math.max(x1, px), Math.max(y1, py)];
+  }
+  return { ...out, box: out.differing > 0 ? [x0, y0, x1, y1] : null };
+}, [a.toString("base64"), b.toString("base64")]);
+/** Two pictures of a scene at rest are the same picture: byte for byte, and when they are not, the message says how many pixels differ, where and by how much. */
+const expectSamePicture = async (page, a, b, what) => {
+  if (a.equals(b)) return;
+  const found = await differ(page, a, b);
+  expect(found.differing, `${what}: two frames at rest differ: ${JSON.stringify(found)} (sizes, differing pixels, largest step, box of them; -1 pixels means the sizes differ)`).toBe(0);
+  expect(a.equals(b), `${what}: the pictures differ as files but in no pixel`).toBe(true);
+};
 const focusOn = async (page, id) => {
   await page.locator(`[data-focus="${id}"]`).click();
   await expect.poll(() => page.evaluate(() => window.kazokuDemo.scene.camera.state.focus)).toBe(id);
@@ -223,18 +281,14 @@ test("from 400 km above the Earth, the satellite and the Earth draw without flic
   await page.evaluate(() => window.kazokuDemo.clock.pause());
   // The camera at 400 km above the Earth's surface, looking at the Earth with the Moon beyond; and, close to the satellite, the satellite over the Earth.
   await page.evaluate(() => window.kazokuDemo.scene.camera.set({ focus: "earth", distanceKm: window.kazokuDemo.EARTH_KM + 400, tilt: 0, yaw: 0 }));
-  await shown(page);
-  const stage = page.locator('[data-testid="stage"]');
-  const one = await stage.screenshot();
+  const one = await picture(page);
   await redraw(page);
-  const two = await stage.screenshot();
-  expect(Buffer.compare(one, two)).toBe(0);
+  await expectSamePicture(page, one, await picture(page), "400 km above the Earth");
   await focusOn(page, "satellite");
   await page.evaluate(() => window.kazokuDemo.scene.camera.set({ distanceKm: 0.3, tilt: 20, yaw: 40 }));
-  await shown(page);
-  const near = await stage.screenshot();
+  const near = await picture(page);
   await redraw(page);
-  expect(Buffer.compare(near, await stage.screenshot())).toBe(0);
+  await expectSamePicture(page, near, await picture(page), "0.3 km from the satellite");
   const slices = await page.evaluate(() => window.kazokuDemo.scene.stats.slices.map((s) => s.ids));
   expect(slices.length).toBe(2);
   expect(slices[1]).toEqual(["satellite"]);
@@ -291,8 +345,7 @@ test("what is drawn is really there: hiding the Earth, the stars or the satellit
   test.skip(browserName !== "chromium", "only Chromium's page screenshot reads the software WebGL canvas back");
   await ready(page);
   await page.evaluate(() => window.kazokuDemo.clock.pause());
-  const stage = page.locator('[data-testid="stage"]');
-  const shot = async () => { await redraw(page); return stage.screenshot(); };
+  const shot = async () => { await redraw(page); return picture(page); };
   const hide = (what) => page.evaluate((id) => {
     const { layers } = window.kazokuDemo;
     const layer = layers.find((l) => l.id === id);
