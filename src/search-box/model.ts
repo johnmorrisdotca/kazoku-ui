@@ -1,5 +1,5 @@
 // What a page's source returns, and the plan of what the box draws from it. Nothing here touches the DOM, so it imports on a server.
-import type { SearchIcon } from "./icons.ts";
+import { isSafeImageUrl, rowIconSpec, type RowIcon, type RowIconSpec, type SearchIcon } from "./icons.ts";
 import { countPhrase, type SearchBoxWords } from "./words.ts";
 
 /** What a row can do. A row carries up to three. */
@@ -26,9 +26,46 @@ export interface SearchRow {
   label: string;
   /** A second line (a kind, a place, a figure). Not matched, not marked. */
   detail?: string;
+  /** A small picture before the name, drawn 20 px square: a built-in shape (`disc`, `ring`, `star`, `dot`, `square`) with an optional colour, path data, a few characters (a flag), or a picture's address. Rows without one keep the space so the names line up. */
+  icon?: RowIcon;
+  /** What the preview pane shows for this row: the preview itself, or a function that makes it when the row is highlighted. Left out, the box's `loadPreview` is used, and when that is not set the pane shows the row's name, its icon and its kind only. Nothing is asked for a row that is not highlighted. */
+  preview?: SearchPreview | SearchPreviewSource;
   /** Up to three actions. The first is the default: Enter, and a press on the row's text, fire it. Left out, the row has one, `open`. */
   actions?: readonly SearchAction[];
 }
+
+/** One fact in a preview: a label and its value, drawn as a term and its description. */
+export interface SearchFact {
+  label: string;
+  value: string;
+}
+
+/** What the preview pane shows for one row. Everything is optional: a preview with nothing in it shows the row's name, icon and kind. */
+export interface SearchPreview {
+  /** The name, when it should differ from the row's `label` (a longer form). */
+  title?: string;
+  /** The kind, in the reader's language. Left out, the group's label. */
+  kind?: string;
+  /** A few facts as label and value, at most `MAX_FACTS`. Values are text, never markup. */
+  facts?: readonly SearchFact[];
+  /** A picture's address, loaded only once this preview is shown (lazily), in a box of fixed size so nothing around it moves. Must pass `isSafeImageUrl`. */
+  picture?: string;
+  /** What the picture shows, for a screen reader. Left out, the picture is decorative. */
+  pictureAlt?: string;
+  /** A node the page makes (a canvas, a drawing), drawn in the picture's box instead of `picture`. It is kept and reused when the row is highlighted again. */
+  element?: Node;
+}
+
+/** What the box tells a preview function with each call. */
+export interface PreviewContext {
+  /** Aborted when another row is highlighted before this one is ready. A function that can stop its request does; one that cannot is not harmed, because its late answer is dropped. */
+  signal: AbortSignal;
+  /** The id of the row's group. */
+  group: string;
+}
+
+/** The page's preview function: the row, and the group and signal, to a preview or a promise of one. `undefined` means nothing more is known about the row. */
+export type SearchPreviewSource = (row: SearchRow, context: PreviewContext) => Promise<SearchPreview | undefined> | SearchPreview | undefined;
 
 /** The results of one kind. */
 export interface SearchGroup {
@@ -70,6 +107,50 @@ export interface SearchPickDetail {
 
 /** The most actions a row shows. */
 export const MAX_ACTIONS = 3;
+
+/** The most facts a preview shows. */
+export const MAX_FACTS = 8;
+
+/** The id of the action the box adds to a row on a narrow screen, which opens the preview; it is never reported by `kazoku-search-pick`. */
+export const PREVIEW_ACTION_ID = "kazoku-preview";
+
+/** A preview as the pane draws it: every part checked, with the row's own name, kind and icon where the preview leaves them out. */
+export interface PreviewView {
+  title: string;
+  kind: string;
+  facts: SearchFact[];
+  picture?: string;
+  pictureAlt: string;
+  element?: Node;
+  icon?: RowIconSpec;
+}
+
+/**
+ * A row's preview as the pane draws it. The title and the kind come from the row and its group unless the preview has its own; facts with no label or no value are dropped and no more than `MAX_FACTS` are kept; a
+ * picture whose address is not safe is dropped. `preview` may be `undefined` (nothing more is known), which gives the row's name, kind and icon alone.
+ *
+ * @example
+ * previewView({ id: "mars", label: "Mars" }, "Planets", { facts: [{ label: "Moons", value: "2" }] }).facts; // [{ label: "Moons", value: "2" }]
+ * previewView({ id: "mars", label: "Mars" }, "Planets", undefined).kind; // "Planets"
+ */
+export function previewView(row: SearchRow, groupLabel: string, preview: SearchPreview | undefined): PreviewView {
+  const facts: SearchFact[] = [];
+  for (const fact of preview?.facts ?? []) {
+    if (facts.length >= MAX_FACTS) break;
+    const label = typeof fact?.label === "string" ? fact.label.trim() : "";
+    const value = typeof fact?.value === "string" ? fact.value.trim() : "";
+    if (label !== "" && value !== "") facts.push({ label, value });
+  }
+  const picture = typeof preview?.picture === "string" && isSafeImageUrl(preview.picture) ? preview.picture : undefined;
+  const title = typeof preview?.title === "string" && preview.title.trim() !== "" ? preview.title.trim() : row.label;
+  const kind = typeof preview?.kind === "string" && preview.kind.trim() !== "" ? preview.kind.trim() : groupLabel;
+  const view: PreviewView = { title, kind, facts, pictureAlt: typeof preview?.pictureAlt === "string" ? preview.pictureAlt : "" };
+  if (picture !== undefined) view.picture = picture;
+  if (preview?.element !== undefined && preview.element !== null) view.element = preview.element;
+  const icon = rowIconSpec(row.icon);
+  if (icon !== undefined) view.icon = icon;
+  return view;
+}
 
 /** One line of the plan the box draws. */
 export type PlanLine =

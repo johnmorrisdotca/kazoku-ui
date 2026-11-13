@@ -191,8 +191,8 @@ slowButton.addEventListener("click", () => {
 });
 
 const SAY = {
-  en: { title: "search box", back: "The view controls", intro: "Type a name, such as mar or a. Down moves to a result, Right and Left move across its actions, Enter does the first one. Press / or Ctrl or Command and K to come back to the box.", slow: "Slow answers", pickedLabel: "Picked", favLabel: "Favourites", callsLabel: "Source calls", answeredLabel: "Answered", lastLabel: "Last", other: "Another field" },
-  ja: { title: "検索ボックス", back: "表示の操作", intro: "mar や a のように名前を入力します。下キーで結果へ移り、右キーと左キーでその操作を行き来し、Enterで最初の操作を実行します。/ か、CtrlまたはCommandとKでボックスに戻れます。", slow: "答えを遅くする", pickedLabel: "選んだもの", favLabel: "お気に入り", callsLabel: "ソースの呼び出し", answeredLabel: "答えた数", lastLabel: "直近", other: "別の入力欄" },
+  en: { title: "search box", back: "The view controls", previewLink: "Icons and a preview pane", intro: "Type a name, such as mar or a. Down moves to a result, Right and Left move across its actions, Enter does the first one. Press / or Ctrl or Command and K to come back to the box.", slow: "Slow answers", pickedLabel: "Picked", favLabel: "Favourites", callsLabel: "Source calls", answeredLabel: "Answered", lastLabel: "Last", other: "Another field" },
+  ja: { title: "検索ボックス", back: "表示の操作", previewLink: "アイコンとプレビュー", intro: "mar や a のように名前を入力します。下キーで結果へ移り、右キーと左キーでその操作を行き来し、Enterで最初の操作を実行します。/ か、CtrlまたはCommandとKでボックスに戻れます。", slow: "答えを遅くする", pickedLabel: "選んだもの", favLabel: "お気に入り", callsLabel: "ソースの呼び出し", answeredLabel: "答えた数", lastLabel: "直近", other: "別の入力欄" },
 };
 const say = () => {
   const words = SAY[language()];

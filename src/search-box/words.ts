@@ -36,6 +36,18 @@ export interface SearchBoxWords {
   on: string;
   /** A toggle action's new state when it is off. */
   off: string;
+  /** The name of the preview pane (a region), and what is said when its sheet opens on a narrow screen. */
+  preview: string;
+  /** What the pane says before a row is highlighted. */
+  previewHint: string;
+  /** What the pane says while a preview is on its way and nothing is shown yet. */
+  previewLoading: string;
+  /** What the pane says when a preview could not be loaded. */
+  previewFailed: string;
+  /** The name of the button that opens a row's preview on a narrow screen. */
+  details: string;
+  /** The button that closes the preview sheet and returns to the list. */
+  back: string;
 }
 
 export type Language = "en" | "ja";
@@ -60,6 +72,12 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     more: "More actions",
     on: "on",
     off: "off",
+    preview: "Preview",
+    previewHint: "Point at a result, or move to one with the arrow keys, to preview it.",
+    previewLoading: "Loading…",
+    previewFailed: "The preview could not be loaded.",
+    details: "Details",
+    back: "Back to results",
   },
   ja: {
     search: "検索",
@@ -80,6 +98,12 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     more: "その他の操作",
     on: "オン",
     off: "オフ",
+    preview: "プレビュー",
+    previewHint: "結果にポインターを合わせるか、矢印キーで選ぶと、プレビューが表示されます。",
+    previewLoading: "読み込み中…",
+    previewFailed: "プレビューを読み込めませんでした。",
+    details: "詳細",
+    back: "結果に戻る",
   },
 };
 

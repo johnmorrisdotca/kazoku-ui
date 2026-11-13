@@ -471,7 +471,7 @@ One part, one subpath; the pure code, the element and the registration are three
 | [Save image](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/save-image.md) | A canvas, an SVG or an element as a picture |
 | [Print layout](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/print.md) | Printable sheets, a poster over pages, a QR code, Print / save PDF |
 | [Collection picker](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/collection-picker.md) | Search a list, and a chosen list to add, remove and reorder |
-| [Search box](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/search-box.md) | One box for several kinds of result: groups, kind chips and actions on each row |
+| [Search box](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/search-box.md) | One box for several kinds of result: groups, kind chips, an icon and actions on each row, and a preview of the highlighted result beside the list or in a sheet |
 | [Speed buttons](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/speed-buttons.md) | 0.5×, 1×, 2× or your own steps, kept in an attribute and the address |
 | [The shared renderer](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/renderer.md) | One WebGL context, and the freeze checks |
 | [The family clock](https://github.com/johnmorrisdotca/kazoku-ui/blob/main/docs/guides/clock.md) | One moment, speed and play for every view; opens moving; reduced motion |

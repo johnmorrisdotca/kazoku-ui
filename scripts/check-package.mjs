@@ -167,8 +167,10 @@ const PARTS = [
   },
   {
     name: "search-box", tag: "kazoku-search-box", cls: "SearchBoxElement", define: "defineSearchBox",
-    pure: ["rank", "RANK", "highlight", "planLines", "chipsOf", "announcement", "actionsOf", "stepIndex", "MAX_ACTIONS", "createSearchRunner", "countPhrase", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
+    pure: ["rank", "RANK", "highlight", "planLines", "chipsOf", "announcement", "actionsOf", "stepIndex", "MAX_ACTIONS", "createSearchRunner", "createPreviewLoader", "previewView", "rowIconSpec", "countPhrase", "WORDS", "wordsFor", "languageOf", "TAG", "EVENT"],
     run: `assert.equal(pure.rank("mar", "Mars"), pure.RANK.prefix);
+  assert.equal(pure.rowIconSpec({ name: "disc", color: "#c1440e" }).color, "#c1440e");
+  assert.equal(pure.previewView({ id: "m", label: "Mars" }, "Planets", undefined).kind, "Planets");
   assert.deepEqual(pure.highlight("Mars", "ar").map((part) => part.match), [false, true, false]);
   assert.equal(pure.TAG, "kazoku-search-box");`,
   },

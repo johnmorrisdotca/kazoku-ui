@@ -2,7 +2,7 @@ import { BASE_STYLES } from "../shared/base.ts";
 
 // A box, and under it one popup: a row of kind chips, then the groups. The popup is placed over the page so opening it does not push the page down, and it fills the box's width,
 // which on a phone is the page's. The look is compact: a result is one line of name over a quieter line of detail, with its actions as small icon buttons on the right; the chips are
-// small and scroll sideways on one row. On a coarse pointer (a finger) every row, icon button and chip grows to a 44 px target. Nothing moves, so there is no motion to turn off.
+// small and scroll sideways on one row. When a row carries a preview the popup has a second column for it (or, on a narrow box, a sheet opened from a Details button). On a coarse pointer (a finger) every row, icon button and chip grows to a 44 px target. Nothing moves, so there is no motion to turn off.
 export const STYLES = `${BASE_STYLES}
 :host([hidden]) { display: none; }
 :host { display: block; position: relative; width: 100%; }
@@ -19,6 +19,7 @@ input:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
 .chips button:focus-visible { outline-offset: -2px; }
 .chips .n { font-weight: 400; opacity: 0.75; }
 .note { margin: 4px 8px; font-weight: 500; }
+.list { min-width: 0; }
 [role="rowgroup"] { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0 0 2px; }
 [role="rowgroup"] > [role="row"] { grid-column: 1 / -1; }
 [role="rowgroup"] > .head { grid-column: 1; grid-row: 1; align-self: center; }
@@ -27,6 +28,11 @@ input:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
 .row { box-sizing: border-box; position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-height: 40px; padding: 2px 4px 2px 8px; border-radius: 8px; cursor: pointer; }
 .row:hover { background: var(--_line); }
 .row[aria-selected="true"] { background: var(--_line); box-shadow: inset 3px 0 0 var(--_accent); }
+.ico { flex: none; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-right: 6px; }
+.ico svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.ico svg.f { fill: currentColor; stroke: none; }
+.ico img { width: 20px; height: 20px; object-fit: contain; border-radius: 4px; }
+.ico .tx { font-size: 16px; line-height: 1; }
 .main { flex: 1 1 0; min-width: 0; padding: 2px 0; }
 .label { display: block; font-size: 0.9rem; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .detail { display: block; font-size: 0.72rem; font-weight: 500; line-height: 1.2; opacity: 0.78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -55,7 +61,33 @@ mark { background: none; color: inherit; font-weight: 800; text-decoration: unde
 .row.extra[data-kind="all"] { grid-column: 2; grid-row: 1; align-self: center; min-height: 22px; padding: 0 6px; font-size: 0.72rem; }
 .row.extra[data-kind="all"] .label { font-size: 0.72rem; }
 .row.extra[data-kind="more"] { min-height: 32px; }
+.panel[data-pv][data-layout="side"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(13rem, 17rem); column-gap: 8px; align-items: start; }
+.panel[data-sheet] .list { display: none; }
+.preview { box-sizing: border-box; min-width: 0; padding: 10px; border: 1px solid var(--_line); border-radius: 10px; }
+.panel[data-layout="side"] .preview { position: sticky; top: 0; min-height: 12rem; }
+.panel[data-layout="sheet"] .preview { padding: 4px; border: 0; }
+.pv-back { min-height: 36px; margin: 0 0 8px; padding: 0 12px; border-radius: 18px; font-size: 0.82rem; }
+.pv-note { margin: 0; font-size: 0.8rem; font-weight: 500; }
+.pv-pic { box-sizing: border-box; display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 10; max-height: 9.5rem; margin: 0 0 8px; overflow: hidden; border-radius: 8px; background: var(--_line); }
+.pv-pic > * { max-width: 100%; max-height: 100%; }
+.pv-pic img { width: 100%; height: 100%; object-fit: contain; }
+.pv-pic[data-failed] img { visibility: hidden; }
+.pv-head { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.pv-head .ico { width: 28px; height: 28px; margin: 0; }
+.pv-head .ico svg, .pv-head .ico img { width: 26px; height: 26px; }
+.pv-head .ico .tx { font-size: 22px; }
+.pv-name { min-width: 0; }
+.pv-title { display: block; font-size: 1rem; font-weight: 700; overflow-wrap: anywhere; }
+.pv-kind { display: block; font-size: 0.75rem; font-weight: 500; opacity: 0.8; }
+.pv-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 10px; margin: 0 0 8px; font-size: 0.8rem; }
+.pv-facts dt { font-weight: 500; opacity: 0.8; }
+.pv-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pv-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.pv-acts button { min-width: 0; min-height: 36px; padding: 0 12px; border-radius: 18px; font-size: 0.8rem; }
+.pv-acts button[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+.preview[data-stale] .pv-body { opacity: 0.6; }
 @media (pointer: coarse) {
+  .pv-back, .pv-acts button { min-height: 44px; }
   .chips button { min-height: 44px; height: 44px; padding: 0 14px; border-radius: 22px; }
   .row { min-height: 44px; padding-top: 0; padding-bottom: 0; }
   .row[data-more] { padding-bottom: 4px; }

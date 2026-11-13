@@ -2011,10 +2011,10 @@ function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/search-box`
 
-24 values and 17 types.
+33 values and 32 types.
 
 ```js
-import { actionsFit, actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, iconPaths, isActionEnabled, isSafePath, languageOf, MAX_ACTIONS, MAX_ICON_PATH, planLines, rank, RANK, SEARCH_ICON_NAMES, SEARCH_ICONS, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+import { actionsFit, actionsOf, announcement, chipsOf, countPhrase, createPreviewLoader, createSearchRunner, EVENT, highlight, iconPaths, isActionEnabled, isSafeColor, isSafeImageUrl, isSafePath, languageOf, MAX_ACTIONS, MAX_FACTS, MAX_ICON_PATH, MAX_ICON_TEXT, planLines, PREVIEW_ACTION_ID, previewView, rank, RANK, ROW_ICON_NAMES, rowIconSpec, SEARCH_ICON_NAMES, SEARCH_ICONS, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
 ```
 
 ### actionsFit
@@ -2061,6 +2061,14 @@ function chipsOf(groups: readonly SearchGroup[]): Array<{
 function countPhrase(words: SearchBoxWords, n: number): string;
 ```
 
+### createPreviewLoader
+
+*function*. The preview loader. A row that carries its preview (an object) shows it at once. A row that carries a function, or the page's `fallback`, is asked after the quiet time and only if it is still the highlighted row; the request has its own `AbortController`
+
+```ts
+function createPreviewLoader(options: PreviewLoaderOptions): PreviewLoader;
+```
+
 ### createSearchRunner
 
 *function*. The stale guard. Each call to the source gets its own `AbortController`; a new request aborts the one before it, and an answer that arrives after a newer call has started is
@@ -2101,6 +2109,22 @@ function iconPaths(icon: SearchIcon | undefined): readonly string[] | undefined;
 const isActionEnabled: (action: SearchAction) => boolean;
 ```
 
+### isSafeColor
+
+*constant*. Whether a string is a colour this box will set: a hex colour, a colour name, or `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()` or `oklch()` with plain numbers. A `var()`, a `url()` and anything with a semicolon or a brace is refused.
+
+```ts
+const isSafeColor: (color: string) => boolean;
+```
+
+### isSafeImageUrl
+
+*function*. Whether an address is one this box will load as a row's or a preview's picture: a relative address, `https:`, `http:`, or a `data:` PNG, JPEG, WebP, GIF or AVIF. Never `javascript:`, never another scheme, and not longer than 2000 characters.
+
+```ts
+function isSafeImageUrl(src: string): boolean;
+```
+
 ### isSafePath
 
 *constant*. Whether a string is path data this box will draw: only the path commands, numbers, signs, commas and spaces, and not longer than `MAX_ICON_PATH`.
@@ -2125,6 +2149,14 @@ const languageOf: (lang: string | null | undefined) => Language;
 const MAX_ACTIONS = 3;
 ```
 
+### MAX_FACTS
+
+*constant*. The most facts a preview shows.
+
+```ts
+const MAX_FACTS = 8;
+```
+
 ### MAX_ICON_PATH
 
 *constant*. The most characters of path data a page's own icon may have (one string).
@@ -2133,12 +2165,36 @@ const MAX_ACTIONS = 3;
 const MAX_ICON_PATH = 800;
 ```
 
+### MAX_ICON_TEXT
+
+*constant*. The most characters a text icon may have (a flag is two).
+
+```ts
+const MAX_ICON_TEXT = 8;
+```
+
 ### planLines
 
 *function*. What to draw for an answer. Not narrowed: each group with rows gets a header, its first `perGroup` rows, and `See all` when it has more results than it draws. Narrowed to
 
 ```ts
 function planLines(groups: readonly SearchGroup[], narrowed: string, perGroup: number, windowSize: number, drawn?: number): PlanLine[];
+```
+
+### PREVIEW_ACTION_ID
+
+*constant*. The id of the action the box adds to a row on a narrow screen, which opens the preview; it is never reported by `kazoku-search-pick`.
+
+```ts
+const PREVIEW_ACTION_ID = "kazoku-preview";
+```
+
+### previewView
+
+*function*. A row's preview as the pane draws it. The title and the kind come from the row and its group unless the preview has its own; facts with no label or no value are dropped and no more than `MAX_FACTS` are kept; a
+
+```ts
+function previewView(row: SearchRow, groupLabel: string, preview: SearchPreview | undefined): PreviewView;
 ```
 
 ### rank
@@ -2163,12 +2219,28 @@ const RANK: {
 };
 ```
 
-### SEARCH_ICON_NAMES
+### ROW_ICON_NAMES
 
-*constant*. The names of the built-in icons. `eye` and `arrow` are other names for `show` and `go`.
+*constant*. The names of the built-in icons a result row can wear in the list: `disc` and `star` and `dot` and `square` are filled, `ring` is an outline.
 
 ```ts
-const SEARCH_ICON_NAMES: readonly ["star", "show", "go", "dot", "eye", "arrow"];
+const ROW_ICON_NAMES: readonly ["disc", "ring", "star", "dot", "square"];
+```
+
+### rowIconSpec
+
+*function*. What to draw for a row's `icon`, or `undefined` when it has none or is nothing to draw. A built-in name draws its shape (an unknown name is the dot); path data is checked as an action's icon is;
+
+```ts
+function rowIconSpec(icon: RowIcon | undefined | null): RowIconSpec | undefined;
+```
+
+### SEARCH_ICON_NAMES
+
+*constant*. The names of the built-in action icons. `eye` and `arrow` are other names for `show` and `go`; `info` is the one the box draws for the preview on a narrow screen.
+
+```ts
+const SEARCH_ICON_NAMES: readonly ["star", "show", "go", "dot", "eye", "arrow", "info"];
 ```
 
 ### SEARCH_ICONS
@@ -2176,7 +2248,7 @@ const SEARCH_ICON_NAMES: readonly ["star", "show", "go", "dot", "eye", "arrow"];
 *constant*. The paths of each built-in icon, on the 24 grid.
 
 ```ts
-const SEARCH_ICONS: Readonly<Record<"star" | "show" | "go" | "dot", readonly string[]>>;
+const SEARCH_ICONS: Readonly<Record<"star" | "show" | "go" | "dot" | "info", readonly string[]>>;
 ```
 
 ### stepIndex
@@ -2250,12 +2322,178 @@ type PlanLine = {
 };
 ```
 
+### PreviewContext
+
+*interface*. What the box tells a preview function with each call.
+
+```ts
+interface PreviewContext {
+    /** Aborted when another row is highlighted before this one is ready. A function that can stop its request does; one that cannot is not harmed, because its late answer is dropped. */
+    signal: AbortSignal;
+    /** The id of the row's group. */
+    group: string;
+}
+```
+
+### PreviewLoader
+
+*interface*. What `createPreviewLoader` returns.
+
+```ts
+interface PreviewLoader {
+    /** The reader's highlight is on this row. Shows its preview at once when the row carries it or the cache has it, otherwise asks for it after the quiet time. The same row again changes nothing. */
+    highlight(key: string, row: SearchRow, group: string): void;
+    /** Drop the waiting request and abort the one in flight; neither shows. The cache stays. */
+    cancel(): void;
+    /** Cancel, and forget every kept preview (the page's data or language changed). */
+    clear(): void;
+    /** How many times the page's function was called. A test aid. */
+    readonly calls: number;
+    /** How many previews are kept. */
+    readonly size: number;
+}
+```
+
+### PreviewLoaderOptions
+
+*interface*
+
+```ts
+interface PreviewLoaderOptions {
+    /** The page's function for rows that carry no preview of their own, read at each call so a page can replace it. */
+    fallback: () => SearchPreviewSource | undefined;
+    /** Quiet time after a row is highlighted before its preview is asked for, in ms. Moving through rows with the arrows asks for none of the rows passed. */
+    debounceMs: number;
+    /** How long a request may take before `onStale` is called, in ms, so the pane can show that what it has is the last row's. */
+    staleMs: number;
+    /** The most previews kept (the oldest used goes first). */
+    cacheSize: number;
+    /** Called with the preview to draw: from the cache, from the row, or from the function. `preview` is `undefined` when nothing more is known or the request failed (`failed`). Never called with an older row's answer. */
+    onShow: (target: PreviewTarget, preview: SearchPreview | undefined, failed: boolean) => void;
+    /** Called when a request is made, so the pane can say it is waiting. */
+    onWait?: (target: PreviewTarget) => void;
+    /** Called when the request is still unanswered after `staleMs`. */
+    onStale?: (target: PreviewTarget) => void;
+    /** Left out, `setTimeout` and `clearTimeout`. */
+    timers?: SearchTimers;
+}
+```
+
+### PreviewTarget
+
+*interface*. What the loader reports about a row: the cache key it was highlighted with, the row and its group's id.
+
+```ts
+interface PreviewTarget {
+    key: string;
+    row: SearchRow;
+    group: string;
+}
+```
+
+### PreviewView
+
+*interface*. A preview as the pane draws it: every part checked, with the row's own name, kind and icon where the preview leaves them out.
+
+```ts
+interface PreviewView {
+    title: string;
+    kind: string;
+    facts: SearchFact[];
+    picture?: string;
+    pictureAlt: string;
+    element?: Node;
+    icon?: RowIconSpec;
+}
+```
+
 ### Rank
 
 *type*. One of the numbers in `RANK`.
 
 ```ts
 type Rank = (typeof RANK)[keyof typeof RANK];
+```
+
+### RowIcon
+
+*type*. What a result row's `icon` can be, drawn at 20 px before its name.
+
+```ts
+type RowIcon = RowIconName | RowIconNamed | RowIconShape | RowIconText | RowIconImage;
+```
+
+### RowIconImage
+
+*interface*. A row icon that is a small picture: an address the page serves.
+
+```ts
+interface RowIconImage {
+    src: string;
+}
+```
+
+### RowIconName
+
+*type*
+
+```ts
+type RowIconName = (typeof ROW_ICON_NAMES)[number];
+```
+
+### RowIconNamed
+
+*interface*. A built-in row icon with a colour: `{ name: "disc", color: "#c1440e" }`.
+
+```ts
+interface RowIconNamed {
+    name: RowIconName;
+    /** A CSS colour: `#rgb`, `#rrggbb`, a colour name, or `rgb()`, `hsl()`, `oklch()` and the like. Anything else is ignored and the row's text colour is used. */
+    color?: string;
+}
+```
+
+### RowIconShape
+
+*interface*. A row icon the page draws as path data on a 24 by 24 grid, stroked, or filled when `filled` is true.
+
+```ts
+interface RowIconShape {
+    path: string | readonly string[];
+    color?: string;
+    filled?: boolean;
+}
+```
+
+### RowIconSpec
+
+*type*. A row icon after checking, ready to draw.
+
+```ts
+type RowIconSpec = {
+    type: "shape";
+    paths: readonly string[];
+    filled: boolean;
+    color?: string;
+} | {
+    type: "text";
+    text: string;
+    color?: string;
+} | {
+    type: "image";
+    src: string;
+};
+```
+
+### RowIconText
+
+*interface*. A row icon that is a few characters: a flag, a letter, a symbol.
+
+```ts
+interface RowIconText {
+    text: string;
+    color?: string;
+}
 ```
 
 ### SearchAction
@@ -2321,6 +2559,18 @@ interface SearchBoxWords {
     on: string;
     /** A toggle action's new state when it is off. */
     off: string;
+    /** The name of the preview pane (a region), and what is said when its sheet opens on a narrow screen. */
+    preview: string;
+    /** What the pane says before a row is highlighted. */
+    previewHint: string;
+    /** What the pane says while a preview is on its way and nothing is shown yet. */
+    previewLoading: string;
+    /** What the pane says when a preview could not be loaded. */
+    previewFailed: string;
+    /** The name of the button that opens a row's preview on a narrow screen. */
+    details: string;
+    /** The button that closes the preview sheet and returns to the list. */
+    back: string;
 }
 ```
 
@@ -2334,6 +2584,17 @@ interface SearchContext {
     signal: AbortSignal;
     /** The id of the group the reader narrowed to (a chip, or See all), or "" for every group. */
     group: string;
+}
+```
+
+### SearchFact
+
+*interface*. One fact in a preview: a label and its value, drawn as a term and its description.
+
+```ts
+interface SearchFact {
+    label: string;
+    value: string;
 }
 ```
 
@@ -2397,6 +2658,35 @@ interface SearchPickDetail {
 }
 ```
 
+### SearchPreview
+
+*interface*. What the preview pane shows for one row. Everything is optional: a preview with nothing in it shows the row's name, icon and kind.
+
+```ts
+interface SearchPreview {
+    /** The name, when it should differ from the row's `label` (a longer form). */
+    title?: string;
+    /** The kind, in the reader's language. Left out, the group's label. */
+    kind?: string;
+    /** A few facts as label and value, at most `MAX_FACTS`. Values are text, never markup. */
+    facts?: readonly SearchFact[];
+    /** A picture's address, loaded only once this preview is shown (lazily), in a box of fixed size so nothing around it moves. Must pass `isSafeImageUrl`. */
+    picture?: string;
+    /** What the picture shows, for a screen reader. Left out, the picture is decorative. */
+    pictureAlt?: string;
+    /** A node the page makes (a canvas, a drawing), drawn in the picture's box instead of `picture`. It is kept and reused when the row is highlighted again. */
+    element?: Node;
+}
+```
+
+### SearchPreviewSource
+
+*type*. The page's preview function: the row, and the group and signal, to a preview or a promise of one. `undefined` means nothing more is known about the row.
+
+```ts
+type SearchPreviewSource = (row: SearchRow, context: PreviewContext) => Promise<SearchPreview | undefined> | SearchPreview | undefined;
+```
+
 ### SearchRow
 
 *interface*. One result.
@@ -2409,6 +2699,10 @@ interface SearchRow {
     label: string;
     /** A second line (a kind, a place, a figure). Not matched, not marked. */
     detail?: string;
+    /** A small picture before the name, drawn 20 px square: a built-in shape (`disc`, `ring`, `star`, `dot`, `square`) with an optional colour, path data, a few characters (a flag), or a picture's address. Rows without one keep the space so the names line up. */
+    icon?: RowIcon;
+    /** What the preview pane shows for this row: the preview itself, or a function that makes it when the row is highlighted. Left out, the box's `loadPreview` is used, and when that is not set the pane shows the row's name, its icon and its kind only. Nothing is asked for a row that is not highlighted. */
+    preview?: SearchPreview | SearchPreviewSource;
     /** Up to three actions. The first is the default: Enter, and a press on the row's text, fire it. Left out, the row has one, `open`. */
     actions?: readonly SearchAction[];
 }
@@ -2510,6 +2804,14 @@ class SearchBoxElement extends HTMLElement {
     /** The page's search: `(query, { signal, group }) => groups`. The box calls it, and only it. */
     get source(): SearchSource | undefined;
     set source(source: SearchSource | undefined);
+    /**
+     * The page's function for a row's preview, used for the rows that carry no `preview` of their own: `(row, { signal, group }) => preview`. It is called when a row is highlighted, after a short quiet time (`preview-delay`, 150 ms),
+     * only if that row is still the highlighted one; moving on aborts the call, an answer that comes late is dropped, and an answer is kept by row and language, so the same row again asks for nothing.
+     */
+    get loadPreview(): SearchPreviewSource | undefined;
+    set loadPreview(load: SearchPreviewSource | undefined);
+    /** Forget every preview kept, so the next highlight asks again (the page's data changed). */
+    clearPreviews(): void;
     /** The hint shown in the empty box. Left out or empty, the word for Search in the box's language. Reads as the text shown; setting it writes the `placeholder` attribute. */
     get placeholder(): string;
     set placeholder(text: string);

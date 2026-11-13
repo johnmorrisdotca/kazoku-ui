@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type SearchGroup } from "../src/search-box/model.ts";
-import { iconPaths, isSafePath, SEARCH_ICONS } from "../src/search-box/icons.ts";
+import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, MAX_FACTS, planLines, previewView, stepIndex, toggleAnnouncement, type SearchGroup, type SearchPreview, type SearchRow } from "../src/search-box/model.ts";
+import { iconPaths, isSafeColor, isSafeImageUrl, isSafePath, MAX_ICON_TEXT, rowIconSpec, SEARCH_ICONS } from "../src/search-box/icons.ts";
+import { createPreviewLoader, type PreviewTarget } from "../src/search-box/preview.ts";
 import { highlight, rank, RANK } from "../src/search-box/rank.ts";
 import { createSearchRunner, type SearchTimers } from "../src/search-box/runner.ts";
 import { WORDS, countPhrase, languageOf, wordsFor } from "../src/search-box/words.ts";
@@ -334,4 +335,266 @@ test("an action's icon is a built-in name or the page's own safe path data, and 
 test("the words for the button that holds the extra actions are in both languages", () => {
   assert.equal(WORDS.en.more, "More actions");
   assert.equal(WORDS.ja.more, "その他の操作");
+});
+
+test("a row's icon is a built-in shape, path data, a few characters or a picture, and anything unsafe is dropped", () => {
+  assert.deepEqual(rowIconSpec({ name: "disc", color: "#c1440e" }), { type: "shape", paths: ["M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z"], filled: true, color: "#c1440e" });
+  assert.equal((rowIconSpec("ring") as { filled: boolean }).filled, false);
+  assert.equal((rowIconSpec("disc") as { filled: boolean }).filled, true);
+  // a name nobody knows, and one that only exists on every object, is the dot
+  assert.deepEqual(rowIconSpec("nonsense" as never), rowIconSpec("dot"));
+  assert.deepEqual(rowIconSpec("toString" as never), rowIconSpec("dot"));
+  assert.deepEqual(rowIconSpec({ path: ["M4 12h16"], filled: true }), { type: "shape", paths: ["M4 12h16"], filled: true });
+  assert.deepEqual(rowIconSpec({ path: "M0 0h1\" onload=\"x" }), rowIconSpec("dot"));
+  assert.deepEqual(rowIconSpec({ text: "  🇯🇵 " }), { type: "text", text: "🇯🇵" });
+  assert.equal([...(rowIconSpec({ text: "x".repeat(40) }) as { text: string }).text].length, MAX_ICON_TEXT);
+  assert.equal(rowIconSpec({ text: "  " }), undefined);
+  assert.deepEqual(rowIconSpec({ src: "/flags/jp.svg" }), { type: "image", src: "/flags/jp.svg" });
+  assert.equal(rowIconSpec({ src: "javascript:alert(1)" }), undefined);
+  assert.equal(rowIconSpec(undefined), undefined);
+  assert.equal(rowIconSpec(null), undefined);
+  // a colour that could carry more than a colour is left off, and the icon is drawn in the text colour
+  assert.deepEqual(rowIconSpec({ name: "disc", color: "red; background: url(x)" }), rowIconSpec("disc"));
+  assert.deepEqual(rowIconSpec({ name: "star", color: "var(--x)" }), rowIconSpec("star"));
+  assert.ok(SEARCH_ICONS.info.length === 3);
+});
+
+test("a colour is a hex colour, a name or a colour function of plain numbers, and an address is relative, http or a small data picture", () => {
+  for (const ok of ["#fff", "#c1440e", "#c1440eaa", "red", "rgb(10 20 30 / 50%)", "hsl(20, 80%, 40%)", "oklch(70% 0.1 40)"]) assert.equal(isSafeColor(ok), true, ok);
+  for (const bad of ["", "url(x)", "var(--a)", "red;", "calc(1px)", "#12", "rgb(0 0 0); x: y", "{red}", "x".repeat(101)]) assert.equal(isSafeColor(bad), false, bad);
+  for (const ok of ["/p/mars.webp", "./mars.png", "mars.png", "https://example.com/a.png", "http://example.com/a.png", "data:image/png;base64,iVBORw0KGgo="]) assert.equal(isSafeImageUrl(ok), true, ok);
+  for (const bad of ["", "javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html;base64,PHNjcmlwdD4=", "data:image/svg+xml;base64,PHN2Zz4=", "file:///etc/passwd", "ftp://x/y", "a b.png", "a\u0001.png", `/${"x".repeat(2000)}`]) assert.equal(isSafeImageUrl(bad), false, JSON.stringify(bad));
+});
+
+test("a preview as drawn: the row's name and kind unless it has its own, at most eight facts that have both parts, and no unsafe picture", () => {
+  const row: SearchRow = { id: "mars", label: "Mars", icon: { name: "disc", color: "#c1440e" } };
+  const plain = previewView(row, "Planets", undefined);
+  assert.deepEqual([plain.title, plain.kind, plain.facts, plain.picture, plain.pictureAlt], ["Mars", "Planets", [], undefined, ""]);
+  assert.equal(plain.icon?.type, "shape");
+  const full = previewView(row, "Planets", { title: " Mars (the red planet) ", kind: "Planet", picture: "/p/mars.webp", pictureAlt: "Mars", facts: [{ label: "Moons", value: "2" }, { label: "", value: "x" }, { label: "Day", value: " " }, { label: " Year ", value: " 687 days " }] });
+  assert.deepEqual([full.title, full.kind, full.picture, full.pictureAlt], ["Mars (the red planet)", "Planet", "/p/mars.webp", "Mars"]);
+  assert.deepEqual(full.facts, [{ label: "Moons", value: "2" }, { label: "Year", value: "687 days" }]);
+  const many = previewView(row, "Planets", { facts: Array.from({ length: 20 }, (_, i) => ({ label: `L${i}`, value: `V${i}` })) });
+  assert.equal(many.facts.length, MAX_FACTS);
+  assert.equal(previewView(row, "Planets", { picture: "javascript:alert(1)" }).picture, undefined);
+  // a node the page made is passed on as it is
+  const node = {} as Node;
+  assert.equal(previewView(row, "Planets", { element: node }).element, node);
+  assert.equal(previewView({ id: "a", label: "A" }, "K", {}).icon, undefined);
+});
+
+/** A preview loader with a clock the test turns by hand and a function whose answers the test releases one at a time. */
+function previewRig(options: { debounceMs?: number; staleMs?: number; cacheSize?: number } = {}) {
+  let now = 0;
+  let next = 0;
+  const timers = new Map<number, { at: number; run: () => void }>();
+  const clock: SearchTimers = {
+    set: (run, ms) => {
+      next += 1;
+      timers.set(next, { at: now + ms, run });
+      return next;
+    },
+    clear: (handle) => void timers.delete(handle as number),
+  };
+  const asked: Array<{ id: string; signal: AbortSignal; resolve: (preview: SearchPreview | undefined) => void; reject: (error: unknown) => void }> = [];
+  const shown: string[] = [];
+  const waits: string[] = [];
+  const stale: string[] = [];
+  let fallback: ((row: SearchRow, context: { signal: AbortSignal; group: string }) => Promise<SearchPreview | undefined>) | undefined = (row, { signal }) =>
+    new Promise((resolve, reject) => {
+      asked.push({ id: row.id, signal, resolve, reject });
+    });
+  const loader = createPreviewLoader({
+    fallback: () => fallback,
+    debounceMs: options.debounceMs ?? 100,
+    staleMs: options.staleMs ?? 300,
+    cacheSize: options.cacheSize ?? 50,
+    timers: clock,
+    onShow: (target: PreviewTarget, preview, failed) => shown.push(`${target.row.id}:${preview?.title ?? "-"}${failed ? ":failed" : ""}`),
+    onWait: (target) => waits.push(target.row.id),
+    onStale: (target) => stale.push(target.row.id),
+  });
+  const advance = (ms: number): void => {
+    now += ms;
+    for (const [id, timer] of [...timers]) if (timer.at <= now) { timers.delete(id); timer.run(); }
+  };
+  const row = (id: string, extra: Partial<SearchRow> = {}): SearchRow => ({ id, label: id.toUpperCase(), ...extra });
+  return { loader, asked, shown, waits, stale, advance, row, setFallback: (next: typeof fallback) => void (fallback = next) };
+}
+
+test("moving through rows asks for the one the reader stops on, and not for any row passed", () => {
+  const { loader, asked, advance, row, waits } = previewRig();
+  loader.highlight("a", row("a"), "g");
+  advance(40);
+  loader.highlight("b", row("b"), "g");
+  advance(40);
+  loader.highlight("c", row("c"), "g");
+  advance(99);
+  assert.equal(asked.length, 0);
+  advance(1);
+  assert.deepEqual(asked.map((one) => one.id), ["c"]);
+  assert.equal(loader.calls, 1);
+  assert.deepEqual(waits, ["a", "b", "c"]);
+});
+
+test("an answer is shown, kept by key, and shown again at once for the same row without another call", async () => {
+  const { loader, asked, shown, advance, row } = previewRig();
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  asked[0]?.resolve({ title: "A!" });
+  await tick();
+  assert.deepEqual(shown, ["a:A!"]);
+  assert.equal(loader.size, 1);
+  loader.highlight("b", row("b"), "g");
+  advance(100);
+  asked[1]?.resolve({ title: "B!" });
+  await tick();
+  // back on the first: from the cache, at once, no quiet time and no call
+  loader.highlight("a", row("a"), "g");
+  assert.deepEqual(shown, ["a:A!", "b:B!", "a:A!"]);
+  assert.equal(asked.length, 2);
+  // the same row again changes nothing
+  loader.highlight("a", row("a"), "g");
+  assert.equal(shown.length, 3);
+});
+
+test("moving on aborts the request, and its late answer is never shown, whether or not the function heard the abort", async () => {
+  const { loader, asked, shown, advance, row } = previewRig({ debounceMs: 0 });
+  loader.highlight("a", row("a"), "g");
+  advance(0);
+  assert.equal(asked.length, 1);
+  loader.highlight("b", row("b"), "g");
+  assert.equal(asked[0]?.signal.aborted, true);
+  advance(0);
+  asked[1]?.resolve({ title: "B" });
+  await tick();
+  asked[0]?.resolve({ title: "A" });
+  await tick();
+  assert.deepEqual(shown, ["b:B"]);
+  // a late failure of the old one is not shown either
+  loader.highlight("c", row("c"), "g");
+  advance(0);
+  loader.highlight("d", row("d"), "g");
+  asked[2]?.reject(new Error("old"));
+  await tick();
+  assert.deepEqual(shown, ["b:B"]);
+});
+
+test("a row that carries its preview shows it at once and asks for nothing; one with a function of its own uses it, not the page's", async () => {
+  const { loader, asked, shown, advance, row, waits } = previewRig();
+  loader.highlight("a", row("a", { preview: { title: "Carried" } }), "g");
+  assert.deepEqual(shown, ["a:Carried"]);
+  assert.deepEqual([asked.length, waits.length, loader.calls], [0, 0, 0]);
+  // what the row carries is not kept: the page may send a newer one with its next answer
+  loader.cancel();
+  loader.highlight("a", row("a", { preview: { title: "Newer" } }), "g");
+  assert.deepEqual(shown, ["a:Carried", "a:Newer"]);
+  const own: string[] = [];
+  loader.highlight("b", row("b", { preview: async (one) => { own.push(one.id); return { title: "Own" }; } }), "g");
+  advance(100);
+  await tick();
+  assert.deepEqual(own, ["b"]);
+  assert.equal(asked.length, 0);
+  assert.equal(shown.at(-1), "b:Own");
+});
+
+test("with no function at all the row is shown as it is, and nothing is waited for", () => {
+  const { loader, shown, row, setFallback, waits } = previewRig();
+  setFallback(undefined);
+  loader.highlight("a", row("a"), "g");
+  assert.deepEqual(shown, ["a:-"]);
+  assert.deepEqual(waits, []);
+});
+
+test("a failed request is shown as no preview, and is not kept, so the next highlight asks again", async () => {
+  const { loader, asked, shown, advance, row } = previewRig();
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  asked[0]?.reject(new Error("down"));
+  await tick();
+  assert.deepEqual(shown, ["a:-:failed"]);
+  assert.equal(loader.size, 0);
+  loader.highlight("b", row("b"), "g");
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  assert.deepEqual(asked.map((one) => one.id), ["a", "a"]);
+  // an answer of undefined is an answer: nothing more is known, and it is kept
+  asked[1]?.resolve(undefined);
+  await tick();
+  assert.equal(shown.at(-1), "a:-");
+  assert.equal(loader.size, 1);
+});
+
+test("a request that takes long says so once, and one that is answered in time does not", async () => {
+  const { loader, asked, stale, advance, row } = previewRig({ debounceMs: 50, staleMs: 300 });
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  asked[0]?.resolve({ title: "A" });
+  await tick();
+  advance(1000);
+  assert.deepEqual(stale, []);
+  loader.highlight("b", row("b"), "g");
+  advance(299);
+  assert.deepEqual(stale, []);
+  advance(1);
+  assert.deepEqual(stale, ["b"]);
+  // moving on before it is stale: no mention of the row left behind
+  loader.highlight("c", row("c"), "g");
+  advance(50);
+  asked[2]?.resolve({ title: "C" });
+  await tick();
+  advance(1000);
+  assert.deepEqual(stale, ["b"]);
+});
+
+test("the oldest used previews go when the cache is full, and clear forgets them all", async () => {
+  const { loader, asked, advance, row } = previewRig({ cacheSize: 2, debounceMs: 0 });
+  for (const id of ["a", "b", "c"]) {
+    loader.highlight(id, row(id), "g");
+    advance(0);
+    asked.at(-1)?.resolve({ title: id });
+    await tick();
+  }
+  assert.equal(loader.size, 2);
+  // "a" was the oldest: it is asked for again
+  loader.highlight("a", row("a"), "g");
+  advance(0);
+  assert.equal(asked.length, 4);
+  asked[3]?.resolve({ title: "a" });
+  await tick();
+  loader.clear();
+  assert.equal(loader.size, 0);
+  loader.highlight("a", row("a"), "g");
+  advance(0);
+  assert.equal(asked.length, 5);
+});
+
+test("cancel drops the waiting request, aborts the one in flight and lets the same row be highlighted again", async () => {
+  const { loader, asked, shown, advance, row } = previewRig();
+  loader.highlight("a", row("a"), "g");
+  loader.cancel();
+  advance(500);
+  assert.equal(asked.length, 0);
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  loader.cancel();
+  assert.equal(asked[0]?.signal.aborted, true);
+  asked[0]?.resolve({ title: "A" });
+  await tick();
+  assert.deepEqual(shown, []);
+  loader.highlight("a", row("a"), "g");
+  advance(100);
+  assert.equal(asked.length, 2);
+});
+
+test("a call that has ended is never aborted by the next highlight", async () => {
+  const { loader, asked, advance, row } = previewRig({ debounceMs: 0 });
+  loader.highlight("a", row("a"), "g");
+  advance(0);
+  asked[0]?.resolve({ title: "A" });
+  await tick();
+  loader.highlight("b", row("b"), "g");
+  advance(0);
+  assert.equal(asked[0]?.signal.aborted, false);
+  assert.equal(asked[1]?.signal.aborted, false);
 });
