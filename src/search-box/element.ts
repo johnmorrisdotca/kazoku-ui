@@ -404,10 +404,11 @@ export class SearchBoxElement extends HTMLElement {
         event.preventDefault();
         // from the sheet's own buttons, Escape closes the sheet first
         if (this.#pc?.sheet) {
-          this.#pc.closeSheet();
+          // the focus goes first: a button hidden while it has the focus would close the popup
           this.#refocus = true;
           input.focus();
           this.#refocus = false;
+          this.#pc.closeSheet();
           return;
         }
         this.close();

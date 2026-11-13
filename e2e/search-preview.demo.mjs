@@ -414,7 +414,9 @@ test("a failed preview is asked for again only after another row, not by every a
   await expect(calls(page)).toHaveText("1");
   await page.locator("#failpv").evaluate((el) => el.click());
   await page.keyboard.press("ArrowDown");
+  await expect(title(page)).toHaveText("Mercury");
   await page.keyboard.press("ArrowUp");
+  await expect(title(page)).toHaveText("Uranus");
   await expect(pane(page).locator(".pv-note")).toBeHidden();
   await expect(calls(page)).toHaveText("3");
 });
@@ -513,7 +515,9 @@ test("with the sheet open the box is described by the sheet, Tab reaches Back an
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Enter");
   await expect(list(page)).toBeVisible();
+  await expect(panel(page)).toBeVisible();
   await expect(box(page)).toBeFocused();
+  await expect(box(page)).toHaveAttribute("aria-activedescendant", /.+/);
   // an action pressed from the keyboard does it, and the focus is back in the box
   await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
   await expect(title(page)).toHaveText("Mars");
@@ -600,4 +604,18 @@ test("on a finger the sheet's Back and action buttons are 44 px tall", async ({ 
   const sizes = await pane(page).evaluate((el) => [el.querySelector(".pv-back"), ...el.querySelectorAll(".pv-acts button")].map((b) => b.getBoundingClientRect().height));
   expect(sizes.length).toBeGreaterThan(2);
   for (const height of sizes) expect(height).toBeGreaterThanOrEqual(44);
+});
+
+test("Escape on one of the sheet's own buttons closes the sheet, not the popup, and the focus is in the box", async ({ page }) => {
+  test.skip(!isPhone(page), "a wide popup has the pane beside the list");
+  await ready(page);
+  await type(page, "mars");
+  await rows(page).first().locator("button[data-act=kazoku-preview]").click({ force: true });
+  await expect(title(page)).toHaveText("Mars");
+  await page.keyboard.press("Tab");
+  expect(await host(page).evaluate((el) => el.shadowRoot.activeElement?.className)).toBe("pv-back");
+  await page.keyboard.press("Escape");
+  await expect(list(page)).toBeVisible();
+  await expect(panel(page)).toBeVisible();
+  await expect(box(page)).toBeFocused();
 });

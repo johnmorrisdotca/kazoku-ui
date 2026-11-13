@@ -95,13 +95,14 @@ export class PreviewControl {
     this.#host = host;
     this.pane = createPreviewPane(host.element.ownerDocument, {
       action: (row, actionId) => {
+        // the focus goes back first: a button that is hidden while it has the focus would take the popup with it (the box closes when the focus leaves it)
+        this.#refocus();
         const entry = host.rows().find((one) => one.line.type === "row" && one.line.group.id === row.group && one.line.row.id === row.id);
         if (entry) host.activate(entry, Math.max(0, entry.actions.findIndex((one) => one.id === actionId)));
-        this.#refocus();
       },
       back: () => {
-        this.closeSheet();
         this.#refocus();
+        this.closeSheet();
       },
     });
     this.loader = createPreviewLoader({
