@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-11-13
+
 - **A search box action can be disabled, and the placeholder can be set** (KAZOKU-UI-149). An action takes `disabled` and `title`: it is drawn dimmed with `aria-disabled="true"`, the title is its tooltip and its accessible description, and Enter or a press does nothing and sends no pick. `<kazoku-search-box>` takes a `placeholder` attribute and property (left out, the word for Search as before). Backwards compatible. Also exported: `isActionEnabled`.
 - **The search box speaks a toggle's change** (KAZOKU-UI-148). Pressing a toggle action (a key or a press) says `Favourite Mars, on` or `off` through the box's polite status line, in English and Japanese (`お気に入り 火星、オン`). Two new words, `on` and `off`; also exported: `toggleAnnouncement`.
 
