@@ -128,8 +128,8 @@ const KINDS = {
     warsaw|Warsaw|ワルシャワ`),
 };
 const LABELS = {
-  en: { stars: "Stars", planets: "Planets and moons", craft: "Craft", places: "Places", cities: "Cities", show: "Show", go: "Go", fav: "Favourite", nothing: "nothing yet", none: "none", notDone: "none" },
-  ja: { stars: "星", planets: "惑星・衛星", craft: "宇宙機", places: "場所", cities: "都市", show: "表示", go: "移動", fav: "お気に入り", nothing: "まだありません", none: "なし", notDone: "なし" },
+  en: { stars: "Stars", planets: "Planets and moons", craft: "Craft", places: "Places", cities: "Cities", show: "Show", go: "Go", fav: "Favourite", noMaps: "Maps of places are not ready yet", nothing: "nothing yet", none: "none", notDone: "none" },
+  ja: { stars: "星", planets: "惑星・衛星", craft: "宇宙機", places: "場所", cities: "都市", show: "表示", go: "移動", fav: "お気に入り", noMaps: "場所の地図はまだ使えません", nothing: "まだありません", none: "なし", notDone: "なし" },
 };
 // which actions each kind carries; `fav` is the toggle
 const ACTIONS = { stars: ["show", "go", "fav"], planets: ["show", "go", "fav"], craft: ["go", "fav"], places: ["go"], cities: ["go", "fav"] };
@@ -170,7 +170,7 @@ box.source = async (query, { group }) => {
         id: item.id,
         label: lang === "ja" ? item.ja : item.en,
         detail: DETAIL[lang][kind],
-        actions: ACTIONS[kind].map((action) => (action === "fav" ? { id: "fav", label: words.fav, pressed: favourites.has(`${kind}:${item.id}`) } : { id: action, label: words[action] })),
+        actions: ACTIONS[kind].map((action) => (action === "fav" ? { id: "fav", label: words.fav, pressed: favourites.has(`${kind}:${item.id}`) } : { id: action, label: words[action], ...(kind === "places" ? { disabled: true, title: words.noMaps } : {}) })),
       })),
     };
   }).filter((one) => one.total > 0);

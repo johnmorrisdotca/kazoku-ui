@@ -25,6 +25,7 @@ input:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
 mark { background: none; color: inherit; font-weight: 800; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; text-decoration-color: var(--_accent); }
 .cell { display: contents; }
 .row button { min-width: 48px; min-height: 48px; padding: 0 12px; font-size: 0.85rem; }
+.row button[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 .row button[data-active] { box-shadow: 0 0 0 2px var(--_accent); }
 .extra .label { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 520px) { .main { flex-basis: 100%; } }

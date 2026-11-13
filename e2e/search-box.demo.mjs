@@ -281,6 +281,93 @@ test("the shortcut keys focus the box, and never take a key from another field",
   await expect(box(page)).toBeFocused();
 });
 
+test("a disabled action is dimmed and described, and cannot be done by a key or a press", async ({ page }) => {
+  await ready(page);
+  await page.locator("kazoku-search-box").evaluate((el) => {
+    window.__picks = 0;
+    el.addEventListener("kazoku-search-pick", () => (window.__picks += 1));
+  });
+  await type(page, "mar");
+  const places = page.locator("kazoku-search-box").locator("[role=rowgroup]").nth(3);
+  const go = places.locator("button[data-act=go]").first();
+  await expect(go).toHaveAttribute("aria-disabled", "true");
+  await expect(go).toHaveAttribute("title", "Maps of places are not ready yet");
+  await expect(go).toHaveAccessibleDescription("Maps of places are not ready yet");
+  await expect(go).toHaveAccessibleName("Go Mare Imbrium");
+  // a press does nothing
+  await go.click({ force: true });
+  await places.locator(".main").first().click({ force: true });
+  await expect(page.locator("#picked")).toHaveText("nothing yet");
+  // the keyboard reaches the row and hears why, and Enter does nothing
+  await chips(page).nth(4).click();
+  await expect(chips(page).nth(4)).toHaveAttribute("aria-pressed", "true");
+  await expect(rows(page)).toHaveCount(4);
+  await page.keyboard.press("ArrowDown");
+  const active = await page.locator("kazoku-search-box").evaluate((el) => {
+    const input = el.shadowRoot.querySelector("input");
+    const cell = el.shadowRoot.getElementById(input.getAttribute("aria-activedescendant"));
+    const why = el.shadowRoot.getElementById(cell.getAttribute("aria-describedby") ?? "");
+    return { disabled: cell.getAttribute("aria-disabled"), why: why?.textContent ?? null };
+  });
+  expect(active).toEqual({ disabled: "true", why: "Maps of places are not ready yet" });
+  await page.keyboard.press("Enter");
+  await expect(panel(page)).toBeVisible();
+  await expect(page.locator("#picked")).toHaveText("nothing yet");
+  expect(await page.evaluate(() => window.__picks)).toBe(0);
+  // an action that is not disabled still works, and has no aria-disabled
+  await chips(page).first().click();
+  const city = page.locator("kazoku-search-box").locator("[role=rowgroup]").nth(4).locator("button[data-act=go]").first();
+  await expect(city).not.toHaveAttribute("aria-disabled", /.*/);
+  await city.click();
+  await expect(page.locator("#picked")).toHaveText(/^go cities\//);
+});
+
+test("the placeholder can be set by an attribute or a property, and the default is the word for Search", async ({ page }) => {
+  await ready(page);
+  await expect(box(page)).toHaveAttribute("placeholder", "Search");
+  await page.locator("kazoku-search-box").evaluate((el) => el.setAttribute("placeholder", "Search stars, planets, craft, cities"));
+  await expect(box(page)).toHaveAttribute("placeholder", "Search stars, planets, craft, cities");
+  // the box's name is unchanged
+  await expect(box(page)).toHaveAccessibleName("Search");
+  expect(await page.locator("kazoku-search-box").evaluate((el) => el.placeholder)).toBe("Search stars, planets, craft, cities");
+  await page.locator("kazoku-search-box").evaluate((el) => (el.placeholder = "Find a star"));
+  await expect(box(page)).toHaveAttribute("placeholder", "Find a star");
+  // a page's own words stay when the language changes
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await expect(box(page)).toHaveAttribute("placeholder", "Find a star");
+  // removing it brings the default back, in the language of the page
+  await page.locator("kazoku-search-box").evaluate((el) => el.removeAttribute("placeholder"));
+  await expect(box(page)).toHaveAttribute("placeholder", "検索");
+});
+
+test("a toggle's change is spoken through the live region, and the answer's count is spoken again after a new answer", async ({ page }) => {
+  await ready(page);
+  const status = page.locator("kazoku-search-box").locator("[role=status]");
+  await expect(status).toHaveAttribute("aria-live", "polite");
+  await type(page, "mars");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(status).toHaveText("Favourite Mars, on");
+  await page.keyboard.press("Enter");
+  await expect(status).toHaveText("Favourite Mars, off");
+  // a press says it too, and a plain action says nothing new
+  await rows(page).first().locator("button").nth(2).click();
+  await expect(status).toHaveText("Favourite Mars, on");
+  await rows(page).first().locator("button").nth(1).click();
+  await expect(page.locator("#picked")).toHaveText("go planets/mars");
+  await expect(status).toHaveText("Favourite Mars, on");
+  // in Japanese
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await type(page, "火星");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(status).toHaveText(/^お気に入り 火星、オ[ンフ]$/);
+});
+
 test("the words are Japanese when the page is, and the count is said in Japanese", async ({ page }) => {
   await ready(page);
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
@@ -313,6 +400,8 @@ test("the open popup, with a row and an action active, has no accessibility viol
   await type(page, "mar");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowRight");
+  // the Places rows carry a disabled, described action, so the pass covers it
+  await expect(page.locator("kazoku-search-box").locator("button[aria-disabled=true][aria-describedby]").first()).toBeAttached();
   for (const theme of ["light", "dark"]) {
     await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
     await expect(page.locator("kazoku-search-box")).toHaveAttribute("data-scheme", theme);

@@ -28,7 +28,7 @@ It is its own element, not an extension of [the collection picker](collection-pi
 
 - A **group** is `{ id, label, total, rows }`. `label` is the kind's name in the reader's language. `total` is how many results the kind has in all, which may be more than `rows` holds; it is what the count, the chip and "See all N" say.
 - A **row** is `{ id, label, detail, actions }`. `label` is the name, with the part the query matched marked. `detail` is a second line.
-- An **action** is `{ id, label, pressed }`. A row carries up to three (more are ignored). Leave `pressed` out for a plain button; set it to `true` or `false` for a toggle, which the box draws as a button with `aria-pressed`. A row with no actions has one, `open`, and a press on the row fires it.
+- An **action** is `{ id, label, pressed, disabled, title }`. A row carries up to three (more are ignored). Leave `pressed` out for a plain button; set it to `true` or `false` for a toggle, which the box draws as a button with `aria-pressed`. Set `disabled` to `true` for an action that cannot be done yet (a kind with nothing to do), and `title` to say why (see "A disabled action" below). A row with no actions has one, `open`, and a press on the row fires it.
 - `group` is `""` for every group, or the id of the group the reader narrowed to (a chip, or "See all N"). With a group set, answer with that group's whole list (the box draws it in windows of 20), and send the other groups with `rows: []` and their `total` so the chips keep their counts.
 - `signal` is aborted when a newer call replaces this one. A source that can stop its request passes it on; one that cannot is not harmed, because its late answer is dropped.
 
@@ -51,6 +51,26 @@ The active row stands for its **first** action: Enter does it, and so does a pre
 
 `kazoku-search-pick` carries `{ id, group, action }` in `detail`, and `pressed` (the new state) for a toggle. The box flips a toggle's `aria-pressed` at once; the page keeps the real state, and its next answer says it. `setPressed(group, id, action, pressed)` syncs it without a new call.
 
+## A disabled action
+
+`{ id: "go", label: "Go", disabled: true, title: "Maps of places are not ready yet" }` draws the button dimmed, with `aria-disabled="true"` (not the `disabled` attribute, so the button keeps its tooltip), and `title` as its tooltip. The same text is its accessible description, so a reader who arrows onto it hears the action, the row and then why. Enter, a press, and a press on the row's text (when it is the row's first action) do nothing and send no `kazoku-search-pick`; the popup stays open. The arrow keys still reach it, so the reason can be heard. `disabled` left out or `false` is an ordinary action, and `title` alone only adds the tooltip and the description.
+
+```html
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/search-box/define";
+  const box = document.querySelector("kazoku-search-box");
+  box.source = async () => [
+    { id: "places", label: "Places", total: 1, rows: [{ id: "gale", label: "Gale Crater", actions: [{ id: "go", label: "Go", disabled: true, title: "Maps of places are not ready yet" }] }] },
+  ];
+</script>
+
+<kazoku-search-box lang="en" placeholder="Search stars, planets, craft, cities"></kazoku-search-box>
+```
+
+## A toggle's change is spoken
+
+Focus stays in the input, and a screen reader rarely says `aria-pressed` for an active descendant, so the box says a toggle's new state itself, politely, through its own status line: the action, the row, then `on` or `off` (`Favourite Mars, on`, `お気に入り 火星、オン`). It is said when the reader changes it, by a key or a press, and not when the page calls `setPressed`, which has not been asked for by the reader. The words are `on` and `off` in the table below, and can be replaced with `wordsFor`.
+
 ## How it is built for a screen reader
 
 The input is a combobox with `aria-haspopup="grid"`, and the popup is a grid: each group is a `rowgroup` named with its kind and count (`Stars 5`), above a header row, each result is a `row` with a `gridcell` for its text and one for each action. Focus stays in the input the whole time; `aria-activedescendant` always names a `gridcell`: the active row's text cell, which stands for its first action, or the cell of the active action once the arrows have moved across it. The active row and that cell have `aria-selected`. While a reader is composing text with an input method, the arrow keys and Enter belong to it and the box leaves them alone. A grid, not a listbox, because options cannot hold buttons. A polite status line says the count when an answer arrives (`15 results: Stars 1, Planets 1, …`, and `Cities, 49 results` once narrowed).
@@ -72,6 +92,7 @@ The chips are `All` and one button for each group the answer has, each with its 
 | `debounce` | Quiet time in ms before a call (120) |
 | `per-group` | Rows each group shows (3) |
 | `window` | Rows a narrowed group shows at a time (20) |
+| `placeholder` | The hint in the empty box. Left out or empty, the word for Search in the box's language (`Search`, `検索`); set, it is shown as written, in any language. Also a property: it reads as the text shown, and setting it writes the attribute. The box's accessible name stays `Search` |
 | `shortcut` | Keys that focus the box: `/`, `mod+k` (Control or Command), `ctrl+k`, `meta+k`, `alt+s`, several with spaces. Never takes a key while the reader types in a field |
 
 `close()` closes the popup, `clear()` empties the box, `focus()` focuses it. It is themed through the family's `--kazoku-ink`, `--kazoku-surface`, `--kazoku-line` and `--kazoku-accent`, in light and dark. On a phone the popup fills the box's width, rows put their actions under the name, and every button is at least 44 px. Nothing moves, so there is no motion to turn off.
@@ -96,6 +117,8 @@ The words come in English and Japanese; every key is in both (`WORDS`, `wordsFor
 | `kindCount` | {label} {n} | {label}{n}件 |
 | `join` | , | 、 |
 | `open` | Open | 開く |
+| `on` | on | オン |
+| `off` | off | オフ |
 
 Result names are not here: the source returns them in the reader's language.
 
@@ -117,4 +140,4 @@ const runner = createSearchRunner({
 runner.request("vega");
 ```
 
-Also exported: `planLines` (what is drawn for an answer), `chipsOf`, `announcement`, `actionsOf`, `stepIndex`, `MAX_ACTIONS`, `countPhrase`, `languageOf`, `EVENT` and `TAG`. `SearchBoxElement` is the class, and `defineSearchBox` registers the tag and does nothing if it is already taken.
+Also exported: `planLines` (what is drawn for an answer), `chipsOf`, `announcement`, `toggleAnnouncement`, `isActionEnabled`, `actionsOf`, `stepIndex`, `MAX_ACTIONS`, `countPhrase`, `languageOf`, `EVENT` and `TAG`. `SearchBoxElement` is the class, and `defineSearchBox` registers the tag and does nothing if it is already taken.

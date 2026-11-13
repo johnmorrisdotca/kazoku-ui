@@ -9,6 +9,10 @@ export interface SearchAction {
   label: string;
   /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
   pressed?: boolean;
+  /** Set to true when the action cannot be done now (a kind with nothing to do yet). It is drawn dimmed and marked `aria-disabled`; Enter, a press and a press on the row's text (for the first action) do nothing and report nothing. The arrows still reach it, so a reader hears why. */
+  disabled?: boolean;
+  /** Why the action is disabled, or what it does. Shown as the button's tooltip and given to a screen reader as its description. */
+  title?: string;
 }
 
 /** One result. */
@@ -80,6 +84,24 @@ export type PlanLine =
 export function actionsOf(row: SearchRow, openLabel = "Open"): SearchAction[] {
   const own = (row.actions ?? []).slice(0, MAX_ACTIONS);
   return own.length > 0 ? own : [{ id: "open", label: openLabel }];
+}
+
+/**
+ * Whether an action can be done: every action can, unless the page set `disabled`.
+ *
+ * @example
+ * isActionEnabled({ id: "go", label: "Go", disabled: true }); // false
+ */
+export const isActionEnabled = (action: SearchAction): boolean => action.disabled !== true;
+
+/**
+ * The sentence said politely when a toggle action changes: the action, the row, then the new state (`Favourite Mars, on`).
+ *
+ * @example
+ * toggleAnnouncement(WORDS.en, "Favourite", "Mars", true); // "Favourite Mars, on"
+ */
+export function toggleAnnouncement(words: SearchBoxWords, actionLabel: string, rowLabel: string, pressed: boolean): string {
+  return `${actionLabel} ${rowLabel}${words.join}${pressed ? words.on : words.off}`;
 }
 
 /**

@@ -3,7 +3,7 @@
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
-import { actionsOf, announcement, chipsOf, planLines, stepIndex, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchSource } from "./model.ts";
+import { actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchSource } from "./model.ts";
 import { highlight } from "./rank.ts";
 import { createSearchRunner, type SearchRunner } from "./runner.ts";
 import { STYLES } from "./styles.ts";
@@ -72,7 +72,8 @@ function chordMatches(chord: Chord, event: KeyboardEvent): boolean {
 /**
  * A search box that answers in groups. The page sets `source` (an async function `(query, { signal, group }) => groups`), and hears `kazoku-search-pick` with `{ id, group, action }`.
  * `lang` picks the labels, `theme` is `light`, `dark` or left out, `debounce` is the quiet time in ms before the source is asked (120), `per-group` is how many rows each group shows (3),
- * `window` is how many rows a narrowed group draws at a time (20), and `shortcut` names keys that focus the box (`/`, `mod+k`; off when left out).
+ * `window` is how many rows a narrowed group draws at a time (20), and `shortcut` names keys that focus the box (`/`, `mod+k`; off when left out),
+ * and `placeholder` replaces the box's hint (the word for Search when left out). An action with `disabled` (and a `title` saying why) does nothing when pressed. A toggle's change is spoken politely (`Favourite Mars, on`).
  *
  * @example
  * import "@johnmorrisdotca/kazoku-ui/search-box/define";
@@ -81,7 +82,7 @@ function chordMatches(chord: Chord, event: KeyboardEvent): boolean {
  * box.addEventListener("kazoku-search-pick", (event) => console.log(event.detail.id, event.detail.action));
  */
 export class SearchBoxElement extends HTMLElement {
-  static observedAttributes = ["lang", "theme", "shortcut", "debounce", "per-group", "window"];
+  static observedAttributes = ["lang", "theme", "shortcut", "debounce", "per-group", "window", "placeholder"];
 
   #root: ShadowRoot;
   #source: SearchSource | undefined;
@@ -129,6 +130,15 @@ export class SearchBoxElement extends HTMLElement {
     this.#source = source;
   }
 
+  /** The hint shown in the empty box. Left out or empty, the word for Search in the box's language. Reads as the text shown; setting it writes the `placeholder` attribute. */
+  get placeholder(): string {
+    return this.getAttribute("placeholder") || this.#words().search;
+  }
+
+  set placeholder(text: string) {
+    this.setAttribute("placeholder", text);
+  }
+
   /** What is in the box. Setting it asks the source, like typing. */
   get value(): string {
     return this.#input()?.value ?? "";
@@ -171,6 +181,7 @@ export class SearchBoxElement extends HTMLElement {
       this.#listen();
       this.#paintShortcut();
     } else if (name === "lang") this.#paintWords();
+    else if (name === "placeholder") this.#paintPlaceholder();
     else if (name === "per-group" || name === "window") this.#draw();
   }
 
@@ -296,12 +307,17 @@ export class SearchBoxElement extends HTMLElement {
     if (!input) return;
     (this.#root.querySelector("label") as HTMLElement).textContent = words.search;
     input.setAttribute("aria-label", words.search);
-    input.placeholder = words.search;
+    this.#paintPlaceholder();
     this.#el("[role=group]").setAttribute("aria-label", words.kinds);
     this.#el("#grid").setAttribute("aria-label", words.results);
     this.#paintShortcut();
     this.#chipKey = "";
     this.#draw();
+  }
+
+  #paintPlaceholder(): void {
+    const input = this.#input();
+    if (input) input.placeholder = this.placeholder;
   }
 
   #paintShortcut(): void {
@@ -470,7 +486,7 @@ export class SearchBoxElement extends HTMLElement {
       el.append(main);
       entry.actions = actionsOf(line.row, words.open);
       if (line.row.actions && line.row.actions.length > 0) {
-        for (const action of entry.actions) {
+        entry.actions.forEach((action, c) => {
           const cell = doc.createElement("div");
           cell.setAttribute("role", "gridcell");
           cell.className = "cell";
@@ -486,11 +502,30 @@ export class SearchBoxElement extends HTMLElement {
           const flipped = this.#flips.get(`${line.group.id}\u0000${line.row.id}\u0000${action.id}`);
           const pressed = flipped ?? action.pressed;
           if (pressed !== undefined) button.setAttribute("aria-pressed", String(pressed));
+          if (!isActionEnabled(action)) {
+            // aria-disabled, not `disabled`: the button keeps its tooltip, and the reader who arrows onto it hears why through the hidden description
+            button.setAttribute("aria-disabled", "true");
+            cell.setAttribute("aria-disabled", "true");
+            if (action.title) {
+              button.title = action.title;
+              const why = doc.createElement("span");
+              why.hidden = true;
+              why.id = `d${(this.#uid += 1)}`;
+              why.textContent = action.title;
+              cell.append(why);
+              button.setAttribute("aria-describedby", why.id);
+              cell.setAttribute("aria-describedby", why.id);
+              if (c === 0) {
+                main.setAttribute("aria-describedby", why.id);
+              }
+            }
+            if (c === 0) main.setAttribute("aria-disabled", "true");
+          }
           cell.append(button);
           el.append(cell);
           entry.buttons.push(button);
           entry.cells.push(cell);
-        }
+        });
       }
     } else {
       el.classList.add("extra");
@@ -684,13 +719,15 @@ export class SearchBoxElement extends HTMLElement {
       return;
     }
     const action = entry.actions[col] ?? entry.actions[0];
-    if (!action) return;
+    if (!action || !isActionEnabled(action)) return;
     const detail: SearchPickDetail = { id: line.row.id, group: line.group.id, action: action.id };
     if (action.pressed !== undefined) {
       const button = entry.buttons[entry.actions.indexOf(action)];
       const now = !(button?.getAttribute("aria-pressed") === "true");
       this.setPressed(line.group.id, line.row.id, action.id, now);
       detail.pressed = now;
+      // focus stays in the box and screen readers rarely say aria-pressed on an active descendant, so the change is spoken through the box's own live region
+      this.#el("#status").textContent = toggleAnnouncement(this.#words(), action.label, line.row.label, now);
     }
     this.dispatchEvent(new CustomEvent<SearchPickDetail>(EVENT, { bubbles: true, composed: true, detail }));
     // a plain action is the end of the search; a toggle keeps the list for the next one

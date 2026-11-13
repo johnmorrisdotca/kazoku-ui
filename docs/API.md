@@ -2011,10 +2011,10 @@ function defineCollectionPicker(registry?: CustomElementRegistry): boolean;
 
 ## `@johnmorrisdotca/kazoku-ui/search-box`
 
-16 values and 14 types.
+18 values and 14 types.
 
 ```js
-import { actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, languageOf, MAX_ACTIONS, planLines, rank, RANK, stepIndex, TAG, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
+import { actionsOf, announcement, chipsOf, countPhrase, createSearchRunner, EVENT, highlight, isActionEnabled, languageOf, MAX_ACTIONS, planLines, rank, RANK, stepIndex, TAG, toggleAnnouncement, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/search-box';
 ```
 
 ### actionsOf
@@ -2077,6 +2077,14 @@ const EVENT = "kazoku-search-pick";
 function highlight(text: string, query: string): Segment[];
 ```
 
+### isActionEnabled
+
+*constant*. Whether an action can be done: every action can, unless the page set `disabled`.
+
+```ts
+const isActionEnabled: (action: SearchAction) => boolean;
+```
+
 ### languageOf
 
 *constant*. Japanese for a `lang` that starts with ja, English for anything else.
@@ -2137,6 +2145,14 @@ function stepIndex(current: number, count: number, step: 1 | -1): number;
 
 ```ts
 const TAG = "kazoku-search-box";
+```
+
+### toggleAnnouncement
+
+*function*. The sentence said politely when a toggle action changes: the action, the row, then the new state (`Favourite Mars, on`).
+
+```ts
+function toggleAnnouncement(words: SearchBoxWords, actionLabel: string, rowLabel: string, pressed: boolean): string;
 ```
 
 ### WORDS
@@ -2206,6 +2222,10 @@ interface SearchAction {
     label: string;
     /** Set (true or false) to make this a toggle: the button is pressed or not, and the pick reports the new state. Left out, it is a plain button. */
     pressed?: boolean;
+    /** Set to true when the action cannot be done now (a kind with nothing to do yet). It is drawn dimmed and marked `aria-disabled`; Enter, a press and a press on the row's text (for the first action) do nothing and report nothing. The arrows still reach it, so a reader hears why. */
+    disabled?: boolean;
+    /** Why the action is disabled, or what it does. Shown as the button's tooltip and given to a screen reader as its description. */
+    title?: string;
 }
 ```
 
@@ -2245,6 +2265,10 @@ interface SearchBoxWords {
     join: string;
     /** What a row without actions of its own does, as an action id's label. */
     open: string;
+    /** A toggle action's new state when it is on, said after the row (`Favourite Mars, on`). */
+    on: string;
+    /** A toggle action's new state when it is off. */
+    off: string;
 }
 ```
 
@@ -2408,6 +2432,9 @@ class SearchBoxElement extends HTMLElement {
     /** The page's search: `(query, { signal, group }) => groups`. The box calls it, and only it. */
     get source(): SearchSource | undefined;
     set source(source: SearchSource | undefined);
+    /** The hint shown in the empty box. Left out or empty, the word for Search in the box's language. Reads as the text shown; setting it writes the `placeholder` attribute. */
+    get placeholder(): string;
+    set placeholder(text: string);
     /** What is in the box. Setting it asks the source, like typing. */
     get value(): string;
     set value(text: string);

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { actionsOf, announcement, chipsOf, planLines, stepIndex, type SearchGroup } from "../src/search-box/model.ts";
+import { actionsOf, announcement, chipsOf, isActionEnabled, planLines, stepIndex, toggleAnnouncement, type SearchGroup } from "../src/search-box/model.ts";
 import { highlight, rank, RANK } from "../src/search-box/rank.ts";
 import { createSearchRunner, type SearchTimers } from "../src/search-box/runner.ts";
 import { WORDS, countPhrase, languageOf, wordsFor } from "../src/search-box/words.ts";
@@ -267,4 +267,23 @@ test("the labels are English or Japanese, every key is in both, and counts are p
   assert.equal(countPhrase(WORDS.en, 12), "12 results");
   assert.equal(countPhrase(WORDS.ja, 12), "12件");
   for (const language of ["en", "ja"] as const) assert.ok(WORDS[language].seeAll.includes("{n}"));
+});
+
+test("a toggle's change is said as the action, the row, then on or off, in each language", () => {
+  assert.equal(toggleAnnouncement(WORDS.en, "Favourite", "Mars", true), "Favourite Mars, on");
+  assert.equal(toggleAnnouncement(WORDS.en, "Favourite", "Mars", false), "Favourite Mars, off");
+  assert.equal(toggleAnnouncement(WORDS.ja, "お気に入り", "火星", true), "お気に入り 火星、オン");
+  assert.equal(toggleAnnouncement(WORDS.ja, "お気に入り", "火星", false), "お気に入り 火星、オフ");
+  assert.equal(toggleAnnouncement(wordsFor("en", { on: "starred", off: "unstarred" }), "Favourite", "Mars", true), "Favourite Mars, starred");
+  assert.notEqual(WORDS.en.on, WORDS.en.off);
+  assert.notEqual(WORDS.ja.on, WORDS.ja.off);
+});
+
+test("an action can be done unless the page disabled it, and a row keeps a disabled action in place", () => {
+  assert.equal(isActionEnabled({ id: "go", label: "Go" }), true);
+  assert.equal(isActionEnabled({ id: "go", label: "Go", disabled: false }), true);
+  assert.equal(isActionEnabled({ id: "go", label: "Go", disabled: true, title: "Not yet" }), false);
+  const actions = actionsOf({ id: "a", label: "A", actions: [{ id: "go", label: "Go", disabled: true, title: "Not yet" }, { id: "fav", label: "Fav", pressed: false }] });
+  assert.deepEqual(actions.map((one) => one.id), ["go", "fav"]);
+  assert.equal(actions[0]?.title, "Not yet");
 });

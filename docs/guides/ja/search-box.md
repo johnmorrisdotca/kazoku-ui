@@ -30,7 +30,7 @@ description: いろいろな種類のものを1つのボックスでまとめて
 
 - **グループ**は`{ id, label, total, rows }`です。`label`は、読む人の言語で書いた種類の名前です。`total`は、その種類の結果の総数で、`rows`より多くてかまいません。件数、チップ、「{n}件すべてを見る」はこの数を言います。
 - **行**は`{ id, label, detail, actions }`です。`label`は名前で、検索に一致した部分に印が付きます。`detail`は2行目です。
-- **操作**は`{ id, label, pressed }`です。1行に最大3つで、それより多いものは無視します。`pressed`を省くと普通のボタンです。`true`か`false`を入れるとトグルで、`aria-pressed`つきのボタンとして描きます。操作のない行には`open`が1つあり、行を押すとそれが働きます。
+- **操作**は`{ id, label, pressed, disabled, title }`です。1行に最大3つで、それより多いものは無視します。`pressed`を省くと普通のボタンです。`true`か`false`を入れるとトグルで、`aria-pressed`つきのボタンとして描きます。まだ実行できない操作（する事のない種類）には`disabled`を`true`にし、`title`で理由を伝えます（下の「使えない操作」を参照）。操作のない行には`open`が1つあり、行を押すとそれが働きます。
 - `group`は、すべてのグループなら`""`、読む人が絞り込んだグループ（チップか「{n}件すべてを見る」）ならそのidです。グループが指定されたら、そのグループの全件で答えてください（ボックスは20件ずつ描きます）。ほかのグループは`rows: []`と`total`だけで送ると、チップの件数が保たれます。
 - `signal`は、新しい呼び出しがこの呼び出しに取って代わるときに中断されます。リクエストを止められるソースはこれを渡します。止められないソースでも、遅れた答えは捨てるので問題ありません。
 
@@ -53,6 +53,26 @@ description: いろいろな種類のものを1つのボックスでまとめて
 
 `kazoku-search-pick`は`detail`に`{ id, group, action }`を持ち、トグルのときは新しい状態`pressed`も持ちます。ボックスはトグルの`aria-pressed`をすぐ切り替えます。本当の状態はページが持ち、次の答えがそれを伝えます。新しい呼び出しなしで合わせたいときは`setPressed(group, id, action, pressed)`を使います。
 
+## 使えない操作
+
+`{ id: "go", label: "移動", disabled: true, title: "場所の地図はまだ使えません" }`は、ボタンを薄く描き、`aria-disabled="true"`を付けます（`disabled`属性は使いません。ツールチップを残すためです）。`title`はツールチップになります。同じ文はアクセシブルな説明にもなるので、矢印でそのボタンに移った読む人は、操作、行、そして理由の順に聞けます。Enter、押すこと、行の文字を押すこと（それがその行の最初の操作のとき）は、何もせず`kazoku-search-pick`も送りません。候補は開いたままです。矢印キーはそのボタンに届くので、理由を聞けます。`disabled`を省くか`false`にすると普通の操作で、`title`だけならツールチップと説明が付くだけです。
+
+```html
+<script type="module">
+  import "@johnmorrisdotca/kazoku-ui/search-box/define";
+  const box = document.querySelector("kazoku-search-box");
+  box.source = async () => [
+    { id: "places", label: "場所", total: 1, rows: [{ id: "gale", label: "ゲイルクレーター", actions: [{ id: "go", label: "移動", disabled: true, title: "場所の地図はまだ使えません" }] }] },
+  ];
+</script>
+
+<kazoku-search-box lang="ja" placeholder="星、惑星、宇宙機、都市を検索"></kazoku-search-box>
+```
+
+## トグルの変化を読み上げる
+
+フォーカスは入力欄にあり、スクリーンリーダーは操作対象の子孫に付いた`aria-pressed`をほとんど読み上げません。そこでボックス自身が、トグルの新しい状態を、自分のステータス行で控えめに読み上げます。操作、行、そして`オン`か`オフ`の順です（`Favourite Mars, on`、`お気に入り 火星、オン`）。読む人がキーか押下で切り替えたときに読み上げ、ページが`setPressed`を呼んだときは読み上げません。ことばは下の表の`on`と`off`で、`wordsFor`で置き換えられます。
+
 ## スクリーンリーダーへの対応
 
 入力欄は`aria-haspopup="grid"`のコンボボックスで、候補はグリッドです。各グループは、種類と件数（`星5件`）で名前が付いた`rowgroup`で、その先頭に見出しの行があります。各結果は`row`で、文字用と操作ごとの`gridcell`があります。フォーカスはずっと入力欄にあり、`aria-activedescendant`は常に`gridcell`を指します。選択中の行の文字用のセル（その行の最初の操作を表します）か、矢印で操作へ移ったあとはその操作のセルです。選択中の行とそのセルには`aria-selected`が付きます。入力方式で文字を変換している間は、矢印キーとEnterは入力方式のものとして、ボックスは何もしません。リストボックスではなくグリッドなのは、オプションの中にボタンを入れられないからです。答えが届くと、件数を控えめに読み上げます（`15件：星1件、惑星・衛星1件、…`、絞り込み後は`都市、49件`のような形）。
@@ -74,6 +94,7 @@ description: いろいろな種類のものを1つのボックスでまとめて
 | `debounce` | 呼び出しまでの待ち時間（ミリ秒、120） |
 | `per-group` | 各グループが出す行数（3） |
 | `window` | 絞り込んだグループが一度に出す行数（20） |
+| `placeholder` | 空の欄に出すヒント。省くか空なら、ボックスの言語の「検索」（`Search`、`検索`）。指定すると、どの言語でも書いたとおりに出す。プロパティでもあり、読むと表示中の文字列で、設定すると属性に書く。ボックスのアクセシブルな名前は`検索`のまま |
 | `shortcut` | ボックスにフォーカスするキー。`/`、`mod+k`（ControlまたはCommand）、`ctrl+k`、`meta+k`、`alt+s`。空白で区切って複数指定できる。ほかの入力欄に入力しているときは、キーを取らない |
 
 `close()`は候補を閉じ、`clear()`は欄を空にし、`focus()`はフォーカスします。色はファミリー共通の`--kazoku-ink`、`--kazoku-surface`、`--kazoku-line`、`--kazoku-accent`で決まり、ライトとダークに対応します。スマホでは候補がボックスの幅いっぱいに広がり、行の操作は名前の下に並び、どのボタンも44px以上です。動くものはないので、動きを止める設定は要りません。
@@ -98,6 +119,8 @@ description: いろいろな種類のものを1つのボックスでまとめて
 | `kindCount` | {label} {n} | {label}{n}件 |
 | `join` | , | 、 |
 | `open` | Open | 開く |
+| `on` | on | オン |
+| `off` | off | オフ |
 
 結果の名前はここにはありません。ソースが、読む人の言語で返します。
 
@@ -119,4 +142,4 @@ const runner = createSearchRunner({
 runner.request("vega");
 ```
 
-ほかに、`planLines`（答えに対して描くもの）、`chipsOf`、`announcement`、`actionsOf`、`stepIndex`、`MAX_ACTIONS`、`countPhrase`、`languageOf`、`EVENT`、`TAG`も公開しています。クラスは`SearchBoxElement`で、`defineSearchBox`がタグを登録し、すでに登録されていれば何もしません。
+ほかに、`planLines`（答えに対して描くもの）、`chipsOf`、`announcement`、`toggleAnnouncement`、`isActionEnabled`、`actionsOf`、`stepIndex`、`MAX_ACTIONS`、`countPhrase`、`languageOf`、`EVENT`、`TAG`も公開しています。クラスは`SearchBoxElement`で、`defineSearchBox`がタグを登録し、すでに登録されていれば何もしません。

@@ -30,6 +30,10 @@ export interface SearchBoxWords {
   join: string;
   /** What a row without actions of its own does, as an action id's label. */
   open: string;
+  /** A toggle action's new state when it is on, said after the row (`Favourite Mars, on`). */
+  on: string;
+  /** A toggle action's new state when it is off. */
+  off: string;
 }
 
 export type Language = "en" | "ja";
@@ -51,6 +55,8 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     kindCount: "{label} {n}",
     join: ", ",
     open: "Open",
+    on: "on",
+    off: "off",
   },
   ja: {
     search: "検索",
@@ -68,6 +74,8 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     kindCount: "{label}{n}件",
     join: "、",
     open: "開く",
+    on: "オン",
+    off: "オフ",
   },
 };
 
