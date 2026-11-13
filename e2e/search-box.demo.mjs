@@ -23,7 +23,10 @@ const type = async (page, text) => {
 const state = (page) => page.locator("kazoku-search-box").evaluate((el) => {
   const input = el.shadowRoot.querySelector("input");
   const target = el.shadowRoot.getElementById(input.getAttribute("aria-activedescendant") ?? "");
-  return { expanded: input.getAttribute("aria-expanded"), active: target ? (target.getAttribute("role") === "row" ? `row ${target.dataset.i}` : `button ${target.dataset.act}`) : null, pressed: target?.getAttribute("aria-pressed") ?? null };
+  // the box always names a gridcell: a row's text cell stands for the row, an action's cell for its button
+  const button = target?.querySelector("button");
+  const row = target?.closest("[role=row]");
+  return { expanded: input.getAttribute("aria-expanded"), role: target?.getAttribute("role") ?? null, selected: target?.getAttribute("aria-selected") ?? null, active: target ? (button ? `button ${button.dataset.act}` : `row ${row.dataset.i}`) : null, pressed: button?.getAttribute("aria-pressed") ?? null };
 });
 
 test("typing shows each kind with its count, a few rows of each, and See all where there are more", async ({ page }) => {
@@ -31,7 +34,7 @@ test("typing shows each kind with its count, a few rows of each, and See all whe
   await type(page, "mar");
   await expect(heads(page)).toHaveText([/^Stars\s*1$/, /^Planets and moons\s*1$/, /^Craft\s*5$/, /^Places\s*4$/, /^Cities\s*4$/]);
   await expect(page.locator("kazoku-search-box").locator("#grid")).toHaveAttribute("role", "grid");
-  await expect(page.locator("kazoku-search-box").locator("[role=rowgroup]").first()).toHaveAttribute("aria-labelledby", /./);
+  await expect(page.locator("kazoku-search-box").locator("[role=rowgroup]").first()).toHaveAttribute("aria-label", "Stars 1");
   // three rows of Craft, then See all 5
   const craft = page.locator("kazoku-search-box").locator("[role=rowgroup]").nth(2);
   await expect(craft.locator("[role=row][data-i]")).toHaveCount(4);
@@ -70,7 +73,7 @@ test("down arrow to a row and Enter does its first action, and the box lets go o
   await expect(box(page)).toHaveAttribute("aria-expanded", "true");
   expect((await state(page)).active).toBeNull();
   await page.keyboard.press("ArrowDown");
-  expect((await state(page)).active).toBe("row 0");
+  expect(await state(page)).toMatchObject({ active: "row 0", role: "gridcell", selected: "true" });
   await expect(rows(page).first()).toHaveAttribute("aria-selected", "true");
   await expect(rows(page).first()).toContainText("Mars");
   await page.keyboard.press("Enter");
@@ -224,6 +227,37 @@ test("Escape closes the popup, then clears the box", async ({ page }) => {
   expect((await state(page)).active).toBe("row 0");
 });
 
+test("Tab reaches the kind chips, Enter on one keeps the focus there, and Escape from one closes the popup and returns to the box", async ({ page }) => {
+  await ready(page);
+  await type(page, "mar");
+  for (let i = 0; i < 4; i += 1) await page.keyboard.press("Tab");
+  await expect(chips(page).nth(3)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#last")).toHaveText("mar (craft)");
+  await expect(rows(page)).toHaveCount(5);
+  await expect(panel(page)).toBeVisible();
+  await expect(chips(page).nth(3)).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await expect(box(page)).toBeFocused();
+  await expect(box(page)).toHaveAttribute("aria-expanded", "false");
+});
+
+test("an answer that arrives after Escape does not open the popup again", async ({ page }) => {
+  await ready(page);
+  await page.locator("#slow").click();
+  await box(page).fill("vega");
+  await expect(page.locator("#last")).toHaveText("vega");
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  await expect(page.locator("#answered")).toHaveText("1");
+  await expect(panel(page)).toBeHidden();
+  await expect(box(page)).toHaveAttribute("aria-expanded", "false");
+  // Down brings the answer back
+  await page.keyboard.press("ArrowDown");
+  await expect(panel(page)).toBeVisible();
+});
+
 test("the shortcut keys focus the box, and never take a key from another field", async ({ page }) => {
   await ready(page);
   await expect(box(page)).toHaveAttribute("aria-keyshortcuts", "/ Control+K Meta+K");
@@ -265,7 +299,7 @@ test("the popup fills the box's width, actions are touch-sized, and nothing make
   const sizes = await page.locator("kazoku-search-box").evaluate((el) => {
     const host = el.getBoundingClientRect();
     const panelBox = el.shadowRoot.querySelector(".panel").getBoundingClientRect();
-    const small = [...el.shadowRoot.querySelectorAll(".row button, .chips button, .row[data-kind]")].filter((b) => b.getBoundingClientRect().height < 43.5).length;
+    const small = [...el.shadowRoot.querySelectorAll(".row button, .chips button, .row[data-kind]")].filter((b) => b.getBoundingClientRect().height < 47.5).length;
     return { hostWidth: Math.round(host.width), panelWidth: Math.round(panelBox.width), small, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
   });
   expect(sizes.panelWidth).toBe(sizes.hostWidth);

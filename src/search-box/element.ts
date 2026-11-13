@@ -20,6 +20,9 @@ interface NavEntry {
   el: HTMLElement;
   actions: SearchAction[];
   buttons: HTMLButtonElement[];
+  /** The row's own text cell, which stands for its first action, then one cell for each action. */
+  main: HTMLElement;
+  cells: HTMLElement[];
 }
 
 type Mode = "idle" | "busy" | "answer" | "failed";
@@ -98,13 +101,19 @@ export class SearchBoxElement extends HTMLElement {
   #lines: PlanLine[] = [];
   #listening = false;
   #uid = 0;
+  /** True while the box gives its own focus back to itself, so the focus handler does not reopen a popup that was just closed. */
+  #refocus = false;
 
   constructor() {
     super();
     this.#root = this.attachShadow({ mode: "open" });
+    // read at each request, so the attribute can change after the box is made
+    const debounce = (): number => whole(this.getAttribute("debounce"), DEFAULT_DEBOUNCE, 0);
     this.#runner = createSearchRunner({
       source: () => this.#source,
-      debounceMs: DEFAULT_DEBOUNCE,
+      get debounceMs() {
+        return debounce();
+      },
       onStart: () => this.#onStart(),
       onAnswer: (groups, _query, group) => this.#onAnswer(groups, group),
       onFail: () => this.#onFail(),
@@ -129,6 +138,7 @@ export class SearchBoxElement extends HTMLElement {
     const input = this.#input();
     if (!input) return;
     input.value = text;
+    this.#closed = false;
     this.#changed();
   }
 
@@ -149,6 +159,8 @@ export class SearchBoxElement extends HTMLElement {
     this.#stop?.();
     this.#stop = undefined;
     this.#runner.cancel();
+    if (this.#mode === "busy") this.#mode = this.#nav.length > 0 ? "answer" : "idle";
+    this.#root.querySelector("#grid")?.removeAttribute("aria-busy");
     this.#unlisten();
   }
 
@@ -256,7 +268,9 @@ export class SearchBoxElement extends HTMLElement {
       if (event.key === "Escape" && event.target !== input) {
         event.preventDefault();
         this.close();
+        this.#refocus = true;
         input.focus();
+        this.#refocus = false;
       }
     });
     field.addEventListener("focusout", (event) => {
@@ -266,7 +280,7 @@ export class SearchBoxElement extends HTMLElement {
     });
     input.addEventListener("focus", () => {
       // coming back to a box that still has an answer shows it again
-      if (this.#closed && this.#mode === "answer" && this.value.trim() !== "" && this.#nav.length > 0) {
+      if (!this.#refocus && this.#closed && this.#mode === "answer" && this.value.trim() !== "" && this.#nav.length > 0) {
         this.#closed = false;
         this.#sync();
       }
@@ -336,12 +350,14 @@ export class SearchBoxElement extends HTMLElement {
       this.#flips.clear();
       this.#active = -1;
       this.#draw();
+      this.#el("#grid").removeAttribute("aria-busy");
       this.#el("#status").textContent = "";
       return;
     }
     this.#runner.cancel();
     this.#runner.request(query, this.#narrowed);
-    this.#mode = this.#mode === "idle" ? "busy" : this.#mode;
+    // with no source yet there is nothing to wait for
+    if (this.#source !== undefined && (this.#mode === "idle" || this.#mode === "failed")) this.#mode = "busy";
     this.#sync();
   }
 
@@ -362,8 +378,8 @@ export class SearchBoxElement extends HTMLElement {
     this.#flips.clear();
     this.#windowCount = whole(this.getAttribute("window"), DEFAULT_WINDOW, 1);
     this.#mode = "answer";
-    // an answer opens the popup for a reader who is in the box, and waits for one who has gone elsewhere
-    this.#closed = this.#root.activeElement === null;
+    // an answer waits for a reader who has gone elsewhere, and leaves a popup the reader closed (Escape) closed until they type or press Down
+    if (this.#root.activeElement === null) this.#closed = true;
     this.#active = -1;
     this.#col = 0;
     this.#el("#grid").removeAttribute("aria-busy");
@@ -401,7 +417,6 @@ export class SearchBoxElement extends HTMLElement {
         const cell = doc.createElement("div");
         cell.setAttribute("role", "rowheader");
         cell.className = "gh";
-        cell.id = `h${(this.#uid += 1)}`;
         const name = doc.createElement("span");
         name.textContent = line.group.label;
         const count = doc.createElement("span");
@@ -410,7 +425,8 @@ export class SearchBoxElement extends HTMLElement {
         cell.append(name, count);
         head.append(cell);
         section.append(head);
-        section.setAttribute("aria-labelledby", cell.id);
+        // one phrase ("Stars 5"), so a screen reader does not run the name and the count together
+        section.setAttribute("aria-label", words.kindCount.replace("{label}", line.group.label).replace("{n}", String(Math.max(line.group.total, line.group.rows.length))));
         grid.append(section);
       } else if (section) {
         section.append(this.#drawLine(line, query, words));
@@ -433,7 +449,9 @@ export class SearchBoxElement extends HTMLElement {
     main.className = "main";
     const text = doc.createElement("span");
     text.className = "label";
-    const entry: NavEntry = { line, el, actions: [], buttons: [] };
+    main.id = `m${(this.#uid += 1)}`;
+    main.setAttribute("aria-selected", "false");
+    const entry: NavEntry = { line, el, actions: [], buttons: [], main, cells: [] };
     if (line.type === "row") {
       for (const part of highlight(line.row.label, query)) {
         if (part.match) {
@@ -456,6 +474,8 @@ export class SearchBoxElement extends HTMLElement {
           const cell = doc.createElement("div");
           cell.setAttribute("role", "gridcell");
           cell.className = "cell";
+          cell.id = `c${(this.#uid += 1)}`;
+          cell.setAttribute("aria-selected", "false");
           const button = doc.createElement("button");
           button.type = "button";
           button.tabIndex = -1;
@@ -469,6 +489,7 @@ export class SearchBoxElement extends HTMLElement {
           cell.append(button);
           el.append(cell);
           entry.buttons.push(button);
+          entry.cells.push(cell);
         }
       }
     } else {
@@ -495,6 +516,8 @@ export class SearchBoxElement extends HTMLElement {
     if (key !== this.#chipKey) {
       this.#chipKey = key;
       const doc = this.ownerDocument;
+      // a chip that has the focus is drawn again with its replacement, so Tab and Enter on a chip do not drop the reader out of the box
+      const focused = (this.#root.activeElement as HTMLElement | null)?.dataset?.chip;
       box.replaceChildren();
       const add = (id: string, label: string, total: number | null): void => {
         const button = doc.createElement("button");
@@ -511,6 +534,7 @@ export class SearchBoxElement extends HTMLElement {
       };
       add("", words.all, null);
       for (const chip of chips) add(chip.id, chip.label, chip.total);
+      if (focused !== undefined) (box.querySelector<HTMLButtonElement>(`button[data-chip="${CSS.escape(focused)}"]`) ?? box.querySelector<HTMLButtonElement>("button"))?.focus();
     }
     for (const button of box.querySelectorAll("button")) button.setAttribute("aria-pressed", String((button.dataset.chip ?? "") === this.#narrowed));
   }
@@ -545,6 +569,8 @@ export class SearchBoxElement extends HTMLElement {
   }
 
   #onKey(event: KeyboardEvent): void {
+    // a reader choosing a conversion (Japanese, Chinese, Korean) uses these keys for the input method, not for the list
+    if (event.isComposing || event.keyCode === 229) return;
     const input = event.currentTarget as HTMLInputElement;
     const expanded = input.getAttribute("aria-expanded") === "true";
     const key = event.key;
@@ -596,12 +622,16 @@ export class SearchBoxElement extends HTMLElement {
   #mark(): void {
     const input = this.#input();
     if (!input) return;
+    // the box's `aria-activedescendant` always names a gridcell: the row's text cell for its first action, or the cell of the action the arrows reached
     this.#nav.forEach((entry, i) => {
       const on = i === this.#active;
       entry.el.setAttribute("aria-selected", String(on));
+      entry.main.setAttribute("aria-selected", String(on && this.#col === 0));
       entry.buttons.forEach((button, c) => {
-        if (on && c === this.#col && c > 0) button.setAttribute("data-active", "");
+        const here = on && c === this.#col && c > 0;
+        if (here) button.setAttribute("data-active", "");
         else button.removeAttribute("data-active");
+        entry.cells[c]?.setAttribute("aria-selected", String(here));
       });
     });
     const entry = this.#nav[this.#active];
@@ -609,7 +639,7 @@ export class SearchBoxElement extends HTMLElement {
       input.removeAttribute("aria-activedescendant");
       return;
     }
-    const target = this.#col > 0 ? (entry.buttons[this.#col] ?? entry.el) : entry.el;
+    const target = this.#col > 0 ? (entry.cells[this.#col] ?? entry.main) : entry.main;
     input.setAttribute("aria-activedescendant", target.id);
     target.scrollIntoView?.({ block: "nearest" });
   }
