@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.49.0] - 2026-11-17
+
 - **Parts follow the page's language while it is open** (KAZOKU-UI-82). `<kazoku-wide-toggle>` read its language only when it connected and when its own `lang` attribute changed, so a page that switched with `<html lang>` kept the old label (Wide, not ワイド). It now watches `<html lang>` and the `kazoku-languagechange` event. The same gap is closed in the view controls, speed buttons, replay bar, options window, menu, theme switch, save-image, collection picker and search box; page frame, embed panel and the interface parts already followed. A part with its own `lang` attribute keeps it. The demo no longer copies the picker's choice onto the toggle and theme switch. Backwards compatible.
 
 - **`wideCss()` keeps a capped view at the full width** (KAZOKU-UI-83). In Wide, when `maxHeight` (80vh) held the 16:9 view's height down, the view's width followed (1280 px of a 1440 px page, at the left). The view now has `width: 100%`, so it stays the page's full width and is wider than 16:9 when the cap holds it. A package that added `[data-wide=on] .kazoku-stage > .kazoku-view { width: 100% }` for this can drop it. Backwards compatible.
