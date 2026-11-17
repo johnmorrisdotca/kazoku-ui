@@ -197,8 +197,8 @@ test("See all shows one kind's whole list in windows, and Show more draws the ne
   await expect(page.locator("kazoku-search-box").locator("[role=status]")).toHaveText(`Cities, ${total} results`);
   // only what is shown is drawn
   expect(await page.locator("kazoku-search-box").evaluate((el) => el.shadowRoot.querySelectorAll("*").length)).toBeLessThan(400);
+  // up from the box lands on Show more at the end of the drawn rows, which scrolls it into view: the next window is drawn at once, as it is for a reader who scrolls (see search-long.demo.mjs)
   await page.keyboard.press("ArrowUp");
-  await page.keyboard.press("Enter");
   await expect(rows(page)).toHaveCount(41);
   await expect(chips(page).filter({ hasText: "Cities" })).toHaveAttribute("aria-pressed", "true");
   // All brings the groups back

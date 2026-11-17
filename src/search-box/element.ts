@@ -39,6 +39,9 @@ const DEFAULT_PER_GROUP = 3;
 const DEFAULT_WINDOW = 20;
 /** The least width a row keeps for its name before actions go behind "more". */
 const MIN_NAME_WIDTH = 96;
+/** How close to the end of the drawn rows (in px) the next window is drawn, and how near (in rows) the highlight may come to the end before it is. */
+const NEAR_END = 160;
+const NEAR_ROWS = 4;
 
 const whole = (value: string | null, fallback: number, min = 0): number => {
   const n = Number(value);
@@ -273,6 +276,8 @@ export class SearchBoxElement extends HTMLElement {
       this.#ro.observe(this);
     }
     this.ownerDocument.defaultView?.addEventListener("resize", this.#onResize);
+    // a press anywhere else closes the popup: on a touch screen a tap on plain page text does not take the focus from the box, so the focus leaving is not enough
+    this.ownerDocument.addEventListener("pointerdown", this.#onOutside, true);
   }
 
   disconnectedCallback(): void {
@@ -280,6 +285,7 @@ export class SearchBoxElement extends HTMLElement {
     this.#stop = undefined;
     this.#ro?.disconnect();
     this.ownerDocument.defaultView?.removeEventListener("resize", this.#onResize);
+    this.ownerDocument.removeEventListener("pointerdown", this.#onOutside, true);
     this.#pc?.loader.cancel();
     this.#runner.cancel();
     if (this.#mode === "busy") this.#mode = this.#nav.length > 0 ? "answer" : "idle";
@@ -298,6 +304,11 @@ export class SearchBoxElement extends HTMLElement {
     else if (name === "per-group" || name === "window") this.#draw();
     else if (name === "preview") this.#redrawKeeping();
   }
+
+  #onOutside = (event: PointerEvent): void => {
+    if (this.#closed || this.#el<HTMLElement>(".panel").hidden || event.composedPath().includes(this)) return;
+    this.close();
+  };
 
   #onResize = (): void => this.#pc?.relayout();
 
@@ -383,8 +394,11 @@ export class SearchBoxElement extends HTMLElement {
     grid.hidden = true;
     const note = make("p", "note");
     note.hidden = true;
+    // under a narrowed list that has more rows than are drawn: "Showing 40 of 9,812". Plain text, not live: the box does not talk while the reader scrolls
+    const count = make("p", "count");
+    count.hidden = true;
     const list = make("div", "list");
-    list.append(chips, grid, note);
+    list.append(chips, grid, count, note);
     panel.append(list);
     const status = make("div", "vh");
     status.id = "status";
@@ -434,6 +448,8 @@ export class SearchBoxElement extends HTMLElement {
     panel.addEventListener("mousedown", (event) => event.preventDefault());
     panel.addEventListener("click", (event) => this.#onClick(event));
     panel.addEventListener("pointermove", (event) => this.#pc?.hover(event));
+    // a long answer keeps going as the reader scrolls: the next window is drawn under the last, before the end is reached
+    panel.addEventListener("scroll", () => this.#fill(), { passive: true });
   }
 
   #paintWords(): void {
@@ -594,8 +610,76 @@ export class SearchBoxElement extends HTMLElement {
       }
     }
     this.#paintChips();
+    this.#paintCount();
     this.#sync();
     this.#measure();
+    this.#fill();
+  }
+
+  /** The count line: how many rows of the narrowed group are drawn, of how many it has. Left out while all of them are drawn, so a short answer looks as it always did. */
+  #paintCount(): void {
+    const el = this.#el<HTMLElement>(".count");
+    const group = this.#narrowed === "" ? undefined : this.#groups.find((one) => one.id === this.#narrowed);
+    const total = group ? Math.max(group.total, group.rows.length) : 0;
+    const drawn = this.#drawnRows();
+    el.hidden = group === undefined || drawn >= total;
+    if (el.hidden) return;
+    const where = this.#lang() === "ja" ? "ja-JP" : "en-US";
+    el.textContent = this.#words().showing.replace("{n}", drawn.toLocaleString(where)).replace("{total}", total.toLocaleString(where));
+  }
+
+  /** How many result rows are drawn (not counting a Show more line). */
+  #drawnRows(): number {
+    const tail = this.#nav[this.#nav.length - 1];
+    return this.#nav.length - (tail && tail.line.type !== "row" ? 1 : 0);
+  }
+
+  /**
+   * Draw the next window of a narrowed group under the rows already drawn, leaving everything above it where it is (the scroll position, the highlight, the previews). False when nothing is left. A row that brings
+   * an icon or a preview the rows above had none of makes the layout change, so then the list is drawn again from its start.
+   */
+  #reveal(): boolean {
+    const tail = this.#nav[this.#nav.length - 1];
+    const section = this.#el<HTMLElement>("#grid").lastElementChild as HTMLElement | null;
+    if (this.#narrowed === "" || !tail || tail.line.type !== "more" || !section) return false;
+    const group = tail.line.group;
+    const step = whole(this.getAttribute("window"), DEFAULT_WINDOW, 1);
+    const have = this.#nav.length - 1;
+    const rows = group.rows.slice(have, have + step);
+    if (rows.length === 0) return false;
+    const newIcons = !this.#hasIcons && rows.some((row) => rowIconSpec(row.icon) !== undefined);
+    const newPreviews = !this.#pcAsked && this.getAttribute("preview") !== "off" && (this.#loadPreview !== undefined || rows.some((row) => row.preview !== undefined));
+    this.#windowCount += step;
+    if (newIcons || newPreviews) {
+      this.#redrawKeeping();
+      return true;
+    }
+    const query = this.value.trim();
+    const words = this.#words();
+    tail.el.remove();
+    this.#nav.pop();
+    this.#lines.pop();
+    for (const row of rows) {
+      const line: NavLine = { type: "row", group, row };
+      this.#lines.push(line);
+      section.append(this.#drawLine(line, query, words));
+    }
+    const remaining = group.rows.length - this.#nav.length;
+    if (remaining > 0) {
+      const line: NavLine = { type: "more", group, remaining };
+      this.#lines.push(line);
+      section.append(this.#drawLine(line, query, words));
+    }
+    this.#paintCount();
+    this.#fit(have);
+    return true;
+  }
+
+  /** Draw more while the popup shows a narrowed list's end or is near it (a few windows at most at a time: each draw makes the list longer, so the end moves away). */
+  #fill(): void {
+    const panel = this.#root.querySelector<HTMLElement>(".panel");
+    if (!panel || panel.hidden || panel.clientHeight === 0) return;
+    for (let i = 0; i < 20 && panel.scrollHeight - panel.scrollTop - panel.clientHeight < NEAR_END; i += 1) if (!this.#reveal()) break;
   }
 
   #drawLine(line: NavLine, query: string, words: SearchBoxWords): HTMLElement {
@@ -606,6 +690,14 @@ export class SearchBoxElement extends HTMLElement {
     el.id = `r${(this.#uid += 1)}`;
     el.dataset.i = String(this.#nav.length);
     el.setAttribute("aria-selected", "false");
+    // a narrowed list that goes on past what is drawn says where each row stands in the whole (the rows are drawn from the first, so the place is the row's number)
+    if (line.type === "row" && this.#narrowed !== "") {
+      const size = Math.max(line.group.total, line.group.rows.length);
+      if (size > whole(this.getAttribute("window"), DEFAULT_WINDOW, 1)) {
+        el.setAttribute("aria-setsize", String(size));
+        el.setAttribute("aria-posinset", String(this.#nav.length + 1));
+      }
+    }
     const main = doc.createElement("div");
     main.setAttribute("role", "gridcell");
     main.className = "main";
@@ -764,7 +856,7 @@ export class SearchBoxElement extends HTMLElement {
 
   /** Read the popup's width: which actions each row can show, and whether the chips run past an edge. Nothing is read while the popup is hidden; its first showing is a change of size, which calls this again. */
   #measure(): void {
-    this.#fit();
+    this.#fit(0);
     this.#fades();
   }
 
@@ -781,12 +873,12 @@ export class SearchBoxElement extends HTMLElement {
   }
 
   /** On a row too narrow for its actions, the last ones go behind the "more" button. Every action stays in the grid, so the arrows still reach them; only their place on the row changes. */
-  #fit(): void {
+  #fit(from: number): void {
     const panel = this.#root.querySelector<HTMLElement>(".panel");
     // with the sheet open the rows are out of the page and have no width to measure; they are measured again when the list comes back
     if (!panel || panel.hidden || panel.clientWidth === 0 || panel.hasAttribute("data-sheet")) return;
     const view = this.ownerDocument.defaultView;
-    for (const entry of this.#nav) {
+    for (const entry of this.#nav.slice(from)) {
       if (entry.actions.length < 2) continue;
       // measure with every action on the line
       entry.el.removeAttribute("data-more");
@@ -895,6 +987,21 @@ export class SearchBoxElement extends HTMLElement {
       this.#active = stepIndex(this.#active, this.#nav.length, key === "ArrowDown" ? 1 : -1);
       this.#col = 0;
       this.#moreOpen = -1;
+      this.#reachEnd();
+      this.#mark();
+    } else if ((key === "PageDown" || key === "PageUp") && expanded && this.#nav.length > 0) {
+      // a page of rows at a time, as far as the drawn rows go, and on into the next window when they run out
+      event.preventDefault();
+      const panel = this.#el<HTMLElement>(".panel");
+      const rowHeight = this.#nav[0]?.el.getBoundingClientRect().height || 40;
+      const page = Math.max(1, Math.floor(panel.clientHeight / rowHeight) - 1);
+      // a page that reaches the Show more line draws the next window first, and goes on into it
+      if (key === "PageDown" && this.#active + page >= this.#nav.length - 1) this.#reveal();
+      const to = key === "PageDown" ? this.#active + page : this.#active - page;
+      this.#active = Math.max(0, Math.min(this.#nav.length - 1, to));
+      this.#col = 0;
+      this.#moreOpen = -1;
+      this.#reachEnd();
       this.#mark();
     } else if (key === "ArrowRight" || key === "ArrowLeft") {
       // across the active row's actions; with no row active, or at the end of its actions, the arrows move the caret as they do in any field
@@ -920,6 +1027,11 @@ export class SearchBoxElement extends HTMLElement {
       }
     }
     // Home and End are left to the box: they move the caret, never the list
+  }
+
+  /** The highlight is on a row near the end of the drawn rows of a narrowed list: draw the next window, so the keyboard never runs into a wall. The Show more line itself is left to Enter, as it was. */
+  #reachEnd(): void {
+    if (this.#active >= this.#nav.length - NEAR_ROWS && this.#active < this.#nav.length - 1) this.#reveal();
   }
 
   /** Move the marks. Nothing is rebuilt: the box's `aria-activedescendant` names the row (or the action) and the rows' own attributes show it. */
@@ -994,8 +1106,7 @@ export class SearchBoxElement extends HTMLElement {
     }
     if (line.type === "more") {
       const first = this.#nav.length - 1;
-      this.#windowCount += whole(this.getAttribute("window"), DEFAULT_WINDOW, 1);
-      this.#draw();
+      this.#reveal();
       this.#active = Math.min(first, this.#nav.length - 1);
       this.#col = 0;
       this.#mark();

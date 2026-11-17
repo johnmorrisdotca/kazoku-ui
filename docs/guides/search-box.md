@@ -201,11 +201,22 @@ loader.highlight("planets\u0000mars", { id: "mars", label: "Mars" }, "planets");
 
 The input is a combobox with `aria-haspopup="grid"`, and the popup is a grid: each group is a `rowgroup` named with its kind and count (`Stars 5`), above a header row, each result is a `row` with a `gridcell` for its text and one for each action. Focus stays in the input the whole time; `aria-activedescendant` always names a `gridcell`: the active row's text cell, which stands for its first action, or the cell of the active action once the arrows have moved across it. The active row and that cell have `aria-selected`. While a reader is composing text with an input method, the arrow keys and Enter belong to it and the box leaves them alone. A grid, not a listbox, because options cannot hold buttons. A polite status line says the count when an answer arrives (`15 results: Stars 1, Planets 1, …`, and `Cities, 49 results` once narrowed).
 
-Moving the active row sets attributes and nothing else: the rows are not drawn again. The rows are drawn once per answer, and only what is shown: a few rows of each group, or one window of a narrowed group, so a source that returns thousands of rows costs the page a screenful of nodes.
+Moving the active row sets attributes and nothing else: the rows are not drawn again. The rows are drawn once per answer, and only what is shown: a few rows of each group, or one window of a narrowed group, so a source that returns thousands of rows costs the page a screenful of nodes until the reader goes further down the list (see "A long list").
 
 ## Narrowing
 
 The chips are `All` and one button for each group the answer has, each with its count, `aria-pressed` on the one chosen. Pressing a chip, or the "See all N" row of a group, asks the source again with that group. A narrowed group shows 20 rows and a "Show more" row for the next 20. Pressing the chosen chip again, or `All`, brings every group back.
+
+## A long list
+
+A narrowed group can be of any length: the source gives it all the rows it has (ten thousand is fine; the box never copies them) and the box draws a window of 20 at a time. The next window is drawn under the rows already there, with nothing above it redrawn, when the reader scrolls within about 160 px of the end, or when the highlight comes within three rows of the end (Down, or Up from the box), or when Page Down runs out of drawn rows; so the keyboard never runs into a wall, and a reader who stops at row 60 has 60 rows in the page, not 10,000. The "Show more" row stays for a pointer or a keyboard that wants it (Enter on it draws the next window as well).
+
+- **A count line** sits at the bottom of the popup while rows are left: `Showing 40 of 9,812` (`9,812件中40件を表示`), the word `showing` below. It is plain text, not a live region: the box does not speak while the reader scrolls. It goes when every row is drawn, and a narrowed answer that fits its first window never has one.
+- **Where a row stands.** In a narrowed group longer than one window each row has `aria-setsize` (the group's total) and `aria-posinset` (its number from 1), so a screen reader can say `21 of 9,812`.
+- **Page Down and Page Up** move the highlight a popup's height of rows. Home and End stay with the text caret, as in any combobox.
+- **The popup closes** on Escape, when the focus leaves the box, when a press lands anywhere else on the page (a tap on plain text on a touch screen does not move the focus, so the press itself is heard), and when a row's action is done that is not a toggle. It stays closed until the reader types or presses Down.
+
+The demo page `search-long.html` makes 10,000 names.
 
 ## Attributes and properties
 
@@ -236,6 +247,7 @@ The words come in English and Japanese; every key is in both (`WORDS`, `wordsFor
 | `all` | All | すべて |
 | `seeAll` | See all {n} | {n}件すべてを見る |
 | `showMore` | Show more | もっと見る |
+| `showing` | Showing {n} of {total} | {total}件中{n}件を表示 |
 | `empty` | No matches | 一致するものはありません |
 | `searching` | Searching… | 検索中… |
 | `failed` | The search failed | 検索できませんでした |

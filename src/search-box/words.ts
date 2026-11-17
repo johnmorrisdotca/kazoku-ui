@@ -10,6 +10,8 @@ export interface SearchBoxWords {
   seeAll: string;
   /** The row that draws the next window of a narrowed group. */
   showMore: string;
+  /** The count line under a narrowed list that has more rows than are drawn. `{n}` is the rows drawn, `{total}` the group's total. */
+  showing: string;
   /** What the popup says when nothing matches. */
   empty: string;
   /** What the popup says while an answer is on its way. */
@@ -59,6 +61,7 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     all: "All",
     seeAll: "See all {n}",
     showMore: "Show more",
+    showing: "Showing {n} of {total}",
     empty: "No matches",
     searching: "Searching…",
     failed: "The search failed",
@@ -85,6 +88,7 @@ export const WORDS: Record<Language, SearchBoxWords> = {
     all: "すべて",
     seeAll: "{n}件すべてを見る",
     showMore: "もっと見る",
+    showing: "{total}件中{n}件を表示",
     empty: "一致するものはありません",
     searching: "検索中…",
     failed: "検索できませんでした",

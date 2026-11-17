@@ -2581,6 +2581,8 @@ interface SearchBoxWords {
     seeAll: string;
     /** The row that draws the next window of a narrowed group. */
     showMore: string;
+    /** The count line under a narrowed list that has more rows than are drawn. `{n}` is the rows drawn, `{total}` the group's total. */
+    showing: string;
     /** What the popup says when nothing matches. */
     empty: string;
     /** What the popup says while an answer is on its way. */

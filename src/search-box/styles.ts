@@ -19,6 +19,7 @@ input:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
 .chips button:focus-visible { outline-offset: -2px; }
 .chips .n { font-weight: 400; opacity: 0.75; }
 .note { margin: 4px 8px; font-weight: 500; }
+.count { position: sticky; bottom: -6px; margin: 4px -6px -6px; padding: 4px 14px; border-top: 1px solid var(--_line); background: var(--_surface); font-size: 0.72rem; font-weight: 500; opacity: 0.9; }
 .list { min-width: 0; }
 [role="rowgroup"] { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0 0 2px; }
 [role="rowgroup"] > [role="row"] { grid-column: 1 / -1; }

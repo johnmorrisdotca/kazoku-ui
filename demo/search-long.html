@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: search long list</title>
+  <meta name="description" content="The search box with an answer of ten thousand rows: the list keeps going as the reader scrolls or walks it with the keyboard, and a count line says how many are drawn." />
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    .stage { display: grid; gap: 10px; margin: 8px 0; }
+    .readout { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 0.9rem; }
+    .readout b { font-weight: 700; }
+    kazoku-search-box { --kazoku-ink: var(--ink); --kazoku-surface: var(--surface); --kazoku-line: var(--line); --kazoku-accent: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">search long list</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="search long list" what-ja="検索の長い一覧" description="The search box with an answer of ten thousand rows: the list keeps going as the reader scrolls or walks it with the keyboard, and a count line says how many are drawn." description-ja="1万行の答えを返す検索ボックスです。スクロールやキー操作で一覧が続き、いくつ表示されているかを件数の行で示します。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="search-box.html" data-say="back">The search box</a></p>
+  <p class="intro" data-say="intro">Type starlink, then press See all. The page makes ten thousand names; the box draws a window of them and goes on as you scroll, or press Down or Page Down.</p>
+  <div class="stage">
+    <kazoku-search-box id="lbox" data-testid="box"></kazoku-search-box>
+    <p class="readout"><b data-say="pickedLabel">Picked</b>: <span id="picked" data-testid="picked">nothing yet</span></p>
+  </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page makes its own made-up names and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前で作った架空の名前を使い、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="search-long.js"></script>
+</body>
+</html>
