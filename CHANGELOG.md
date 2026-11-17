@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A flat pan and zoom for charts and maps** (KAZOKU-UI-64). `@johnmorrisdotca/kazoku-ui/pan-zoom` holds a view `{ x, y, zoom }` for a flat chart: one finger or the mouse drags both ways, two fingers pinch about their middle, the wheel zooms about the pointer (`wheel: "zoom"`, or `"modifier"` for Ctrl or Command only), arrows pan, `+` and `-` zoom and `Home` resets, with `minZoom` and `maxZoom` of the page's choosing (a sky can use 0.6 to 60). It draws nothing; the page maps the view onto its own projection. Not yet in the address. Guide in English and Japanese.
+
 ## [0.50.0] - 2026-11-17
 
 - **`checkGestures` checks a view that carries its own hands** (KAZOKU-UI-84). A view whose element calls `carryControls`, with no `<kazoku-view-controls>` on the page, is now checked like one with a bar: with no bar bound, its element sends `kazoku-viewchange` (it does not bubble) and has `controller`, `state` and `pause` (each only if the element has no property of that name; taken off on `unbind`). `checkGestures` reads the element itself when the page has no bar, and `controls` can name it. Backwards compatible.

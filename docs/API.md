@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "scene", "body-label", "collection-picker", "menu", "search-box"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "pan-zoom", "scene", "body-label", "collection-picker", "menu", "search-box"];
 ```
 
 ### Part
@@ -6965,6 +6965,144 @@ interface FamilyClockOptions {
     /** Most often a `"tick"` is sent, in milliseconds (250, which is 4 a second). */
     tickMs?: number;
 }
+```
+
+## `@johnmorrisdotca/kazoku-ui/pan-zoom`
+
+6 values and 5 types.
+
+```js
+import { clampZoom, createPanZoomController, distance, panBy, wheelFactor, zoomAbout } from '@johnmorrisdotca/kazoku-ui/pan-zoom';
+```
+
+### clampZoom
+
+*constant*
+
+```ts
+const clampZoom: (zoom: number, min: number, max: number) => number;
+```
+
+### createPanZoomController
+
+*function*. Make a pan and zoom controller.
+
+```ts
+function createPanZoomController(options?: PanZoomOptions): PanZoomController;
+```
+
+### distance
+
+*constant*. The distance between two points.
+
+```ts
+const distance: (a: {
+    x: number;
+    y: number;
+}, b: {
+    x: number;
+    y: number;
+}) => number;
+```
+
+### panBy
+
+*constant*. The view moved by (`dx`, `dy`) pixels.
+
+```ts
+const panBy: (view: PanZoomView, dx: number, dy: number) => PanZoomView;
+```
+
+### wheelFactor
+
+*function*. A wheel's turn as a zoom factor: 0.2% for each pixel, so a notch of 100 is about 1.22 and the opposite notch undoes it. A wheel that counts in lines (`deltaMode` 1) or pages (2) is scaled to pixels first.
+
+```ts
+function wheelFactor(deltaY: number, deltaMode?: number, height?: number): number;
+```
+
+### zoomAbout
+
+*function*. The view after multiplying the zoom by `factor` about the point (`px`, `py`), in CSS pixels from the element's middle: the content under that point stays under it. The zoom is held
+
+```ts
+function zoomAbout(view: PanZoomView, factor: number, px: number, py: number, min: number, max: number): PanZoomView;
+```
+
+### PanZoomController
+
+*interface*
+
+```ts
+interface PanZoomController {
+    /** The view now (a copy). */
+    readonly view: Readonly<PanZoomView>;
+    readonly minZoom: number;
+    readonly maxZoom: number;
+    /** Change part of the view; the zoom is held inside the limits. */
+    set(view: Partial<PanZoomView>): void;
+    /** Move the content by pixels. */
+    panBy(dx: number, dy: number): void;
+    /** Multiply the zoom by `factor` about a point in CSS pixels from the middle of the element (the middle if left out). */
+    zoomBy(factor: number, about?: {
+        x: number;
+        y: number;
+    }): void;
+    /** Go back to the home view. */
+    reset(): void;
+    /** Listen on `element`. It sets `touch-action: none` on it (put back by the returned function) so a finger pans instead of scrolling the page. Returns a function that takes the listeners off. */
+    bind(element: HTMLElement): () => void;
+}
+```
+
+### PanZoomOptions
+
+*interface*
+
+```ts
+interface PanZoomOptions {
+    /** The smallest zoom (default 0.1). */
+    minZoom?: number;
+    /** The largest zoom (default 50). A sky wants 0.6 to 60. */
+    maxZoom?: number;
+    /** The view to start from and to go back to on `reset` (default `{ x: 0, y: 0, zoom: 1 }`). */
+    home?: Partial<PanZoomView>;
+    /** The plain wheel (default `"zoom"`). */
+    wheel?: PanZoomWheel;
+    /** Called after every change with the new view. */
+    onChange?: (view: Readonly<PanZoomView>, reason: PanZoomReason) => void;
+}
+```
+
+### PanZoomReason
+
+*type*. Why the view changed: `"drag"`, `"pinch"`, `"wheel"`, `"key"`, or `"api"` (a call to `set`, `panBy`, `zoomBy` or `reset`).
+
+```ts
+type PanZoomReason = "drag" | "pinch" | "wheel" | "key" | "api";
+```
+
+### PanZoomView
+
+*interface*
+
+```ts
+interface PanZoomView {
+    /** CSS pixels the content has moved right of the element's middle. */
+    x: number;
+    /** CSS pixels the content has moved below the element's middle. */
+    y: number;
+    /** 1 is Fit; 2 draws the content twice as big. */
+    zoom: number;
+}
+```
+
+### PanZoomWheel
+
+*type*. What the plain wheel does: `"zoom"` zooms about the pointer, as a map page does; `"modifier"` zooms only with Ctrl or Command held (a trackpad's pinch always arrives so) and lets the page scroll otherwise, as the 3D parts do; `"none"` leaves the wheel alone.
+
+```ts
+type PanZoomWheel = "zoom" | "modifier" | "none";
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/body-label`
