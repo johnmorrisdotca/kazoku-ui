@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The shared ground check turns Auto-turn by an angle, not for 1.5 seconds** (KAZOKU-UI-67). `checkFollowsTheHand` in `templates/e2e-ground.mjs` started Auto-turn, waited a stopwatch 1.5 s and paused, so a busy machine that drew slowly turned the ground less than `min`. It now reads the controller's yaw on every frame (the wrap at 180 degrees followed), pauses in the same call once the view has turned by `turnDegrees` (15; the old second and a half was about 9) and fails with the angle if that never happens within the timeout (30 s at least). `min` is unchanged. The template is shared: each package copies the new file when it is next touched.
+
 ## [0.48.0] - 2026-11-18
 
 - **A long answer keeps going as the reader scrolls** (KAZOKU-UI-154). A narrowed search box group of any length (ten thousand rows is fine) draws the next window of 20 under the rows already there, with nothing above it redrawn, when the reader scrolls within about 160 px of the end, when the highlight comes within three rows of it, or when Page Down runs out of drawn rows; Page Down and Page Up move a popup's height of rows (Home and End stay with the caret). A count line, `Showing 40 of 9,812` (new word `showing`, English and Japanese), sits at the bottom while rows are left; each row of a narrowed group longer than one window has `aria-setsize` and `aria-posinset`. A press anywhere else on the page now closes the popup (a tap on plain text on a touch screen does not move the focus). Short answers are unchanged: no count line, no set size; Show more stays. Rows scrolled past stay drawn, so the page holds as many rows as the reader has reached. Demo page `search-long.html` (10,000 names); a browser spec on four projects. Backwards compatible.
