@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-11-17
+
 - **A flat pan and zoom for charts and maps** (KAZOKU-UI-64). `@johnmorrisdotca/kazoku-ui/pan-zoom` holds a view `{ x, y, zoom }` for a flat chart: one finger or the mouse drags both ways, two fingers pinch about their middle, the wheel zooms about the pointer (`wheel: "zoom"`, or `"modifier"` for Ctrl or Command only), arrows pan, `+` and `-` zoom and `Home` resets, with `minZoom` and `maxZoom` of the page's choosing (a sky can use 0.6 to 60). It draws nothing; the page maps the view onto its own projection. Not yet in the address. Guide in English and Japanese.
 
 ## [0.50.0] - 2026-11-17
