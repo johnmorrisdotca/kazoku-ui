@@ -58,7 +58,7 @@ description: ワイドと標準を切りかえるボタン（YouTubeのシアタ
 | `storage` | この端末のlocalStorageにも残します（`storage`だけなら`kazoku-wide`を使います）。 |
 | `keys` | `keys="off"`で、Tキーを使わなくします。 |
 | `resize` | `resize="off"`で、ウィンドウの`resize`イベントを送らなくします。 |
-| `lang` | `en`か`ja`。ないときはページの`lang`です。 |
+| `lang` | `en`か`ja`。ないときはページの`lang`です。ページの`lang`が変わると、ボタンの言葉も変わります。 |
 | `theme` | `light`か`dark`。自分の見た目を決めます。ないときはページに合わせます。 |
 
 はじめの選びは、アドレス、ストア、`value`、対象がすでに持っているものの順に読みます。コードでは、`toggle.wide`が選びで、代入すると変わります。`toggle.toggle()`で切りかえ、`toggle.words = { wide: "Theatre" }`でラベルを変え、`toggle.target`が書きこむ先の要素です。

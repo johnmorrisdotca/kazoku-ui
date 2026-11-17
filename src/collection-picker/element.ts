@@ -1,6 +1,7 @@
 // <kazoku-collection-picker>: search a list the page passes in, and keep a chosen list the reader can add to, remove from and reorder.
 // The page hears `kazoku-collectionchange`. The element does not know what the items are.
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
 import { addId, indexItems, moveId, removeId, searchItems, SUGGEST_LIMIT, type CollectionItem, type IndexedItem } from "./items.ts";
@@ -63,7 +64,12 @@ export class CollectionPickerElement extends HTMLElement {
 
   connectedCallback(): void {
     adoptStyles(this.#root, STYLES, this.nonce);
-    this.#stop = watchScheme(this);
+    const stopScheme = watchScheme(this);
+    const stopLanguage = followLanguage(this, () => this.#paint());
+    this.#stop = (): void => {
+      stopScheme();
+      stopLanguage();
+    };
     this.#mount();
     this.#paint();
   }

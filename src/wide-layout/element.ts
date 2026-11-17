@@ -2,7 +2,9 @@
 // keeps the choice in the address (`?wide=on`) and, if asked, in localStorage, answers the T key, and tells the page with a `kazoku-widechange` event and a window `resize`, so a view
 // draws again at its new size. The layout itself is the page's CSS (`wideCss()` is one); the element draws nothing of the page.
 import { createAddressState } from "../address-state/address.ts";
+import { EVENT as LANGUAGE_EVENT } from "../language-picker/index.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { resolveTarget } from "../shared/target.ts";
@@ -87,6 +89,11 @@ export class WideToggleElement extends HTMLElement {
       this.#styled = true;
     }
     this.#stop.push(watchScheme(this));
+    this.#stop.push(followLanguage(this, () => this.#render()));
+    // A picker that writes its choice on some other target says so with an event instead of changing <html lang>.
+    const onLanguage = (): void => this.#render();
+    this.ownerDocument.addEventListener(LANGUAGE_EVENT, onLanguage);
+    this.#stop.push(() => this.ownerDocument.removeEventListener(LANGUAGE_EVENT, onLanguage));
     this.#resolveTarget();
     const target = this.#target;
     const remembered = readWide({

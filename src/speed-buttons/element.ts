@@ -3,6 +3,7 @@
 // page hears every change as a `kazoku-speedchange` event. It moves nothing itself: the page applies the number.
 import { applyParams, createAddressWriter, readParam } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
 import { DEFAULT_STEPS, DEFAULT_UNIT, nearestStep, parseSpeed, parseSteps, SPEED_ADDRESS_KEY, speedText, startStep, stepFrom } from "./steps.ts";
@@ -98,7 +99,12 @@ export class SpeedButtonsElement extends HTMLElement {
       adoptStyles(this.#root, STYLES, this.nonce || (outer instanceof ShadowRoot ? (outer.host as HTMLElement).nonce : "") || "");
       this.#styled = true;
     }
-    this.#stop = watchScheme(this);
+    const stopScheme = watchScheme(this);
+    const stopLanguage = followLanguage(this, () => this.#render());
+    this.#stop = (): void => {
+      stopScheme();
+      stopLanguage();
+    };
     this.#steps = parseSteps(this.getAttribute("steps"));
     this.#start = parseSpeed(this.getAttribute("value"), this.#steps) ?? startStep(this.#steps);
     const kept = this.hasAttribute("address") ? parseSpeed(readParam(this.#key(), globalThis.location?.search ?? ""), this.#steps) : undefined;

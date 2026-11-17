@@ -899,3 +899,22 @@ test("sway drifts the picture while the view turns and leaves the angle alone", 
   expect(drifted.n).toBeGreaterThan(2);
   expect(drifted.picture).not.toBe(drifted.angle);
 });
+
+test("the bar's labels follow the page's language when it changes while the page is open", async ({ page }) => {
+  await ready(page);
+  // A bar of its own, with no `lang` attribute and none of the demo page's wiring (the demo's language picker writes `lang` on its own bar): only <html lang> tells it.
+  const label = () => page.evaluate(() => {
+    let bar = document.querySelector("#own-bar");
+    if (bar === null) {
+      bar = document.createElement("kazoku-view-controls");
+      bar.id = "own-bar";
+      document.body.append(bar);
+    }
+    return bar.shadowRoot.querySelector('[data-b="play"]').getAttribute("aria-label");
+  });
+  expect(await label()).toBe("Auto-turn");
+  await page.evaluate(() => document.documentElement.setAttribute("lang", "ja"));
+  await expect.poll(label).toBe("自動回転");
+  await page.evaluate(() => document.documentElement.setAttribute("lang", "en"));
+  await expect.poll(label).toBe("Auto-turn");
+});

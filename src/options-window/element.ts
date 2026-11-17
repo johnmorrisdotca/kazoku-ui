@@ -2,6 +2,7 @@
 // The content (the default slot, the help slot, the title) is the same in every frame. variant picks the frame.
 import { applyParams, createAddressWriter, readParam } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { TAG } from "./index.ts";
@@ -63,7 +64,12 @@ export class OptionsWindowElement extends HTMLElement {
       adoptStyles(this.#root, STYLES, this.nonce || (outer instanceof ShadowRoot ? (outer.host as HTMLElement).nonce : "") || "");
       this.#styled = true;
     }
-    this.#stop = watchScheme(this);
+    const stopScheme = watchScheme(this);
+    const stopLanguage = followLanguage(this, () => this.#paint());
+    this.#stop = (): void => {
+      stopScheme();
+      stopLanguage();
+    };
     this.#sheetMedia = globalThis.matchMedia?.(SHEET);
     this.#sheetMedia?.addEventListener?.("change", this.#onSheet);
     const remembered = this.#read();

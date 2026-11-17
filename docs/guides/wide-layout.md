@@ -56,7 +56,7 @@ A view that draws to its size (a canvas, WebGL, an SVG) must draw again when the
 | `storage` | Also remember it on this device, in localStorage (a bare `storage` uses `kazoku-wide`). |
 | `keys` | `keys="off"` turns the T key off. |
 | `resize` | `resize="off"` stops the window's `resize` event. |
-| `lang` | `en` or `ja`; otherwise the page's `lang`. |
+| `lang` | `en` or `ja`; otherwise the page's `lang`, and the button changes its words when the page's `lang` changes. |
 | `theme` | `light` or `dark` for its own look; otherwise it follows the page. |
 
 The start is read from the address, then the store, then `value`, then what the target already holds. In code, `toggle.wide` is the choice (set it to change it), `toggle.toggle()` switches, `toggle.words = { wide: "Theatre" }` changes the labels, and `toggle.target` is the element written on.

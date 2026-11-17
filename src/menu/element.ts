@@ -1,5 +1,6 @@
 // <kazoku-menu>: one button that opens a panel. The page puts its own controls in the light DOM (a language picker, a theme switch, links) and this element shows them in the panel. It does not keep their state.
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./index.ts";
 import { STYLES } from "./styles.ts";
@@ -53,6 +54,7 @@ export class MenuElement extends HTMLElement {
       this.#ready = true;
     }
     this.#stop.push(watchScheme(this));
+    this.#stop.push(followLanguage(this, () => this.#paint()));
     const onKey = (event: KeyboardEvent): void => {
       if (!this.#open || event.key !== "Escape") return;
       event.preventDefault();

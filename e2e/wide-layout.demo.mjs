@@ -155,3 +155,21 @@ test("the button speaks Japanese, a finger wide, and keeps its state in its name
   await expect(button(page)).toHaveAttribute("aria-keyshortcuts", "T");
   await expect(button(page)).not.toHaveAttribute("aria-pressed", /.*/);
 });
+
+test("the button follows the page's language when it changes while the page is open", async ({ page }) => {
+  test.skip(!onDesk(page), "no toggle on a phone");
+  await ready(page);
+  await expect(button(page)).toHaveText("Wide");
+  // The language picker's own button writes <html lang> and sends kazoku-languagechange: the real path.
+  await page.locator('kazoku-language-picker button[data-v="ja"]').click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(button(page)).toHaveText("ワイド");
+  await button(page).click();
+  await expect(button(page)).toHaveText("標準");
+  // A page that only sets <html lang> (no picker, no event) is followed too, in both directions.
+  await page.evaluate(() => document.documentElement.setAttribute("lang", "en"));
+  await expect(button(page)).toHaveText("Normal");
+  await expect(button(page)).toHaveAttribute("lang", "en");
+  await page.evaluate(() => document.documentElement.setAttribute("lang", "ja"));
+  await expect(button(page)).toHaveText("標準");
+});

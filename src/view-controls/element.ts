@@ -2,6 +2,7 @@
 // to the element named by `for`, and tells the page what the view is now with a `kazoku-viewchange` event; the page applies it to its canvas, WebGL, SVG or CSS 3D.
 import { createAddressWriter } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { DEFAULT_KEYS, formatAddress, parseAddress, parseKeys } from "./address.ts";
 import { BAR_EVENT, BAR_MARK, CARRY_EVENT, SHOW_EVENT } from "./carry.ts";
@@ -112,6 +113,7 @@ export class ViewControlsElement extends HTMLElement {
   #writer = createAddressWriter({ delay: 250 });
   #keys = DEFAULT_KEYS;
   #unwatch: (() => void) | undefined;
+  #stopLanguage: (() => void) | undefined;
   #offPage = false;
   #level: Level = "basic";
   #layout: Layout = "classic";
@@ -271,6 +273,7 @@ export class ViewControlsElement extends HTMLElement {
     c.setStartZoom(this.#startZoom());
     c.set(start, true, "init");
     this.#label();
+    this.#stopLanguage = followLanguage(this, () => this.#label());
     this.#resolveView();
     if (this.#view === undefined && this.ownerDocument.readyState === "loading") this.ownerDocument.addEventListener("DOMContentLoaded", () => this.#resolveView(), { once: true });
     this.#ready = true;
@@ -290,6 +293,8 @@ export class ViewControlsElement extends HTMLElement {
     this.#writer.flush();
     this.#unwatch?.();
     this.#unwatch = undefined;
+    this.#stopLanguage?.();
+    this.#stopLanguage = undefined;
     this.#unbind?.();
     this.#unbind = undefined;
     this.#controller?.destroy();
