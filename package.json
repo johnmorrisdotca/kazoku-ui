@@ -58,6 +58,7 @@
     "tokens",
     "design-tokens",
     "clock",
+    "pan-zoom",
     "scene",
     "floating-origin",
     "depth-slices",
@@ -327,6 +328,11 @@
       "types": "./dist/clock/index.d.ts",
       "import": "./dist/clock/index.js",
       "default": "./dist/clock/index.js"
+    },
+    "./pan-zoom": {
+      "types": "./dist/pan-zoom/index.d.ts",
+      "import": "./dist/pan-zoom/index.js",
+      "default": "./dist/pan-zoom/index.js"
     },
     "./body-label": {
       "types": "./dist/body-label/index.d.ts",

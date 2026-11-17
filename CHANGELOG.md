@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A flat pan and zoom for charts and maps** (KAZOKU-UI-64). `@johnmorrisdotca/kazoku-ui/pan-zoom` holds a view `{ x, y, zoom }` for a flat chart: one finger or the mouse drags both ways, two fingers pinch about their middle, the wheel zooms about the pointer (`wheel: "zoom"`, or `"modifier"` for Ctrl or Command only), arrows pan, `+` and `-` zoom and `Home` resets, with `minZoom` and `maxZoom` of the page's choosing (a sky can use 0.6 to 60). It draws nothing; the page maps the view onto its own projection. Not yet in the address. Guide in English and Japanese.
+
 ## [0.49.0] - 2026-11-17
 
 - **Parts follow the page's language while it is open** (KAZOKU-UI-82). `<kazoku-wide-toggle>` read its language only when it connected and when its own `lang` attribute changed, so a page that switched with `<html lang>` kept the old label (Wide, not ワイド). It now watches `<html lang>` and the `kazoku-languagechange` event. The same gap is closed in the view controls, speed buttons, replay bar, options window, menu, theme switch, save-image, collection picker and search box; page frame, embed panel and the interface parts already followed. A part with its own `lang` attribute keeps it. The demo no longer copies the picker's choice onto the toggle and theme switch. Backwards compatible.
