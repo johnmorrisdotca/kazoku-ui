@@ -9,6 +9,8 @@ export const BAR_EVENT = "kazoku-viewbar";
 export const CARRY_EVENT = "kazoku-viewcarry";
 /** The view the element is showing now, so a bound bar keeps it: `detail` is a partial view (`yaw`, `tilt`, `zoom`, and `roll`, `panX`, `panY` when the element has them). The bar takes it and does not send `kazoku-viewchange`. */
 export const SHOW_EVENT = "kazoku-viewshow";
+/** With no bar bound, the element itself tells what the view is now with the bar's own event (it does not bubble), so `checkGestures` reads an element with its own hands as it reads a bar. */
+export const ELEMENT_CHANGE_EVENT = "kazoku-viewchange";
 
 export interface CarryOptions extends Omit<ViewControllerOptions, "onChange"> {
   /** The page's own drawing: apply the state. The element's drag, pinch, wheel and keys all arrive here. */
@@ -55,7 +57,13 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
     if (attr !== null) return attr.trim().toLowerCase() !== "off";
     return doublePress !== false;
   };
-  const controller = createViewController({ ...rest, immersive: immersiveNow(), doublePress: doublePressNow(), limits: readLimits(get, base) });
+  const { onChange } = rest;
+  // The element's own hands send the bar's event too, unless a bar is bound (it sends the event for the view then).
+  const tell = (state: ViewState, info: ChangeInfo): void => {
+    onChange(state, info);
+    if (!element.hasAttribute(BAR_MARK)) element.dispatchEvent(new CustomEvent(ELEMENT_CHANGE_EVENT, { detail: { ...state, ...info } }));
+  };
+  const controller = createViewController({ ...rest, onChange: tell, immersive: immersiveNow(), doublePress: doublePressNow(), limits: readLimits(get, base) });
   let off: (() => void) | undefined;
   let gaveTab = false;
   let gaveBlock = false;
@@ -107,6 +115,15 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
   element.addEventListener(BAR_EVENT, onBar);
   apply();
 
+  // The bar's surface, for a test or a page that reads the element as it reads a bar: `controller`, `state` and `pause`, each only when the element has no property of that name.
+  const surface: Record<string, PropertyDescriptor> = {
+    controller: { get: () => controller },
+    state: { get: () => controller.state },
+    pause: { value: () => controller.pause() },
+  };
+  const lent = Object.keys(surface).filter((name) => !(name in element));
+  for (const name of lent) Object.defineProperty(element, name, { ...surface[name], configurable: true });
+
   return {
     controller,
     setLimits(next) {
@@ -121,6 +138,7 @@ export function carryControls(element: HTMLElement, options: CarryOptions): Elem
       watch?.disconnect();
       element.removeEventListener(BAR_EVENT, onBar);
       hold(true);
+      for (const name of lent) delete (element as unknown as Record<string, unknown>)[name];
       controller.destroy();
     },
   };

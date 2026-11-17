@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **`checkGestures` checks a view that carries its own hands** (KAZOKU-UI-84). A view whose element calls `carryControls`, with no `<kazoku-view-controls>` on the page, is now checked like one with a bar: with no bar bound, its element sends `kazoku-viewchange` (it does not bubble) and has `controller`, `state` and `pause` (each only if the element has no property of that name; taken off on `unbind`). `checkGestures` reads the element itself when the page has no bar, and `controls` can name it. Backwards compatible.
+
 ## [0.49.0] - 2026-11-17
 
 - **Parts follow the page's language while it is open** (KAZOKU-UI-82). `<kazoku-wide-toggle>` read its language only when it connected and when its own `lang` attribute changed, so a page that switched with `<html lang>` kept the old label (Wide, not ワイド). It now watches `<html lang>` and the `kazoku-languagechange` event. The same gap is closed in the view controls, speed buttons, replay bar, options window, menu, theme switch, save-image, collection picker and search box; page frame, embed panel and the interface parts already followed. A part with its own `lang` attribute keeps it. The demo no longer copies the picker's choice onto the toggle and theme switch. Backwards compatible.
