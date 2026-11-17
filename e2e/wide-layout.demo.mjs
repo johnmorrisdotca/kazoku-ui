@@ -155,3 +155,20 @@ test("the button speaks Japanese, a finger wide, and keeps its state in its name
   await expect(button(page)).toHaveAttribute("aria-keyshortcuts", "T");
   await expect(button(page)).not.toHaveAttribute("aria-pressed", /.*/);
 });
+
+test("a view the height cap holds down stays the page's full width, wider than 16:9", async ({ page }) => {
+  test.skip(!onDesk(page), "no toggle on a phone");
+  // 80vh of 700 is 560, and 16:9 of 560 is 996: narrower than the 1440 the page gives, so the cap is what holds the height.
+  await page.setViewportSize({ width: 1440, height: 700 });
+  await ready(page);
+  await button(page).click();
+  await expect(button(page)).toHaveText("Normal");
+  const wide = await page.evaluate(() => {
+    const view = document.querySelector(".kazoku-view").getBoundingClientRect();
+    const stage = document.querySelector(".kazoku-stage").getBoundingClientRect();
+    return { view: view.width, height: view.height, stage: stage.width, window: window.innerHeight };
+  });
+  expect(wide.height).toBeLessThanOrEqual(wide.window * 0.8 + 1);
+  expect(wide.height * (16 / 9), "the cap is holding the view down").toBeLessThan(wide.stage - 50);
+  expect(Math.abs(wide.view - wide.stage)).toBeLessThan(1);
+});

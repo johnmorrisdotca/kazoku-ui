@@ -36,7 +36,7 @@ A `.kazoku-stage` holds a `.kazoku-view` and a `.kazoku-side`.
 | | Normal | Wide (`data-wide="on"` on any ancestor) |
 |---|---|---|
 | The stage | Two columns: the view, then the panel (320 px, or `side`) | One column |
-| The view | Your own height | The full width, 16:9, no taller than `maxHeight` (80vh) |
+| The view | Your own height | The full width, 16:9, no taller than `maxHeight` (80vh); held by that cap, it keeps the full width and is wider than 16:9 |
 | The panel | A column of boxes beside the view | A grid below the view: as many boxes in a row as fit 260 px each |
 | On a phone (640 px and under) | One column; the button is hidden | The same: one column |
 

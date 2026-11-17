@@ -69,7 +69,7 @@ export interface WideCssOptions {
 
 /**
  * The layout rule, as CSS for the page. A `.kazoku-stage` holds a `.kazoku-view` and a `.kazoku-side`. In Normal the panel is a column beside the view. When an ancestor (the page's <html> by
- * default) has `data-wide="on"` the stage is one column: the view takes the full width, 16:9 and no taller than `maxHeight`, and the panel moves below it as a row that wraps into a grid. On a
+ * default) has `data-wide="on"` the stage is one column: the view takes the full width, 16:9 and no taller than `maxHeight` (a view the height cap holds down stays the full width and is wider than 16:9), and the panel moves below it as a row that wraps into a grid. On a
  * phone the stage is always one column. The page's own container must not cap its width in Wide (`[data-wide="on"] main { max-width: none }`).
  */
 export function wideCss(options: WideCssOptions = {}): string {
@@ -80,7 +80,7 @@ export function wideCss(options: WideCssOptions = {}): string {
 @media (max-width: ${WIDE_MIN_WIDTH_PX - 1}px) { .kazoku-stage { grid-template-columns: minmax(0, 1fr); } }
 @media (min-width: ${WIDE_MIN_WIDTH_PX}px) {
   [${WIDE_ATTRIBUTE}="on"] .kazoku-stage { grid-template-columns: minmax(0, 1fr); }
-  [${WIDE_ATTRIBUTE}="on"] .kazoku-stage > .kazoku-view { height: auto; aspect-ratio: 16 / 9; max-height: ${max}; }
+  [${WIDE_ATTRIBUTE}="on"] .kazoku-stage > .kazoku-view { width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: ${max}; }
   [${WIDE_ATTRIBUTE}="on"] .kazoku-stage > .kazoku-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; align-items: start; }
 }
 `;
