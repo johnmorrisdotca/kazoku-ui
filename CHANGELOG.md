@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-11-17
+
 - **`checkGestures` checks a view that carries its own hands** (KAZOKU-UI-84). A view whose element calls `carryControls`, with no `<kazoku-view-controls>` on the page, is now checked like one with a bar: with no bar bound, its element sends `kazoku-viewchange` (it does not bubble) and has `controller`, `state` and `pause` (each only if the element has no property of that name; taken off on `unbind`). `checkGestures` reads the element itself when the page has no bar, and `controls` can name it. Backwards compatible.
 
 - **The shared ground check turns Auto-turn by an angle, not for 1.5 seconds** (KAZOKU-UI-67). `checkFollowsTheHand` in `templates/e2e-ground.mjs` started Auto-turn, waited a stopwatch 1.5 s and paused, so a busy machine that drew slowly turned the ground less than `min`. It now reads the controller's yaw on every frame (the wrap at 180 degrees followed), pauses in the same call once the view has turned by `turnDegrees` (15; the old second and a half was about 9) and fails with the angle if that never happens within the timeout (30 s at least). `min` is unchanged. The template is shared: each package copies the new file when it is next touched.
