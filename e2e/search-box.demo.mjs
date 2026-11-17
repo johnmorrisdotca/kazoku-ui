@@ -612,3 +612,27 @@ test("the open popup, with a row and an action active, has no accessibility viol
     expect(result.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`), theme).toEqual([]);
   }
 });
+
+test("the input's height and focus ring follow three custom properties, and are 48 px and a 2 px ink ring when none is set", async ({ page }) => {
+  await ready(page);
+  const read = () => box(page).evaluate((input) => {
+    const style = getComputedStyle(input);
+    return { height: input.getBoundingClientRect().height, radius: style.borderTopLeftRadius, ring: style.outlineColor, width: style.outlineWidth, ink: getComputedStyle(input.getRootNode().host).color };
+  });
+  await box(page).focus();
+  const before = await read();
+  expect(before.height).toBe(48);
+  expect(before.radius).toBe("24px");
+  expect(before.width).toBe("2px");
+  expect(before.ring).toBe(before.ink);
+  await page.locator("kazoku-search-box").evaluate((el) => {
+    el.style.setProperty("--kazoku-search-height", "64px");
+    el.style.setProperty("--kazoku-search-focus-color", "rgb(255, 0, 0)");
+    el.style.setProperty("--kazoku-search-focus-width", "4px");
+  });
+  const after = await read();
+  expect(after.height).toBe(64);
+  expect(after.radius).toBe("32px");
+  expect(after.width).toBe("4px");
+  expect(after.ring).toBe("rgb(255, 0, 0)");
+});

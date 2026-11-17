@@ -7,8 +7,8 @@ export const STYLES = `${BASE_STYLES}
 :host([hidden]) { display: none; }
 :host { display: block; position: relative; width: 100%; }
 .field { position: relative; }
-input { box-sizing: border-box; width: 100%; min-height: 48px; margin: 0; padding: 0 16px; border: 1px solid var(--_line); border-radius: 24px; background: var(--_surface); color: var(--_ink); font: inherit; font-weight: 500; }
-input:focus-visible { outline: 2px solid var(--_ink); outline-offset: 2px; }
+input { box-sizing: border-box; width: 100%; min-height: var(--kazoku-search-height, 48px); margin: 0; padding: 0 16px; border: 1px solid var(--_line); border-radius: calc(var(--kazoku-search-height, 48px) / 2); background: var(--_surface); color: var(--_ink); font: inherit; font-weight: 500; }
+input:focus-visible { outline: var(--kazoku-search-focus-width, 2px) solid var(--kazoku-search-focus-color, var(--_ink)); outline-offset: 2px; }
 .panel { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); box-sizing: border-box; max-height: min(70vh, 32rem); overflow: auto; padding: 6px; border: 1px solid var(--_line); border-radius: 12px; background: var(--_surface); }
 .chips { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; margin: 0 0 4px; padding: 2px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
