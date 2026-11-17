@@ -51,9 +51,7 @@ function say() {
   for (const el of document.querySelectorAll("[data-say]")) el.textContent = SAY[language()][el.dataset.say];
   draw();
 }
-$("language").addEventListener("kazoku-languagechange", (event) => {
-  $("wide").setAttribute("lang", event.detail.lang);
-  $("theme").setAttribute("lang", event.detail.lang);
+$("language").addEventListener("kazoku-languagechange", () => {
   say();
 });
 say();

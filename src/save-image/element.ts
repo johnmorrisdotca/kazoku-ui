@@ -1,6 +1,7 @@
 // <kazoku-save-image>: Save PNG and Save SVG buttons for a canvas, an SVG or an element on the page. It never draws the scene: it saves what the target shows, hands the picture to the
 // browser as a download, and tells the page with a `kazoku-save` event (or `kazoku-saveerror`).
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, ERROR_EVENT, TAG } from "./index.ts";
 import { filenameFor, formatsFor, parseFormats, type Format } from "./format.ts";
@@ -77,6 +78,7 @@ export class SaveImageElement extends HTMLElement {
       this.#styled = true;
     }
     this.#stop.push(watchScheme(this));
+    this.#stop.push(followLanguage(this, () => this.#render()));
     this.#resolveTarget();
     if (this.#target === undefined && this.ownerDocument.readyState === "loading") this.ownerDocument.addEventListener("DOMContentLoaded", () => this.#resolveTarget(), { once: true });
     this.#ready = true;

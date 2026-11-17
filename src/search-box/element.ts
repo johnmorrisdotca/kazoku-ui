@@ -2,6 +2,7 @@
 // and each row can carry up to three actions. It holds no data and never fetches: it asks the source, drops any answer but the newest, and reports what the reader picks. A row may carry a small icon
 // and a preview; the highlighted row's preview is drawn beside the list on a wide screen and in a sheet on a narrow one, asked for only when the row is highlighted.
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { EVENT, TAG } from "./names.ts";
 import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreviewSource, type SearchSource } from "./model.ts";
@@ -261,7 +262,12 @@ export class SearchBoxElement extends HTMLElement {
 
   connectedCallback(): void {
     adoptStyles(this.#root, STYLES, this.nonce);
-    this.#stop = watchScheme(this);
+    const stopScheme = watchScheme(this);
+    const stopLanguage = followLanguage(this, () => this.#paintWords());
+    this.#stop = (): void => {
+      stopScheme();
+      stopLanguage();
+    };
     this.#mount();
     this.#paintWords();
     this.#listen();

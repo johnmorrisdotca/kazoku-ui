@@ -2,6 +2,7 @@
 // keeps it in the address and, if asked, in localStorage, and tells the page with a `kazoku-themechange` event. It draws nothing of the page: the page's CSS reads `data-theme`.
 import { createAddressState } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { localStore, remember } from "../shared/store.ts";
 import { resolveTarget } from "../shared/target.ts";
@@ -91,6 +92,7 @@ export class ThemeSwitchElement extends HTMLElement {
       this.#styled = true;
     }
     this.#stop.push(watchScheme(this));
+    this.#stop.push(followLanguage(this, () => this.#render()));
     this.#resolveTarget();
     const target = this.#target;
     const remembered = readTheme({

@@ -2,6 +2,7 @@
 // The page hears `kazoku-replay` and applies it, and hears `kazoku-speedchange` from the speed buttons. Reduced motion holds back what starts by itself; the reader's own press on Play always works.
 import { applyParams, createAddressWriter, readParam } from "../address-state/address.ts";
 import { adoptStyles } from "../shared/adopt.ts";
+import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import "../speed-buttons/define.ts";
 import type { SpeedButtonsElement } from "../speed-buttons/element.ts";
@@ -77,7 +78,12 @@ export class ReplayBarElement extends HTMLElement {
       adoptStyles(this.#root, STYLES, this.nonce || (outer instanceof ShadowRoot ? (outer.host as HTMLElement).nonce : "") || "");
       this.#styled = true;
     }
-    this.#stop = watchScheme(this);
+    const stopScheme = watchScheme(this);
+    const stopLanguage = followLanguage(this, () => this.#paint());
+    this.#stop = (): void => {
+      stopScheme();
+      stopLanguage();
+    };
     this.#motion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
     this.#motion?.addEventListener?.("change", this.#onMotion);
     const keys = addressKeys(this.getAttribute("address-keys"));
