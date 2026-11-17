@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { checkGestures } from "../dist/testing/index.js";
 
 // A package's own element that carries the view controls with `carryControls` (carry.html): the drag, the pinch, the wheel, the keys and the limits, with no bar.
 const view = (page, id) => page.locator(`#${id}`);
@@ -231,4 +232,13 @@ test("an element that leaves the page lets its hands go, and a moved element get
   expect(await page.evaluate(() => [window.keep.style.touchAction, window.keep.hasAttribute("tabindex")])).toEqual(["", false]);
   await page.evaluate(() => document.querySelector("main").append(window.keep));
   expect(await view(page, "limited").evaluate((el) => [el.getAttribute("tabindex"), el.style.touchAction])).toEqual(["0", "pan-y"]);
+});
+
+test("checkGestures reads an element that carries its own hands, with no bar on the page", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/carry.html");
+  await page.waitForFunction(() => customElements.get("kazoku-carry-demo") !== undefined);
+  await view(page, "plain").scrollIntoViewIfNeeded();
+  // `plain` has no bar bound to it: the check reads the element's own kazoku-viewchange events and controller.
+  await checkGestures(page, "#plain", { controls: "#plain", lacks: { picture: "the demo card is one smooth gradient with nothing to follow once it fills the view; this test is about the element carrying its own events and controller" } });
 });

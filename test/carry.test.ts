@@ -282,3 +282,30 @@ test("unbind lets every hand go, takes back what it gave, and the controller is 
   controller.play();
   assert.equal(controller.state.turning, false);
 });
+
+test("with no bar the element says every change with the bar's event, and lends the bar's controller, state and pause until it lets go", () => {
+  const rig = fakeElement();
+  const seen: string[] = [];
+  const { controller, unbind } = carry(rig, { onChange: (_state: unknown, info: { reason: string }) => seen.push(info.reason) });
+  const el = rig.element as unknown as { controller: unknown; state: { zoom: number }; pause: () => void };
+  assert.equal(el.controller, controller);
+  controller.set({ zoom: 2 }, true, "set");
+  assert.equal(el.state.zoom, 2);
+  const sent = rig.events.filter((e) => e.type === "kazoku-viewchange");
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0]!.detail.zoom, 2);
+  assert.equal(sent[0]!.detail.reason, "set");
+  assert.deepEqual(seen, ["set"]);
+  rig.bar(true);
+  controller.set({ zoom: 3 }, true, "set");
+  assert.equal(rig.events.filter((e) => e.type === "kazoku-viewchange").length, 1, "a bound bar sends the event, not the element");
+  unbind();
+  assert.equal("controller" in rig.element, false);
+});
+
+test("a property the element already has is left alone", () => {
+  const rig = fakeElement();
+  (rig.element as unknown as Record<string, unknown>).state = "its own";
+  carry(rig);
+  assert.equal((rig.element as unknown as { state: unknown }).state, "its own");
+});

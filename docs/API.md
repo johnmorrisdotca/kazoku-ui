@@ -9237,7 +9237,7 @@ type GestureName = keyof typeof GESTURES;
 
 ```ts
 interface GestureOptions {
-    /** The selector of the `<kazoku-view-controls>` whose events and controller are read. `"kazoku-view-controls"`. */
+    /** The selector of the element whose `kazoku-viewchange` events and `controller` are read: a `<kazoku-view-controls>`, or a view that carries its own hands (`carryControls` gives its element both). `"kazoku-view-controls"` when the page has one, else the view. */
     controls?: string;
     /** The selector of what is photographed (the view by default; the canvas or the picture itself when the view is bigger than it). */
     picture?: string;

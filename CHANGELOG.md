@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **`checkGestures` checks a view that carries its own hands** (KAZOKU-UI-84). A view whose element calls `carryControls`, with no `<kazoku-view-controls>` on the page, is now checked like one with a bar: with no bar bound, its element sends `kazoku-viewchange` (it does not bubble) and has `controller`, `state` and `pause` (each only if the element has no property of that name; taken off on `unbind`). `checkGestures` reads the element itself when the page has no bar, and `controls` can name it. Backwards compatible.
+
 ## [0.48.0] - 2026-11-18
 
 - **A long answer keeps going as the reader scrolls** (KAZOKU-UI-154). A narrowed search box group of any length (ten thousand rows is fine) draws the next window of 20 under the rows already there, with nothing above it redrawn, when the reader scrolls within about 160 px of the end, when the highlight comes within three rows of it, or when Page Down runs out of drawn rows; Page Down and Page Up move a popup's height of rows (Home and End stay with the caret). A count line, `Showing 40 of 9,812` (new word `showing`, English and Japanese), sits at the bottom while rows are left; each row of a narrowed group longer than one window has `aria-setsize` and `aria-posinset`. A press anywhere else on the page now closes the popup (a tap on plain text on a touch screen does not move the focus). Short answers are unchanged: no count line, no set size; Show more stays. Rows scrolled past stay drawn, so the page holds as many rows as the reader has reached. Demo page `search-long.html` (10,000 names); a browser spec on four projects. Backwards compatible.

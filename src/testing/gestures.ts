@@ -57,7 +57,7 @@ export interface GesturePage {
 }
 
 export interface GestureOptions {
-  /** The selector of the `<kazoku-view-controls>` whose events and controller are read. `"kazoku-view-controls"`. */
+  /** The selector of the element whose `kazoku-viewchange` events and `controller` are read: a `<kazoku-view-controls>`, or a view that carries its own hands (`carryControls` gives its element both). `"kazoku-view-controls"` when the page has one, else the view. */
   controls?: string;
   /** The selector of what is photographed (the view by default; the canvas or the picture itself when the view is bigger than it). */
   picture?: string;
@@ -224,11 +224,12 @@ async function grey(page: GesturePage, png: Uint8Array): Promise<{ w: number; h:
  * @param options See `GestureOptions`.
  */
 export async function checkGestures(page: GesturePage, view: string, options: GestureOptions = {}): Promise<GestureReport[]> {
-  const { controls = "kazoku-view-controls", picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3, immersive = false } = options;
+  const { controls: asked, picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3, immersive = false } = options;
   for (const [name, reason] of Object.entries(lacks)) {
     if (name !== "picture" && !(name in GESTURES)) throw new Error(`checkGestures: "${name}" is not a gesture (${GESTURE_NAMES.join(", ")}, or "picture")`);
     if (typeof reason !== "string" || reason.trim() === "") throw new Error(`checkGestures: say why the view lacks "${name}"`);
   }
+  const controls = asked ?? ((await page.evaluate((selector) => document.querySelector(selector) !== null, "kazoku-view-controls")) ? "kazoku-view-controls" : view);
   const target = page.locator(view);
   const photo = page.locator(picture);
   const failures: string[] = [];
