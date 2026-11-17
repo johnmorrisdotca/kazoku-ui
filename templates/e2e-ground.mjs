@@ -173,13 +173,13 @@ export async function movedBy(page, view, act, options = {}) {
  * The drag rule: the ground follows the hand. Drag right and it moves right, drag up and it moves up, the right and up arrow keys agree, and (with `autoTurn`) Auto-turn goes the way
  * the object really turns. The view is put back after each step. Fails with a message that says what moved and where.
  * @param {import("@playwright/test").Page} page
- * @param {{ view: string, picture?: string, window?: [number, number, number, number], controls?: string, min?: number, settle?: number, ready?: () => Promise<unknown>, timeout?: number, keys?: boolean, autoTurn?: "right" | "left" | false, distance?: number }} options
+ * @param {{ view: string, picture?: string, window?: [number, number, number, number], controls?: string, min?: number, settle?: number, ready?: () => Promise<unknown>, timeout?: number, keys?: boolean, autoTurn?: "right" | "left" | false, distance?: number, turnDegrees?: number }} options
  *   `view` is the selector of the element the hands are bound to; `picture` the selector of what is photographed (the view by default; give the globe's own canvas when the view is much wider than the globe, so the middle of the picture is ground); `window` the part of the picture that is followed, as shares `[left, right, top, bottom]` (the middle 40%; give the part that holds the object when it is thin, such as a rocket); `controls` the selector of the `<kazoku-view-controls>` (needed for Auto-turn); `min` the pixels that count as moved (8; the other axis may move by up to the larger of `min` and 3);
  *   `settle` a least wait in ms after each act (none by default: the view is photographed when it has stopped changing); `ready` the package's own signal that its draw is done (a promise); `timeout` the longest wait for the view to rest (5000);
- *   `distance` the pixels dragged (30); `keys: false` skips the arrow keys; `autoTurn` the direction the ground goes while Auto-turn runs, in a view whose Auto-turn is the object's own turn.
+ *   `distance` the pixels dragged (30); `keys: false` skips the arrow keys; `autoTurn` the direction the ground goes while Auto-turn runs, in a view whose Auto-turn is the object's own turn; `turnDegrees` how far Auto-turn turns it before the picture is taken (15: the controller's yaw is read, not a stopwatch).
  */
 export async function checkFollowsTheHand(page, options) {
-  const { view, picture = view, window, controls = "kazoku-view-controls", min = 8, settle, ready, timeout, keys = true, autoTurn = false, distance = 30 } = options;
+  const { view, picture = view, window, controls = "kazoku-view-controls", min = 8, settle, ready, timeout, keys = true, autoTurn = false, distance = 30, turnDegrees = 15 } = options;
   const target = page.locator(view);
   const photo = page.locator(picture);
   const move = (act) => movedBy(page, photo, act, { settle, window, ready, timeout });
@@ -209,12 +209,26 @@ export async function checkFollowsTheHand(page, options) {
   }
   if (autoTurn) {
     const turn = await move(async () => {
-      await page.locator(controls).evaluate((el) => {
-        el.controller.speed = 6;
+      // Turn by an angle, not for a time: how far Auto-turn gets in a stopwatch second depends on how fast the machine draws. The yaw is read from the controller on each frame
+      // (its wrap at 180 degrees is followed), and Auto-turn is paused in the same call once it has turned by `turnDegrees` or the timeout (30 s at least) has passed.
+      const turned = await page.locator(controls).evaluate((el, [degrees, limit]) => new Promise((resolve) => {
+        el.controller.speed = 12;
+        let last = el.controller.state.yaw;
+        let total = 0;
+        const begin = window.performance.now();
+        const frame = () => {
+          const yaw = el.controller.state.yaw;
+          total += ((yaw - last + 540) % 360) - 180;
+          last = yaw;
+          if (Math.abs(total) >= degrees || window.performance.now() - begin > limit) {
+            el.pause();
+            resolve(Math.abs(total));
+          } else window.requestAnimationFrame(frame);
+        };
         el.controller.play();
-      });
-      await page.waitForTimeout(1500); // how long Auto-turn runs: a duration of the act, not a wait for the view
-      await page.locator(controls).evaluate((el) => el.pause());
+        window.requestAnimationFrame(frame);
+      }), [turnDegrees, Math.max(timeout ?? 5000, 30000)]);
+      expect(turned, `Auto-turn turned the view by ${turned.toFixed(1)} degrees, wanted ${turnDegrees}`).toBeGreaterThanOrEqual(turnDegrees);
     });
     if (autoTurn === "right") expect(turn.x, `Auto-turn moves the ground right (moved ${turn.x},${turn.y})`).toBeGreaterThan(min);
     else expect(turn.x, `Auto-turn moves the ground left (moved ${turn.x},${turn.y})`).toBeLessThan(-min);
