@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Six source files are smaller** (MODULES-258). Types, markup, key chords and a picture-shift helper moved out of `search-box/element.ts`, `view-controls/element.ts` and `controller.ts`, `embed-panel/element.ts`, `renderer/renderer.ts` and `testing/gestures.ts` into files beside them. Nothing changed in behaviour or in the exports: `docs/API.md` is the same, and each moved type is still exported from the file it was in.
+
 ## [0.52.0] - 2026-11-17
 
 - **A time scrubber and date field for the replay bar** (KAZOKU-UI-156). `<kazoku-time-scrubber>` (`@johnmorrisdotca/kazoku-ui/time-scrubber`, with `/element` and `/define`) is a date slider that goes from years down to days: Year, Month and Day scales decide how far an arrow key steps (Page Up and Page Down step the next coarser scale, ten years at Year) and how much of the track a drag covers (the whole range, the current year, the current month). Home and End go to the ends of the range. It is a `role="slider"` with the date in `aria-valuetext`, works with a mouse, a finger or a pen and needs no hover, and has a date field that reads `2026-11-17`, `2026年11月17日` and a year or month alone, and refuses a date that does not exist. The day and scale can be kept in the address (`date`, `date-scale`). It reports `kazoku-timechange` (`{ value, date, scale, reason }`); the page applies it. `<kazoku-replay-bar scrub range-from range-to date>` puts it on a line under the buttons, and moving it never plays, pauses or restarts the replay. English and Japanese words, a demo page `scrubber.html`, and guides in both languages. Backwards compatible: a bar without `scrub` is unchanged.
