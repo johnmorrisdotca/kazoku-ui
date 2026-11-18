@@ -3,6 +3,14 @@ import { expect, test } from "@playwright/test";
 
 // The search box's icons and preview pane on demo/search-preview.html. A wide popup draws the highlighted row's preview beside the list (arrow keys or a pointer); a narrow one opens it as a sheet from a Details action.
 // Stars carry their preview; planets, craft and cities are asked for with loadPreview, only when highlighted. Every wait is on the page's state, never on a timer.
+test.beforeEach(async ({ page, browserName }) => {
+  // KU_THROTTLE=4 runs the page with a CPU four times slower (Chromium only), for the load check.
+  if (process.env.KU_THROTTLE && browserName === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setCPUThrottlingRate", { rate: Number(process.env.KU_THROTTLE) });
+  }
+});
+
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const ready = async (page) => {
   const errors = [];
@@ -11,6 +19,8 @@ const ready = async (page) => {
   await expect(page.locator("#pbox")).toBeVisible();
   return errors;
 };
+// WebKit on a Mac (Safari's own setting) leaves buttons out of the Tab order and reaches them with Option+Tab, in the same order; every other browser Tabs to them.
+const tabKey = (browserName) => (browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
 const isPhone = (page) => (page.viewportSize()?.width ?? 1280) < 640;
 const host = (page) => page.locator("#pbox");
 const box = (page) => host(page).locator("input");
@@ -212,7 +222,7 @@ test("the pane's buttons do what the row's do: a toggle keeps the list, a plain 
   await expect(panel(page)).toBeHidden();
 });
 
-test("the pane is a region that describes the active cell, is not a focus trap, and its buttons are not tab stops", async ({ page }) => {
+test("the pane is a region that describes the active cell, is not a focus trap, and its buttons are not tab stops", async ({ page, browserName }) => {
   test.skip(isPhone(page), "a narrow popup has a sheet instead");
   await ready(page);
   await type(page, "mars");
@@ -232,7 +242,7 @@ test("the pane is a region that describes the active cell, is not a focus trap, 
   expect(await host(page).evaluate((el) => [...el.shadowRoot.querySelectorAll("[aria-describedby='pv']")].length)).toBe(1);
   expect(await host(page).evaluate((el) => [...el.shadowRoot.querySelectorAll(".preview button")].every((b) => b.tabIndex === -1))).toBe(true);
   // Tab leaves the box for the chips and carries on out of the popup, as it did before
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(tabKey(browserName));
   await expect(page.locator("#slowpv")).toBeFocused();
 });
 
