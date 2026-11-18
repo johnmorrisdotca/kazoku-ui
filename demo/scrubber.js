@@ -7,14 +7,14 @@ import "./dist/time-scrubber/define.js";
 const $ = (id) => document.getElementById(id);
 const SAY = {
   en: { title: "time scrubber", back: "The replay bar", speed: "Speed buttons", intro: "Drag, or use the arrow keys. Year, Month and Day change how far one step goes and how much of the track you drag over. The page decides what a date means.", at: "Showing", by: "by" },
-  ja: { title: "時間スクラバー", back: "リプレイバー", speed: "速さのボタン", intro: "ドラッグするか、矢印キーで動かします。「年」「月」「日」で、1回の移動量と、トラックでドラッグする範囲が変わります。日付の意味を決めるのはページです。", at: "表示中", by: "刻み" },
+  ja: { title: "時間スクラバー", back: "リプレイバー", speed: "速さのボタン", intro: "ドラッグするか、矢印キーで動かします。「年」「月」「日」のボタンで、1回の移動量と、トラックでドラッグする範囲が変わります。日付の意味を決めるのはページです。", at: "表示中", by: "刻み" },
 };
 const say = (key) => SAY[document.documentElement.lang === "ja" ? "ja" : "en"][key];
 const last = { out: null, "bar-out": null };
 
 function show(id, detail) {
   last[id] = detail ?? last[id];
-  if (last[id]) $(id).textContent = `${say("at")} ${last[id].date} (${say("by")} ${last[id].scale})`;
+  if (last[id]) $(id).textContent = document.documentElement.lang === "ja" ? `${say("at")}：${last[id].date}（${say("by")}：${{ year: "年", month: "月", day: "日" }[last[id].scale] ?? last[id].scale}）` : `${say("at")} ${last[id].date} (${say("by")} ${last[id].scale})`;
 }
 function words() {
   for (const el of document.querySelectorAll("[data-say]")) el.textContent = say(el.dataset.say);
