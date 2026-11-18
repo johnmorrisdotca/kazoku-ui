@@ -21,7 +21,7 @@ window.ownView = view;
 
 const SAY = {
   en: { title: "a view with its own controller", back: "The view controls", carry: "An element that carries the controls", intro: "This view makes its own controller and binds it. The page has no bar, the element sends no event and has no controller property. The controller is on window as ownView, and a test hands that name to checkGestures." },
-  ja: { title: "自前のコントローラーを持つ表示", back: "表示の操作", carry: "要素が自分で操作を持つ", intro: "この表示は自分でコントローラーを作って結び付けています。ページにバーはなく、要素はイベントを送らず、controllerプロパティも持ちません。コントローラーはownViewという名前でwindowにあり、テストはその名前をcheckGesturesに渡します。" },
+  ja: { title: "自前のコントローラーを持つ表示", back: "表示の操作", carry: "要素が自分で操作を持つ", intro: "この表示は自分でコントローラーを作って結びつけています。ページにバーはなく、要素はイベントを送らず、controllerプロパティも持ちません。コントローラーはownViewという名前でwindowにあり、テストはその名前をcheckGesturesに渡します。" },
 };
 const words = () => {
   const say = SAY[document.documentElement.lang === "ja" ? "ja" : "en"];
