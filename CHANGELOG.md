@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **`checkGestures` can read a view that binds its own controller** (MODULES-1516). A page whose views each make and bind their own controller, with no `<kazoku-view-controls>`, no `carryControls` and no event, could not be checked: the check read the state and the events from an element. The new `controller` option names the page's controller as a path from `window` (`{ controller: "views.earth" }`; it can be the controller or an object that holds it as `controller`). The check reads `controller.state` and sets the view with `controller.set`; with no events there is no change-reason check, and everything else, the picture check included, is the same. Pages with a bar or `carryControls` are unchanged. A new demo page, `own-controller.html`, and a browser spec. Backwards compatible.
+
 ## [0.51.0] - 2026-11-17
 
 - **A flat pan and zoom for charts and maps** (KAZOKU-UI-64). `@johnmorrisdotca/kazoku-ui/pan-zoom` holds a view `{ x, y, zoom }` for a flat chart: one finger or the mouse drags both ways, two fingers pinch about their middle, the wheel zooms about the pointer (`wheel: "zoom"`, or `"modifier"` for Ctrl or Command only), arrows pan, `+` and `-` zoom and `Home` resets, with `minZoom` and `maxZoom` of the page's choosing (a sky can use 0.6 to 60). It draws nothing; the page maps the view onto its own projection. Not yet in the address. Guide in English and Japanese.

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: a view with its own controller</title>
+  <meta name="description" content="A view that binds its own view controller, with no bar and no carryControls, and how checkGestures reads it with the controller option." />
+  <link rel="stylesheet" href="demo.css" />
+  <style>
+    #own { height: 260px; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">a view with its own controller</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="a view with its own controller" what-ja="自前のコントローラーを持つ表示" description="A view that binds its own view controller, with no bar and no carryControls, and how checkGestures reads it with the controller option." description-ja="バーもcarryControlsも使わず、表示が自前のビューコントローラーを結び付けている例です。checkGesturesはcontrollerオプションでそれを読みます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="index.html" data-say="back">The view controls</a> · <a href="carry.html" data-say="carry">An element that carries the controls</a></p>
+  <p class="intro" data-say="intro">This view makes its own controller and binds it. The page has no bar, the element sends no event and has no controller property. The controller is on window as ownView, and a test hands that name to checkGestures.</p>
+  <div class="targets">
+    <section class="target">
+      <div class="scene" id="own" tabindex="0" role="group" aria-roledescription="3D view" data-testid="own">
+        <div class="zoomer" id="own-zoomer">
+          <div class="grid"></div>
+          <div class="persp">
+            <div class="card" id="own-card">
+              <div class="face front"><svg viewBox="0 0 150 210" aria-hidden="true"><circle cx="75" cy="86" r="42" class="a"/><path d="M75 52l36 62H39z" class="b"/><rect x="30" y="150" width="90" height="10" rx="5" class="b"/><rect x="45" y="168" width="60" height="8" rx="4" class="b"/></svg></div>
+              <div class="face back"><svg viewBox="0 0 150 210" aria-hidden="true"><rect x="34" y="40" width="82" height="82" rx="14" class="a"/><circle cx="75" cy="81" r="20" class="b"/></svg></div>
+              <div class="face edge-l"></div><div class="face edge-r"></div><div class="face edge-t"></div><div class="face edge-b"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <output id="own-out" data-testid="own-out"></output>
+    </section>
+  </div>
+  <pre class="code" data-testid="code"><code>const view = createViewController({ turnable: true, onChange: (state) =&gt; draw(state) });
+view.bind(element);
+window.ownView = view; // for a test
+
+await checkGestures(page, "#own", { controller: "ownView" });</code></pre>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="own-controller.js"></script>
+</body>
+</html>

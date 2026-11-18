@@ -167,12 +167,15 @@ The controller does all of it, so a page that binds `<kazoku-view-controls>` (or
 
 `checkGestures` in `@johnmorrisdotca/kazoku-ui/testing` proves a page does. It takes Playwright's `page` and the selector of the view the hands are bound to, does each gesture with a real mouse and keyboard (two fingers with pointer events), reads the view from the controls' own change events, and checks each gesture changed the view as the table says. For the moves it also photographs the view and checks the picture moved by as many pixels as the controls say, so a page that ignores the move fails. The view needs a `tabindex` for the key rows. Every failing gesture is named in one error. A view that carries its own hands with `carryControls` and has no `<kazoku-view-controls>` on the page is checked too: its element sends the same `kazoku-viewchange` events (it does not bubble, and not while a bar is bound) and has `controller`, `state` and `pause` for the check to read (each only if the element has no property of that name); `checkGestures` reads the element itself when the page has no bar, or give `controls` the element's selector.
 
+A view that makes its own controller (`createViewController(...).bind(view)`) and has no bar and no `carryControls` has nothing for the check to read on its element: no event, no `controller`, no `state`. Give the check the page's controller with the `controller` option, as a path from `window` (`"earth.controller"`, or an object that holds it as `controller`). The check then reads `controller.state` after each gesture and sets the view with `controller.set`, so the page needs no `kazoku-viewchange` event; without events there is no change reason to check, and every other check, the picture too, is the same. A page keeps its controller out of reach in a closure, so for a test expose it as a property of `window` (the demo's `own-controller.html` sets `window.ownView`). The option is explicit and never a guess: with no bar, no `controls` and no `controller`, the check reads the view's own element as before, and says what to give it when that has no controller. Pages with a bar are unchanged.
+
 A view that intentionally has no turn or roll, such as a flat map, says so, with the reason; nothing is skipped silently. `GESTURES` lists the names, `GESTURE_NAMES` their order, and `bestShift` is the picture check's search.
 
 ```js no-run
 import { checkGestures } from "@johnmorrisdotca/kazoku-ui/testing";
 
 await checkGestures(page, "#view");
+await checkGestures(page, "#earth", { controller: "views.earth" }); // a view that binds its own controller, with no bar
 await checkGestures(page, "#map", { lacks: { turn: "a flat map", roll: "a flat map", "key-turn": "a flat map" } });
 ```
 
