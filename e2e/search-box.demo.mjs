@@ -2,6 +2,14 @@ import { createRequire } from "node:module";
 import { expect, test } from "@playwright/test";
 
 // The search box on demo/search-box.html: a reader types, narrows, moves with the keyboard, and picks. Every wait is on the page's state, never on a timer.
+test.beforeEach(async ({ page, browserName }) => {
+  // KU_THROTTLE=4 runs the page with a CPU four times slower (Chromium only), for the load check.
+  if (process.env.KU_THROTTLE && browserName === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setCPUThrottlingRate", { rate: Number(process.env.KU_THROTTLE) });
+  }
+});
+
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const ready = async (page) => {
   const errors = [];
@@ -10,6 +18,9 @@ const ready = async (page) => {
   await expect(page.locator("kazoku-search-box")).toBeVisible();
   return errors;
 };
+// WebKit on a Mac (Safari's own setting) leaves buttons and links out of the Tab order, and reaches them with Option+Tab, in the same order; Home and End there scroll the page and leave the caret (the Mac's way is Command+Left and Right). Every other browser Tabs to them and moves the caret.
+const macWebKit = (browserName) => browserName === "webkit" && process.platform === "darwin";
+const tabKey = (browserName) => (macWebKit(browserName) ? "Alt+Tab" : "Tab");
 const box = (page) => page.locator("kazoku-search-box").locator("input");
 const rows = (page) => page.locator("kazoku-search-box").locator("[role=row][data-i]");
 const heads = (page) => page.locator("kazoku-search-box").locator("[role=rowheader]");
@@ -129,7 +140,7 @@ test("an older, slower answer never replaces a newer one", async ({ page }) => {
   await expect(page.locator("kazoku-search-box").locator("[role=rowgroup]").filter({ hasText: "Vega" })).toHaveCount(0);
 });
 
-test("Right and Left move across a row's actions, Enter does the one it stands on, and Favourite toggles from the keyboard", async ({ page }) => {
+test("Right and Left move across a row's actions, Enter does the one it stands on, and Favourite toggles from the keyboard", async ({ page, browserName }) => {
   await ready(page);
   await type(page, "mars");
   await page.keyboard.press("ArrowDown");
@@ -161,11 +172,16 @@ test("Right and Left move across a row's actions, Enter does the one it stands o
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowDown");
   expect((await state(page)).active).toBe("row 1");
-  // Home and End move the caret in the box, not the list
+  // Home and End are left to the box, not the list: the box does not take the key (it is not default-prevented), the highlight stays, and where the browser moves a caret with them (not WebKit on a Mac) the caret moves
+  await page.evaluate(() => {
+    window.__homeEnd = [];
+    window.addEventListener("keydown", (e) => { if (e.key === "Home" || e.key === "End") window.__homeEnd.push(e.defaultPrevented); });
+  });
   await page.keyboard.press("Home");
-  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(0);
+  if (!macWebKit(browserName)) expect(await box(page).evaluate((el) => el.selectionStart)).toBe(0);
   await page.keyboard.press("End");
-  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(4);
+  if (!macWebKit(browserName)) expect(await box(page).evaluate((el) => el.selectionStart)).toBe(4);
+  expect(await page.evaluate(() => window.__homeEnd)).toEqual([false, false]);
   expect((await state(page)).active).toBe("row 1");
 });
 
@@ -227,10 +243,10 @@ test("Escape closes the popup, then clears the box", async ({ page }) => {
   expect((await state(page)).active).toBe("row 0");
 });
 
-test("Tab reaches the kind chips, Enter on one keeps the focus there, and Escape from one closes the popup and returns to the box", async ({ page }) => {
+test("Tab reaches the kind chips, Enter on one keeps the focus there, and Escape from one closes the popup and returns to the box", async ({ page, browserName }) => {
   await ready(page);
   await type(page, "mar");
-  for (let i = 0; i < 4; i += 1) await page.keyboard.press("Tab");
+  for (let i = 0; i < 4; i += 1) await page.keyboard.press(tabKey(browserName));
   await expect(chips(page).nth(3)).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#last")).toHaveText("mar (craft)");
@@ -574,18 +590,18 @@ test("on a row too narrow for its actions the last ones go behind one More butto
   await expect.poll(() => picks).toEqual(["three on", "two"]);
 });
 
-test("Tab goes from the box through the kind chips and out; the buttons on the rows are not tab stops; a focused chip and the active action show a ring", async ({ page }) => {
+test("Tab goes from the box through the kind chips and out; the buttons on the rows are not tab stops; a focused chip and the active action show a ring", async ({ page, browserName }) => {
   await ready(page);
   await type(page, "mar");
   expect(await page.locator("kazoku-search-box").evaluate((el) => [...el.shadowRoot.querySelectorAll(".row button")].every((b) => b.tabIndex === -1))).toBe(true);
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(tabKey(browserName));
   await expect(chips(page).first()).toBeFocused();
   const ring = await chips(page).first().evaluate((b) => ({ style: getComputedStyle(b).outlineStyle, width: parseFloat(getComputedStyle(b).outlineWidth) }));
   expect(ring.style).not.toBe("none");
   expect(ring.width).toBeGreaterThanOrEqual(2);
-  for (let i = 0; i < 5; i += 1) await page.keyboard.press("Tab");
+  for (let i = 0; i < 5; i += 1) await page.keyboard.press(tabKey(browserName));
   await expect(chips(page).last()).toBeFocused();
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(tabKey(browserName));
   await expect(page.locator("#slow")).toBeFocused();
   // the active action has a ring too
   await box(page).focus();
