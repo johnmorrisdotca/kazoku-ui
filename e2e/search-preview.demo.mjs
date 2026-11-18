@@ -350,10 +350,14 @@ test("the words are in Japanese, and the kept previews are not shown in the othe
   await page.keyboard.press("ArrowDown");
   await expect(pane(page).locator(".pv-kind")).toHaveText("Planet");
   await page.locator('kazoku-language-picker button[data-v="ja"]').click();
-  await expect(pane(page)).toHaveAccessibleName("プレビュー");
+  // the box has taken the language once its own input is named in it (the click took the focus off the box, so the popup is closed and the pane, hidden, has no name yet)
+  await expect(box(page)).toHaveAccessibleName("検索");
   await type(page, "火星");
+  // other draws come first and count too: the popup opening again, and the demo asking "mars" over again in Japanese, whose row is already named 火星. The answer to this query is the one that sets the highlight afresh, and only it marks the typed 火星 in the row; wait for it before moving down
+  await expect(rows(page).first().locator("mark")).toHaveText("火星");
   await page.keyboard.press("ArrowDown");
   await expect(title(page)).toHaveText("火星");
+  await expect(pane(page)).toHaveAccessibleName("プレビュー");
   await expect(pane(page).locator(".pv-kind")).toHaveText("惑星");
   await expect(pane(page).locator(".pv-facts dt")).toHaveText(["衛星", "1日", "太陽から"]);
   await expect(pane(page).locator(".pv-acts button")).toHaveText(["表示", "移動", "お気に入り"]);
