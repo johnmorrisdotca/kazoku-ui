@@ -5,6 +5,7 @@ import { adoptStyles } from "../shared/adopt.ts";
 import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import "../speed-buttons/define.ts";
+import "../time-scrubber/define.ts";
 import type { SpeedButtonsElement } from "../speed-buttons/element.ts";
 import { EVENT, TAG } from "./index.ts";
 import { addressKeys, DEFAULT_STEPS, flagOn, SPEED_KEY } from "./state.ts";
@@ -25,12 +26,13 @@ export interface ReplayDetail {
 
 /**
  * Attributes: `playing` (present, or `on`, while it plays), `repeat` (the loop), `no-repeat` (no Repeat button, and a repeat is never reported), `back-label` (the back-to-the-start button's own words), `steps` and `speed` (handed to the speed buttons),
+ * `scrub` (a date slider and field under the buttons: `range-from` and `range-to` are the range, `date` and `date-scale` the day and its scale, handed to `<kazoku-time-scrubber>`, whose `kazoku-timechange` the page hears; moving it never plays or pauses),
  * `address` (keep play, repeat and the speed in the address), `address-keys` (`play:p,repeat:r`), `speed-key` (the speed's own key, `replay-speed` by default),
  * `user-play` (kept for older pages: it changes nothing now, because a reader who asked for reduced motion always gets a Play button that is ready and works), `lang`, `theme`.
  * Reduced motion gives a still view with Play ready: `playing`, an address that says `play=on` and a property never start it, and only the reader's own press does.
  */
 export class ReplayBarElement extends HTMLElement {
-  static observedAttributes = ["playing", "repeat", "no-repeat", "back-label", "steps", "speed", "lang", "label", "user-play"];
+  static observedAttributes = ["playing", "repeat", "no-repeat", "back-label", "steps", "speed", "lang", "label", "user-play", "scrub", "range-from", "range-to", "date", "date-scale"];
 
   #root: ShadowRoot;
   #playing = false;
@@ -122,6 +124,8 @@ export class ReplayBarElement extends HTMLElement {
       this.#render();
     }
     else if (name === "steps" || name === "speed") this.#speeds();
+    else if (name === "scrub") this.#render();
+    else if (name === "range-from" || name === "range-to" || name === "date" || name === "date-scale") this.#scrubber();
     else this.#paint();
   }
 
@@ -185,6 +189,16 @@ export class ReplayBarElement extends HTMLElement {
     if (speed) speeds.setAttribute("value", speed);
   }
 
+  /** Hands the bar's range and day to the date slider, when there is one. */
+  #scrubber(scrub: Element | null = this.#root.querySelector("kazoku-time-scrubber")): void {
+    if (!scrub) return;
+    for (const [from, to] of [["range-from", "from"], ["range-to", "to"], ["date", "value"], ["date-scale", "scale"]] as const) {
+      const value = this.getAttribute(from);
+      if (value === null) scrub.removeAttribute(to);
+      else scrub.setAttribute(to, value);
+    }
+  }
+
   #render(): void {
     const doc = this.ownerDocument;
     const row = doc.createElement("div");
@@ -209,6 +223,13 @@ export class ReplayBarElement extends HTMLElement {
     const speed = this.getAttribute("speed");
     if (speed) speeds.setAttribute("value", speed);
     row.append(speeds);
+    if (this.hasAttribute("scrub")) {
+      const scrub = doc.createElement("kazoku-time-scrubber");
+      scrub.setAttribute("part", "scrubber");
+      if (this.hasAttribute("address")) scrub.setAttribute("address", "");
+      this.#scrubber(scrub);
+      row.append(scrub);
+    }
     this.#root.replaceChildren(row);
     this.#paint();
   }
@@ -248,6 +269,7 @@ export class ReplayBarElement extends HTMLElement {
     }
     const speeds = row.querySelector("kazoku-speed-buttons");
     speeds?.setAttribute("lang", language);
+    row.querySelector("kazoku-time-scrubber")?.setAttribute("lang", language);
   }
 
   #dispatch(action: ReplayDetail["action"], reason: ReplayDetail["reason"]): void {

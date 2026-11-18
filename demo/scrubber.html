@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Kazoku UI: time scrubber</title>
+  <meta name="description" content="A date slider that goes from years down to days, with a date field, for a replay bar or any view that moves through time." />
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+<main>
+  <header class="top">
+    <h1>Kazoku UI <span class="sub" data-say="title">time scrubber</span></h1>
+    <div class="tools">
+      <kazoku-language-picker id="language" languages="en ja" address storage="kazoku-demo-lang" data-testid="language"></kazoku-language-picker>
+      <kazoku-theme-switch id="theme" address storage="kazoku-demo-theme" data-testid="theme"></kazoku-theme-switch>
+    </div>
+    <kazoku-page-header name="Kazoku UI" what="time scrubber" what-ja="時間スクラバー" description="A date slider that goes from years down to days, with a date field, for a replay bar or any view that moves through time." description-ja="年から日まで動かせる日付スライダーと、日付の入力欄です。リプレイバーや、時間をたどるビューに使えます。" sheets="print.html" meta data-testid="page-header"></kazoku-page-header>
+  </header>
+  <p class="intro nav"><a href="replay.html" data-say="back">The replay bar</a> · <a href="speed.html" data-say="speed">Speed buttons</a></p>
+  <p class="intro" data-say="intro">Drag, or use the arrow keys. Year, Month and Day change how far one step goes and how much of the track you drag over. The page decides what a date means.</p>
+  <div class="targets">
+    <section class="target">
+      <kazoku-time-scrubber id="scrub" from="1957-10-04" to="2030-12-31" value="2026-11-17" address data-testid="scrub"></kazoku-time-scrubber>
+      <output id="out" data-testid="out"></output>
+    </section>
+    <section class="target">
+      <kazoku-replay-bar id="bar" scrub range-from="1957-10-04" range-to="2030-12-31" date="2026-11-17" steps="1 60 600" data-testid="bar"></kazoku-replay-bar>
+      <output id="bar-out" data-testid="bar-out"></output>
+    </section>
+  </div>
+  <kazoku-page-credits credits="Kazoku UI is MIT-licensed, by John Morris. This page draws its own shapes and uses no outside data." credits-ja="Kazoku UIは、John MorrisによるMITライセンスのパッケージです。このページは自前の図形を描き、外部のデータは使っていません。" data-testid="page-credits"></kazoku-page-credits>
+</main>
+<script type="module" src="frame.js"></script>
+<script type="module" src="scrubber.js"></script>
+</body>
+</html>

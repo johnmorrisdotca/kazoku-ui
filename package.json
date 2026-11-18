@@ -66,7 +66,10 @@
     "planet-label",
     "search-box",
     "combobox",
-    "grouped-search"
+    "grouped-search",
+    "time-scrubber",
+    "date-slider",
+    "date-field"
   ],
   "homepage": "https://johnmorrisdotca.github.io/kazoku-ui/",
   "repository": {
@@ -87,6 +90,7 @@
     "./dist/speed-buttons/define.js",
     "./dist/embed-panel/define.js",
     "./dist/replay-bar/define.js",
+    "./dist/time-scrubber/define.js",
     "./dist/options-window/define.js",
     "./dist/wide-layout/define.js",
     "./dist/page-frame/define.js",
@@ -198,6 +202,21 @@
       "types": "./dist/search-box/define.d.ts",
       "import": "./dist/search-box/define.js",
       "default": "./dist/search-box/define.js"
+    },
+    "./time-scrubber": {
+      "types": "./dist/time-scrubber/index.d.ts",
+      "import": "./dist/time-scrubber/index.js",
+      "default": "./dist/time-scrubber/index.js"
+    },
+    "./time-scrubber/element": {
+      "types": "./dist/time-scrubber/element.d.ts",
+      "import": "./dist/time-scrubber/element.js",
+      "default": "./dist/time-scrubber/element.js"
+    },
+    "./time-scrubber/define": {
+      "types": "./dist/time-scrubber/define.d.ts",
+      "import": "./dist/time-scrubber/define.js",
+      "default": "./dist/time-scrubber/define.js"
     },
     "./address-state": {
       "types": "./dist/address-state/index.d.ts",
