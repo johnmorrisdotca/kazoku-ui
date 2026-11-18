@@ -1,6 +1,6 @@
 // The family's gesture check: every interactive view answers every gesture of the view controls the same way, on every page (kazoku-ui docs/guides/view-controls.md, "Gestures").
 // A Playwright helper takes the page and the selector of the view the hands are bound to, does each gesture with a real mouse, keyboard or (for two fingers) pointer events,
-// and reads the view from the controls' own `kazoku-viewchange` events: the turn, the roll, the zoom and the move must each change by what the gesture asks. It then photographs
+// and reads the view from the controls' own `kazoku-viewchange` events (or, with the `controller` option, from the page's own view controller): the turn, the roll, the zoom and the move must each change by what the gesture asks. It then photographs
 // the view and checks the picture moved by as many pixels as the controls say, so a page that ignores the move (the controls change, the picture does not) fails.
 //
 //   import { checkGestures } from "@johnmorrisdotca/kazoku-ui/testing";
@@ -59,6 +59,13 @@ export interface GesturePage {
 export interface GestureOptions {
   /** The selector of the element whose `kazoku-viewchange` events and `controller` are read: a `<kazoku-view-controls>`, or a view that carries its own hands (`carryControls` gives its element both). `"kazoku-view-controls"` when the page has one, else the view. */
   controls?: string;
+  /**
+   * For a view that binds its own controller (`createViewController(...).bind(view)`) and has no `<kazoku-view-controls>` and no `carryControls`: where the page keeps that controller, as a path from `window`
+   * (`"earth.controller"`, or `"spx.views.sky"`). It can name the controller itself or any object that has it as `controller`. The check reads the view from `controller.state` after each gesture and sets it with
+   * `controller.set`, so the page needs no `kazoku-viewchange` event. Without events there is no change reason to check, and every other check is the same. A page that hands out no controller cannot be checked this way: expose it, for a test, as a property of `window`.
+   * `controls` and `controller` together read the events from `controls` and the state from `controller`.
+   */
+  controller?: string;
   /** The selector of what is photographed (the view by default; the canvas or the picture itself when the view is bigger than it). */
   picture?: string;
   /**
@@ -99,19 +106,35 @@ interface Seen {
 
 interface Watch {
   last: Seen | null;
+  /** Whether `kazoku-viewchange` events are read (false for a controller reached by path). */
+  events: boolean;
+  state(): Seen;
+  set(v: object): void;
   menus: boolean[];
   off(): void;
 }
 
 /** Start reading the view from the controls' events, and note every context menu and whether the page held it back. */
-function watch(page: GesturePage, controls: string): Promise<void> {
+function watch(page: GesturePage, controls: string | undefined, path: string | undefined): Promise<void> {
   return page.evaluate(
-    ({ controls, event }) => {
+    ({ controls, path, event }) => {
       const w = window as unknown as { __kazokuGestures?: Watch };
       w.__kazokuGestures?.off();
-      const el = document.querySelector(controls);
-      if (el === null) throw new Error(`no ${controls} on the page`);
-      const g: Watch = { last: null, menus: [], off: () => undefined };
+      type Held = { state?: Seen; set?: (v: object, final: boolean, reason: string) => void; pause?: () => void; controller?: Held };
+      const el = controls === undefined ? null : document.querySelector(controls);
+      if (controls !== undefined && el === null) throw new Error(`no ${controls} on the page`);
+      let held: Held | undefined;
+      if (path !== undefined) {
+        let at: unknown = window;
+        for (const key of path.split(".")) at = at === null || at === undefined ? undefined : (at as Record<string, unknown>)[key];
+        if (at === null || at === undefined || typeof at !== "object") throw new Error(`checkGestures: window.${path} is not a controller (give the path from window to the view's controller)`);
+        held = at as Held;
+      } else held = el as unknown as Held;
+      const controller = held.controller ?? held;
+      if (typeof controller.set !== "function") throw new Error(`checkGestures: ${path === undefined ? controls : `window.${path}`} has no controller to set the view with; give the page's controller as the controller option (a path from window)`);
+      const source = held.state !== undefined ? held : controller;
+      if (source.state === undefined) throw new Error(`checkGestures: ${path === undefined ? controls : `window.${path}`} has no state`);
+      const g: Watch = { last: null, menus: [], events: el !== null, state: () => source.state as Seen, set: (v) => controller.set!(v, true, "set"), off: () => undefined };
       const onChange = (e: Event): void => {
         const d = (e as CustomEvent<Seen>).detail;
         g.last = { yaw: d.yaw, tilt: d.tilt, roll: d.roll ?? 0, zoom: d.zoom, panX: d.panX, panY: d.panY, reason: d.reason };
@@ -119,16 +142,16 @@ function watch(page: GesturePage, controls: string): Promise<void> {
       const onMenu = (e: Event): void => {
         g.menus.push(e.defaultPrevented);
       };
-      el.addEventListener(event, onChange);
+      el?.addEventListener(event, onChange);
       document.addEventListener("contextmenu", onMenu);
       g.off = () => {
-        el.removeEventListener(event, onChange);
+        el?.removeEventListener(event, onChange);
         document.removeEventListener("contextmenu", onMenu);
       };
       w.__kazokuGestures = g;
-      (el as unknown as { pause?: () => void }).pause?.();
+      (held.pause ?? controller.pause)?.call(held.pause === undefined ? controller : held);
     },
-    { controls, event: EVENT },
+    { controls, path, event: EVENT },
   );
 }
 
@@ -224,36 +247,35 @@ async function grey(page: GesturePage, png: Uint8Array): Promise<{ w: number; h:
  * @param options See `GestureOptions`.
  */
 export async function checkGestures(page: GesturePage, view: string, options: GestureOptions = {}): Promise<GestureReport[]> {
-  const { controls: asked, picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3, immersive = false } = options;
+  const { controls: asked, controller: path, picture = view, lacks = {}, window, ready, timeout = 5000, zoom = 3, immersive = false } = options;
   for (const [name, reason] of Object.entries(lacks)) {
     if (name !== "picture" && !(name in GESTURES)) throw new Error(`checkGestures: "${name}" is not a gesture (${GESTURE_NAMES.join(", ")}, or "picture")`);
     if (typeof reason !== "string" || reason.trim() === "") throw new Error(`checkGestures: say why the view lacks "${name}"`);
   }
-  const controls = asked ?? ((await page.evaluate((selector) => document.querySelector(selector) !== null, "kazoku-view-controls")) ? "kazoku-view-controls" : view);
+  // With a controller path the controls are read only when named; else the page's bar, else the view's own element.
+  const controls = asked ?? (path !== undefined ? undefined : (await page.evaluate((selector) => document.querySelector(selector) !== null, "kazoku-view-controls")) ? "kazoku-view-controls" : view);
   const target = page.locator(view);
   const photo = page.locator(picture);
   const failures: string[] = [];
   const report: GestureReport[] = [];
 
   await page.evaluate((selector) => (document.querySelector(selector) as HTMLElement | null)?.scrollIntoView({ block: "center", inline: "center" }), view);
-  await watch(page, controls);
+  await watch(page, controls, path);
 
   /** The view as the controls' events last said it, checked against the controls' own state. */
   const read = async (): Promise<Seen> => {
-    const both = await page.evaluate(
-      (selector) => {
-        const g = (window as unknown as { __kazokuGestures?: Watch }).__kazokuGestures;
-        const s = (document.querySelector(selector) as unknown as { state: Seen }).state;
-        return { last: g?.last ?? null, state: { yaw: s.yaw, tilt: s.tilt, roll: s.roll ?? 0, zoom: s.zoom, panX: s.panX, panY: s.panY, reason: "" } };
-      },
-      controls,
-    );
+    const both = await page.evaluate(() => {
+      const g = (globalThis as unknown as { __kazokuGestures: Watch }).__kazokuGestures; // not `window`: the check's own option of that name shadows it
+      const s = g.state();
+      return { events: g.events, last: g.last, state: { yaw: s.yaw, tilt: s.tilt, roll: s.roll ?? 0, zoom: s.zoom, panX: s.panX, panY: s.panY, reason: "" } };
+    }, undefined);
+    if (!both.events) return both.state;
     if (both.last === null) throw new Error(`${controls} sent no ${EVENT} event`);
     if (!sameView(both.last, both.state)) throw new Error(`the last ${EVENT} event (${JSON.stringify(both.last)}) is not the view the controls hold (${JSON.stringify(both.state)})`);
     return both.last;
   };
   const put = async (next: Partial<Seen>): Promise<void> => {
-    await page.evaluate(([selector, v]) => (document.querySelector(selector as string) as unknown as { controller: { set(v: object, final: boolean, reason: string): void } }).controller.set(v as object, true, "set"), [controls, { yaw: 0, tilt: 0, roll: 0, zoom: 1, panX: 0, panY: 0, ...next }] as const);
+    await page.evaluate((v) => (globalThis as unknown as { __kazokuGestures: Watch }).__kazokuGestures.set(v), { yaw: 0, tilt: 0, roll: 0, zoom: 1, panX: 0, panY: 0, ...next });
     await frames(page);
     await ready?.();
   };
@@ -339,7 +361,7 @@ export async function checkGestures(page: GesturePage, view: string, options: Ge
     const dx = now.panX - was.panX;
     const dy = now.panY - was.panY;
     if (Math.hypot(dx, dy) <= 10) throw new Error(`${label} did not move the view (pan ${was.panX},${was.panY} to ${now.panX},${now.panY})`);
-    if (expectReason !== undefined && now.reason !== expectReason) throw new Error(`${label}: the last change's reason is "${now.reason}", not "${expectReason}"`);
+    if (expectReason !== undefined && now.reason !== "" && now.reason !== expectReason) throw new Error(`${label}: the last change's reason is "${now.reason}", not "${expectReason}"`);
     if (Math.abs(now.yaw - was.yaw) > 1e-6 || Math.abs(now.roll - was.roll) > 1e-6) throw new Error(`${label} turned or rolled the view (yaw ${was.yaw} to ${now.yaw}, roll ${was.roll} to ${now.roll})`);
     if (Math.abs(now.zoom - was.zoom) > 0.02 * was.zoom) throw new Error(`${label} changed the zoom (${was.zoom} to ${now.zoom})`);
     if (before === undefined) return;

@@ -169,12 +169,15 @@ controls.setFitScale(0.4); // the scale the scene is drawn at when it fits
 
 `@johnmorrisdotca/kazoku-ui/testing`の`checkGestures`で、ページがそのとおり動くことを確かめます。Playwrightの`page`と、操作をつないだビューのセレクターを渡すと、実際のマウスとキーボード（2本指はポインターイベント）で各操作を行い、操作部自身の変更イベントからビューを読み取って、表のとおり変わったかを調べます。移動では、ビューを撮影して、操作部が示すピクセル数だけ絵が動いたかも調べるので、移動を無視するページは失敗します。キーの行には、ビューに`tabindex`が必要です。失敗した操作は、すべて1つのエラーに名前が出ます。自分の操作を`carryControls`で持つビューで、ページに`<kazoku-view-controls>`がない場合も確かめられます。その要素は、バーと同じ`kazoku-viewchange`イベントを送り（バブリングせず、バーが結ばれているあいだは送りません）、チェックが読むための`controller`、`state`、`pause`を持ちます（要素に同名のプロパティがあれば、上書きしません）。バーのないページでは、`checkGestures`は要素自身を読みます。`controls`オプションに要素のセレクターを渡すこともできます。
 
+ページに`<kazoku-view-controls>`も`carryControls`もなく、ビューが自分でコントローラー（`createViewController(...).bind(view)`）を作って結ぶ場合、要素にはイベントも`controller`も`state`もないため、チェックが読めるものがありません。その場合は`controller`オプションに、ページのコントローラーを`window`からのパスで渡します（`"earth.controller"`、またはそれを`controller`として持つオブジェクト）。チェックは操作のたびに`controller.state`を読み、`controller.set`でビューを設定するので、ページが`kazoku-viewchange`イベントを送る必要はありません。イベントがないため変更の理由は確かめず、絵の確認を含むほかの確認は同じです。ページはコントローラーをクロージャーの中に持つことが多いので、テストのために`window`のプロパティとして公開してください（デモの`own-controller.html`は`window.ownView`に置いています）。このオプションは明示的に指定するもので、推測はしません。バーも`controls`も`controller`もない場合は、これまでどおりビュー自身の要素を読み、そこにコントローラーがなければ、何を渡すべきかを知らせます。バーのあるページは変わりません。
+
 平らな地図のように、回転やロールがないビューは、その理由を書いて申告します。黙って飛ばすことはできません。`GESTURES`は名前の一覧、`GESTURE_NAMES`はその順番、`bestShift`は絵の確認で使う探索です。
 
 ```js no-run
 import { checkGestures } from "@johnmorrisdotca/kazoku-ui/testing";
 
 await checkGestures(page, "#view");
+await checkGestures(page, "#earth", { controller: "views.earth" }); // 自前のコントローラーを持つビュー（バーなし）
 await checkGestures(page, "#map", { lacks: { turn: "a flat map", roll: "a flat map", "key-turn": "a flat map" } });
 ```
 

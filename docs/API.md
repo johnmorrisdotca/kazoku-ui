@@ -9748,6 +9748,13 @@ type GestureName = keyof typeof GESTURES;
 interface GestureOptions {
     /** The selector of the element whose `kazoku-viewchange` events and `controller` are read: a `<kazoku-view-controls>`, or a view that carries its own hands (`carryControls` gives its element both). `"kazoku-view-controls"` when the page has one, else the view. */
     controls?: string;
+    /**
+     * For a view that binds its own controller (`createViewController(...).bind(view)`) and has no `<kazoku-view-controls>` and no `carryControls`: where the page keeps that controller, as a path from `window`
+     * (`"earth.controller"`, or `"spx.views.sky"`). It can name the controller itself or any object that has it as `controller`. The check reads the view from `controller.state` after each gesture and sets it with
+     * `controller.set`, so the page needs no `kazoku-viewchange` event. Without events there is no change reason to check, and every other check is the same. A page that hands out no controller cannot be checked this way: expose it, for a test, as a property of `window`.
+     * `controls` and `controller` together read the events from `controls` and the state from `controller`.
+     */
+    controller?: string;
     /** The selector of what is photographed (the view by default; the canvas or the picture itself when the view is bigger than it). */
     picture?: string;
     /**
