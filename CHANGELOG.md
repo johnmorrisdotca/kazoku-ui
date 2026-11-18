@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-11-17
+
 - **Six source files are smaller** (MODULES-258). Types, markup, key chords and a picture-shift helper moved out of `search-box/element.ts`, `view-controls/element.ts` and `controller.ts`, `embed-panel/element.ts`, `renderer/renderer.ts` and `testing/gestures.ts` into files beside them. Nothing changed in behaviour or in the exports: `docs/API.md` is the same, and each moved type is still exported from the file it was in.
 
 ## [0.53.0] - 2026-11-17
