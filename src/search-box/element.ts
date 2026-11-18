@@ -4,6 +4,8 @@
 import { adoptStyles } from "../shared/adopt.ts";
 import { followLanguage } from "../shared/language.ts";
 import { watchScheme } from "../shared/scheme.ts";
+import { buildBox } from "./build.ts";
+import { chordMatches, chordsOf, editable, type Chord } from "./chords.ts";
 import { EVENT, TAG } from "./names.ts";
 import { actionsFit, actionsOf, announcement, chipsOf, isActionEnabled, planLines, PREVIEW_ACTION_ID, stepIndex, toggleAnnouncement, type PlanLine, type SearchAction, type SearchGroup, type SearchPickDetail, type SearchPreviewSource, type SearchSource } from "./model.ts";
 import { drawPaths, drawRowIcon } from "./draw.ts";
@@ -12,75 +14,11 @@ import type { PreviewControl, PreviewHost } from "./preview-ui.ts";
 import { highlight } from "./rank.ts";
 import { createSearchRunner, type SearchRunner } from "./runner.ts";
 import { STYLES } from "./styles.ts";
+import { DEFAULT_DEBOUNCE, DEFAULT_PER_GROUP, DEFAULT_WINDOW, MIN_NAME_WIDTH, NEAR_END, NEAR_ROWS, whole, type Mode, type NavEntry, type NavLine } from "./nav.ts";
 import { countPhrase, languageOf, wordsFor, type SearchBoxWords } from "./words.ts";
 
 export { EVENT, TAG };
 export type { SearchPickDetail };
-
-/** The rows the keyboard can stand on, in order. */
-type NavLine = Exclude<PlanLine, { type: "header" }>;
-
-interface NavEntry {
-  line: NavLine;
-  el: HTMLElement;
-  actions: SearchAction[];
-  buttons: HTMLButtonElement[];
-  /** The row's own text cell, which stands for its first action, then one cell for each action (on a narrow screen the last is the Details action, which opens the preview). */
-  main: HTMLElement;
-  cells: HTMLElement[];
-  /** The button that holds the actions that do not fit, and how many actions are drawn on the row's line (all of them unless the row is narrow). */
-  more?: HTMLButtonElement;
-  shown: number;
-}
-
-type Mode = "idle" | "busy" | "answer" | "failed";
-
-const DEFAULT_DEBOUNCE = 120;
-const DEFAULT_PER_GROUP = 3;
-const DEFAULT_WINDOW = 20;
-/** The least width a row keeps for its name before actions go behind "more". */
-const MIN_NAME_WIDTH = 96;
-/** How close to the end of the drawn rows (in px) the next window is drawn, and how near (in rows) the highlight may come to the end before it is. */
-const NEAR_END = 160;
-const NEAR_ROWS = 4;
-
-const whole = (value: string | null, fallback: number, min = 0): number => {
-  const n = Number(value);
-  return value !== null && value.trim() !== "" && Number.isInteger(n) && n >= min ? n : fallback;
-};
-
-const editable = (target: EventTarget | undefined): boolean => {
-  if (!(target instanceof HTMLElement)) return false;
-  return /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || target.isContentEditable || /^(textbox|combobox|searchbox)$/.test(target.getAttribute("role") ?? "");
-};
-
-interface Chord {
-  key: string;
-  ctrl: boolean;
-  meta: boolean;
-  mod: boolean;
-  alt: boolean;
-}
-
-/** The chords a `shortcut` attribute names: `/`, `mod+k`, `ctrl+k`, `meta+k`, `alt+s`, several separated by spaces. `mod` is Control or Command. */
-function chordsOf(text: string | null): Chord[] {
-  return (text ?? "")
-    .split(/\s+/)
-    .filter((token) => token !== "")
-    .map((token) => {
-      const parts = token === "+" ? ["+"] : token.toLowerCase().split("+");
-      const key = parts[parts.length - 1] ?? "";
-      const mods = parts.slice(0, -1);
-      return { key, ctrl: mods.includes("ctrl"), meta: mods.includes("meta"), mod: mods.includes("mod"), alt: mods.includes("alt") };
-    })
-    .filter((chord) => chord.key !== "");
-}
-
-function chordMatches(chord: Chord, event: KeyboardEvent): boolean {
-  if (event.key.toLowerCase() !== chord.key) return false;
-  if (chord.mod) return (event.ctrlKey || event.metaKey) && !event.altKey;
-  return event.ctrlKey === chord.ctrl && event.metaKey === chord.meta && event.altKey === chord.alt;
-}
 
 /**
  * A search box that answers in groups. The page sets `source` (an async function `(query, { signal, group }) => groups`), and hears `kazoku-search-pick` with `{ id, group, action }`.
@@ -369,48 +307,7 @@ export class SearchBoxElement extends HTMLElement {
   #mount(): void {
     // built once: a box moved to another place on the page keeps its field and its popup
     if (this.#root.querySelector(".field")) return;
-    const doc = this.ownerDocument;
-    const make = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] => {
-      const el = doc.createElement(tag);
-      if (className) el.className = className;
-      return el;
-    };
-    const field = make("div", "field");
-    const label = make("label", "vh");
-    label.setAttribute("for", "q");
-    const input = make("input");
-    input.id = "q";
-    input.type = "text";
-    input.setAttribute("role", "combobox");
-    input.setAttribute("aria-autocomplete", "list");
-    input.setAttribute("aria-haspopup", "grid");
-    input.setAttribute("aria-expanded", "false");
-    input.setAttribute("aria-controls", "grid");
-    input.autocomplete = "off";
-    input.setAttribute("autocapitalize", "off");
-    input.spellcheck = false;
-    const panel = make("div", "panel");
-    panel.hidden = true;
-    const chips = make("div", "chips");
-    chips.setAttribute("role", "group");
-    chips.hidden = true;
-    const grid = make("div");
-    grid.id = "grid";
-    grid.setAttribute("role", "grid");
-    grid.hidden = true;
-    const note = make("p", "note");
-    note.hidden = true;
-    // under a narrowed list that has more rows than are drawn: "Showing 40 of 9,812". Plain text, not live: the box does not talk while the reader scrolls
-    const count = make("p", "count");
-    count.hidden = true;
-    const list = make("div", "list");
-    list.append(chips, grid, count, note);
-    panel.append(list);
-    const status = make("div", "vh");
-    status.id = "status";
-    status.setAttribute("role", "status");
-    status.setAttribute("aria-live", "polite");
-    field.append(label, input, panel, status);
+    const { field, input, panel, chips } = buildBox(this.ownerDocument);
     this.#root.append(field);
 
     input.addEventListener("input", () => {

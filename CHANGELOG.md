@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Six source files are smaller** (MODULES-258). Types, markup, key chords and a picture-shift helper moved out of `search-box/element.ts`, `view-controls/element.ts` and `controller.ts`, `embed-panel/element.ts`, `renderer/renderer.ts` and `testing/gestures.ts` into files beside them. Nothing changed in behaviour or in the exports: `docs/API.md` is the same, and each moved type is still exported from the file it was in.
+
 ## [0.53.0] - 2026-11-17
 
 - **`checkGestures` can read a view that binds its own controller** (MODULES-1516). A page whose views each make and bind their own controller, with no `<kazoku-view-controls>`, no `carryControls` and no event, could not be checked: the check read the state and the events from an element. The new `controller` option names the page's controller as a path from `window` (`{ controller: "views.earth" }`; it can be the controller or an object that holds it as `controller`). The check reads `controller.state` and sets the view with `controller.set`; with no events there is no change-reason check, and everything else, the picture check included, is the same. Pages with a bar or `carryControls` are unchanged. A new demo page, `own-controller.html`, and a browser spec. Backwards compatible.
