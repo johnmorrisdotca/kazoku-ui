@@ -21,6 +21,8 @@ Play, pause, back to the start and repeat, with the family's speed buttons on th
 
 The speed buttons are the same `<kazoku-speed-buttons>`. `steps` is the list, `speed` is the one that is on, and their address key is `replay-speed` unless `speed-key` says otherwise, so a view's `pace` is left alone. A change is the usual `kazoku-speedchange`.
 
+`scrub` adds [the time scrubber](time-scrubber.md) on a line under the buttons: `range-from` and `range-to` are its range, `date` and `date-scale` its day and scale. It reports `kazoku-timechange` and never plays, pauses or restarts the replay.
+
 Reduced motion gives a still view with Play ready: the Play button is enabled, nothing starts by itself (an address that says `play=on`, the `playing` attribute and the `playing` property are held back), and the reader's own press on Play starts it, so a page can keep the rule of [the family clock](clock.md). Up to 0.33 the button was disabled unless the element had `user-play`; that attribute is still accepted and now changes nothing.
 
 ```ts

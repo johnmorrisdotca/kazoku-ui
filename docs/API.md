@@ -15,7 +15,7 @@ import { PARTS } from '@johnmorrisdotca/kazoku-ui';
 *constant*. The subpaths of the parts, in the order they were added.
 
 ```ts
-const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "pan-zoom", "scene", "body-label", "collection-picker", "menu", "search-box"];
+const PARTS: readonly ["view-controls", "theme-switch", "language-picker", "address-state", "save-image", "speed-buttons", "embed-panel", "renderer", "testing", "replay-bar", "options-window", "print", "wide-layout", "page-frame", "interface", "clock", "pan-zoom", "scene", "body-label", "collection-picker", "menu", "search-box", "time-scrubber"];
 ```
 
 ### Part
@@ -2932,6 +2932,377 @@ import { defineSearchBox } from '@johnmorrisdotca/kazoku-ui/search-box/define';
 
 ```ts
 function defineSearchBox(registry?: CustomElementRegistry): boolean;
+```
+
+## `@johnmorrisdotca/kazoku-ui/time-scrubber`
+
+27 values and 4 types.
+
+```js
+import { applyMove, clamp, coarserOf, DATE_KEY, DAY_MS, daysIn, DEFAULT_FROM, DEFAULT_TO, EVENT, fieldText, fractionOf, isoDate, keyMove, languageOf, momentAt, parseDate, partsOf, scaleOf, SCALES, stepBy, TAG, ticksFor, utc, valueText, windowFor, WORDS, wordsFor } from '@johnmorrisdotca/kazoku-ui/time-scrubber';
+```
+
+### applyMove
+
+*function*. Applies a key move to a moment and keeps it inside the range.
+
+```ts
+function applyMove(ms: number, move: KeyMove, from: number, to: number): number;
+```
+
+### clamp
+
+*constant*
+
+```ts
+const clamp: (ms: number, from: number, to: number) => number;
+```
+
+### coarserOf
+
+*constant*. The scale one step coarser: a month's Page Up moves a year. A year has none coarser, so it moves ten years.
+
+```ts
+const coarserOf: (scale: Scale) => Scale | "decade";
+```
+
+### DATE_KEY
+
+*constant*. The address key for the date, and for its scale (`date-scale`), unless `address-key` names another.
+
+```ts
+const DATE_KEY = "date";
+```
+
+### DAY_MS
+
+*constant*
+
+```ts
+const DAY_MS = 86400000;
+```
+
+### daysIn
+
+*function*. How many days a month has.
+
+```ts
+function daysIn(year: number, month: number): number;
+```
+
+### DEFAULT_FROM
+
+*constant*. The range when a page names none.
+
+```ts
+const DEFAULT_FROM = "1900-01-01";
+```
+
+### DEFAULT_TO
+
+*constant*
+
+```ts
+const DEFAULT_TO = "2100-12-31";
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-timechange";
+```
+
+### fieldText
+
+*function*. The reader's own way to write a date: `2026-11-17` in English, `2026`年`11`月`17`日`` in Japanese.
+
+```ts
+function fieldText(ms: number, language: "en" | "ja"): string;
+```
+
+### fractionOf
+
+*constant*. Where a moment sits on the track, 0 to 1.
+
+```ts
+const fractionOf: (ms: number, window: {
+    start: number;
+    end: number;
+}) => number;
+```
+
+### isoDate
+
+*function*. `2026-11-17`.
+
+```ts
+function isoDate(ms: number): string;
+```
+
+### keyMove
+
+*function*. Arrow keys step one of the scale; Page Up and Page Down step one of the next coarser scale (ten years at the year scale); Home and End go to the ends of the range.
+
+```ts
+function keyMove(key: string, scale: Scale): KeyMove | null;
+```
+
+### languageOf
+
+*constant*. The language to use for a `lang` value such as "ja", "ja-JP" or "en-CA": Japanese for ja, English for anything else.
+
+```ts
+const languageOf: (lang: string | null | undefined) => Language;
+```
+
+### momentAt
+
+*function*. The moment a point on the track means, snapped to the scale: the year under the pointer (month and day kept, clamped), the month (day kept) or the day.
+
+```ts
+function momentAt(fraction: number, scale: Scale, current: number, from: number, to: number): number;
+```
+
+### parseDate
+
+*function*. Reads a date a reader typed: `2026-11-17`, `2026/11/17`, `2026.11.17`, `2026`年`11`月`17`日``, `2026-11` (the 1st) or `2026` (January 1st). Full-width digits are fine.
+
+```ts
+function parseDate(text: string | null | undefined): number | null;
+```
+
+### partsOf
+
+*function*. The year, month (1 to 12) and day of a moment.
+
+```ts
+function partsOf(ms: number): {
+    year: number;
+    month: number;
+    day: number;
+};
+```
+
+### scaleOf
+
+*constant*. The scale a `scale` value names, or `year` for anything else.
+
+```ts
+const scaleOf: (value: string | null | undefined) => Scale;
+```
+
+### SCALES
+
+*constant*. The scales, coarse to fine. The scale is how far one arrow key moves and how much of the track one drag covers.
+
+```ts
+const SCALES: readonly ["year", "month", "day"];
+```
+
+### stepBy
+
+*function*. Moves a moment by `n` years, months or days. A year or month that lands past the end of the month (31 March plus a month) keeps the month and takes its last day.
+
+```ts
+function stepBy(ms: number, unit: Scale, n: number): number;
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-time-scrubber";
+```
+
+### ticksFor
+
+*function*. The ticks under the track for a window: a label for each decade (year scale), each month, or the 1st, 8th, 15th, 22nd and 29th. Never more than about 14.
+
+```ts
+function ticksFor(window: {
+    start: number;
+    end: number;
+}, scale: Scale, language: "en" | "ja"): {
+    fraction: number;
+    label: string;
+}[];
+```
+
+### utc
+
+*function*. Midnight UTC of a year, month (1 to 12) and day, with a month or day that is too big clamped to the month's last day. Years 0 to 99 stay themselves.
+
+```ts
+function utc(year: number, month: number, day: number): number;
+```
+
+### valueText
+
+*function*. What a screen reader says for the value: `2026` at the year scale, `November 2026` at the month scale, `17 November 2026` at the day (`2026`年`11`月`17`日`` in Japanese).
+
+```ts
+function valueText(ms: number, scale: Scale, language: "en" | "ja"): string;
+```
+
+### windowFor
+
+*function*. The stretch of time the track shows: the whole range at the year scale, the current year at the month scale, the current month at the day scale.
+
+```ts
+function windowFor(ms: number, scale: Scale, from: number, to: number): {
+    start: number;
+    end: number;
+};
+```
+
+### WORDS
+
+*constant*
+
+```ts
+const WORDS: Record<Language, ScrubberWords>;
+```
+
+### wordsFor
+
+*constant*
+
+```ts
+const wordsFor: (language: Language, overrides?: Partial<ScrubberWords>) => ScrubberWords;
+```
+
+### KeyMove
+
+*type*. What a key does to the date: a step of some unit, or a jump to the start or the end of the range. Null for a key the slider ignores.
+
+```ts
+type KeyMove = {
+    to: "from" | "to";
+} | {
+    by: number;
+    unit: Scale;
+};
+```
+
+### Language
+
+*type*
+
+```ts
+type Language = "en" | "ja";
+```
+
+### Scale
+
+*type*
+
+```ts
+type Scale = (typeof SCALES)[number];
+```
+
+### ScrubberWords
+
+*interface*
+
+```ts
+interface ScrubberWords {
+    /** The name of the whole control, said by a screen reader. */
+    group: string;
+    /** The slider's name. */
+    slider: string;
+    /** The date field's name. */
+    field: string;
+    /** The name of the row of scale buttons. */
+    scales: string;
+    /** The scale buttons: years, months, days. */
+    year: string;
+    month: string;
+    day: string;
+    /** What the field says when the text is not a date. */
+    invalid: string;
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/time-scrubber/element`
+
+3 values and 1 type.
+
+```js
+import { EVENT, TAG, TimeScrubberElement } from '@johnmorrisdotca/kazoku-ui/time-scrubber/element';
+```
+
+### EVENT
+
+*constant*
+
+```ts
+const EVENT = "kazoku-timechange";
+```
+
+### TAG
+
+*constant*
+
+```ts
+const TAG = "kazoku-time-scrubber";
+```
+
+### TimeScrubberElement
+
+*class*. Attributes: `from` and `to` (the range, `YYYY-MM-DD`; 1900-01-01 to 2100-12-31 by default), `value` (the day), `scale` (`year`, `month` or `day`),
+
+```ts
+class TimeScrubberElement extends HTMLElement {
+    #private;
+    static observedAttributes: string[];
+    constructor();
+    /** The day, in milliseconds since 1970 (UTC). Setting it keeps it inside the range and reports `set`. */
+    get value(): number;
+    set value(next: number);
+    /** `year`, `month` or `day`. */
+    get scale(): Scale;
+    set scale(next: Scale);
+    /** Your own labels over the language's. */
+    set words(words: Partial<ScrubberWords>);
+    connectedCallback(): void;
+    disconnectedCallback(): void;
+    attributeChangedCallback(name: string, _old: string | null, value: string | null): void;
+}
+```
+
+### TimeChangeDetail
+
+*interface*. What the `kazoku-timechange` event carries in `detail`.
+
+```ts
+interface TimeChangeDetail {
+    /** The moment, in milliseconds since 1970 (UTC midnight of the day). */
+    value: number;
+    /** The same day as `2026-11-17`. */
+    date: string;
+    scale: Scale;
+    /** `init` (once, when it comes up), `user` (the slider, a key, a scale button or the field) or `set` (a property or attribute). */
+    reason: "init" | "user" | "set";
+}
+```
+
+## `@johnmorrisdotca/kazoku-ui/time-scrubber/define`
+
+1 value and 0 types.
+
+```js
+import { defineTimeScrubber } from '@johnmorrisdotca/kazoku-ui/time-scrubber/define';
+```
+
+### defineTimeScrubber
+
+*function*
+
+```ts
+function defineTimeScrubber(registry?: CustomElementRegistry): boolean;
 ```
 
 ## `@johnmorrisdotca/kazoku-ui/address-state`

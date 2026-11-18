@@ -86,6 +86,19 @@ The buttons themselves say their numbers (`0.5×`, `1×`, `2×`), which need no 
 | `start` | Start | 最初へ | saisho e, to the start |
 | `repeat` | Repeat | 繰り返し | kurikaeshi, repeat |
 
+## Time scrubber
+
+| Key | English | 日本語 | Reading and meaning |
+|---|---|---|---|
+| `group` | Date | 日付 | hizuke, date (the whole control's name; a `label` attribute replaces it) |
+| `slider` | Date slider | 日付スライダー | hizuke sulaidā, date slider |
+| `field` | Go to date | 日付を指定 | hizuke o shitei, specify a date |
+| `scales` | Step size | 刻み | kizami, the size of a step |
+| `year` | Year | 年 | nen, year |
+| `month` | Month | 月 | tsuki, month |
+| `day` | Day | 日 | hi, day |
+| `invalid` | Enter a date such as 2026-11-17 | 日付を入力してください（例：2026-11-17） | hizuke o nyūryoku shite kudasai, please enter a date (for example) |
+
 ## Options window
 
 | Key | English | 日本語 | Reading and meaning |
