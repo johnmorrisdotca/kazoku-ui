@@ -15,6 +15,7 @@ const renderer = createSharedRenderer({
   onContext: (state) => contextEvents.push(state),
   ...(number("stills") === undefined ? {} : { stillBytes: number("stills") }),
   ...(number("release") === undefined ? {} : { releaseMs: number("release") }),
+  ...(number("restore") === undefined ? {} : { restoreMs: number("restore") }),
   ...(number("linger") === undefined ? {} : { lingerMs: number("linger") }),
 });
 

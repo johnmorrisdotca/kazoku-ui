@@ -185,7 +185,7 @@ test("a canvas at a desk's size is drawn at the device's ratio, up to 2", async 
 });
 
 test("a lost context shows the still, a restored one draws again, and it is still one context", async ({ page }) => {
-  await ready(page);
+  await ready(page, "?restore=60000");
   const count = (await readCounts(page)).contexts;
   // A lost context gives no extensions, so the page keeps the one it asked for before.
   await page.evaluate(() => { window.__lose = document.querySelector(".host canvas").getContext("webgl2").getExtension("WEBGL_lose_context"); window.__lose.loseContext(); });
@@ -201,6 +201,45 @@ test("a lost context shows the still, a restored one draws again, and it is stil
   await expect.poll(async () => (await demo(page)).draws).toBeGreaterThan(before);
   expect((await readCounts(page)).contexts).toBe(count);
   await drainGpu(page);
+});
+
+test("a context the browser never gives back is made again, and the view draws on a new canvas", async ({ page }) => {
+  await ready(page, "?restore=400");
+  const count = (await readCounts(page)).contexts;
+  await page.evaluate(() => {
+    window.__first = document.querySelector(".host canvas");
+    window.__first.getContext("webgl2").getExtension("WEBGL_lose_context").loseContext();
+  });
+  await expect.poll(async () => (await demo(page)).lost).toBe(true);
+  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost"]);
+  // No restoreContext: after restoreMs the renderer makes a new context and the focused view is live on it.
+  await expect.poll(async () => (await demo(page)).lost).toBe(false);
+  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost", "restored"]);
+  await expect.poll(() => live(page, 0)).toBe(true);
+  expect(await page.evaluate(() => { const c = document.querySelector(".host canvas"); return c !== null && c !== window.__first && !c.getContext("webgl2").isContextLost() && c.style.visibility !== "hidden"; })).toBe(true);
+  expect((await readCounts(page)).contexts).toBe(count + 1);
+  expect(await canvases(page)).toBe(1);
+  const before = (await demo(page)).draws;
+  await page.evaluate(() => window.kazokuDemo.renderer.focused.invalidate());
+  await expect.poll(async () => (await demo(page)).draws).toBeGreaterThan(before);
+  await drainGpu(page);
+});
+
+test("a lost context that cannot be made again is tried three times and then the page is told it is unavailable", async ({ page }) => {
+  await ready(page, "?restore=100");
+  await page.evaluate(() => {
+    const first = document.querySelector(".host canvas");
+    const make = window.HTMLCanvasElement.prototype.getContext;
+    window.__tries = 0;
+    window.HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+      if (this !== first && /webgl/.test(type)) { window.__tries += 1; return null; }
+      return make.call(this, type, ...rest);
+    };
+    first.getContext("webgl2").getExtension("WEBGL_lose_context").loseContext();
+  });
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost", "unavailable"]);
+  expect(await page.evaluate(() => window.__tries), "three tries, each a getContext call").toBeGreaterThanOrEqual(3);
+  expect(await live(page, 0)).toBe(false);
 });
 
 test("out of sight no frame is asked for, and after a while the context is let go; back in sight it is made again", async ({ page }) => {

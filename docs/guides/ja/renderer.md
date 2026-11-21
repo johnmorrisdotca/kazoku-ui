@@ -63,11 +63,11 @@ controls.addEventListener("kazoku-viewchange", (e) => { view.scene.pose(e.detail
 | 毎秒30フレームまで | ビューは、画面のリフレッシュレートによらず、1秒に`MAX_FPS`（30）回までしか描かれません。直前の描画から1フレーム分の間隔（1000/30 ms。ブラウザーのタイミングの誤差を見込んで2 ms短くしています）に満たないビューは、そのフレームでは描かれずに待ち、次のフレームが要求されます。60 Hzの画面は2フレームに1回で毎秒30回、120 Hzは4フレームに1回で毎秒30回、144 Hzは5フレームに1回で毎秒28.8回です。静止していたビューや、非表示のタブから戻ったビューは、次のフレームですぐに描かれます。`dt`は、そのビューが前回実際に描かれてからの経過時間のままなので、動きの速さは変わりません。 |
 | 見えていないとき | ライブのビューのホストとタブの表示状態が見張られ、画面外や非表示のタブではフレームを要求しません。画面外のまま`releaseMs`（30秒）たつと、コンテキストそのものを手放し、ビューは静止画を保ち、ビューが見えるとコンテキストを作り直します。 |
 | ピクセルの予算 | 最大600万ピクセル、1辺4096、ピクセル比2。ピクセル比2の5K画面は約1.5で描かれ、CSSで拡大されます。2400万ピクセルでは描きません。3つとも、オプションです。 |
-| コンテキストの喪失 | `webglcontextlost`は止められ、描画が止まり、静止画が表示され、`onContext("lost")`が呼ばれます。復元されると、ビューは再び描き、`onContext("restored")`が呼ばれます。 |
+| コンテキストの喪失 | `webglcontextlost`は止められ、描画が止まり、静止画が表示され、`onContext("lost")`が呼ばれます。復元されると、ビューは再び描き、`onContext("restored")`が呼ばれます。ブラウザーがコンテキストを返さないとき（メモリが足りないiOS Safariで起きます）は、`restoreMs`（3秒）たつとレンダラーが自分で作り直し、そのあと`onContext("restored")`が呼ばれます。作れないときは、待つ時間を2倍にしながら3回まで試し、それでもだめなら`onContext("unavailable")`が呼ばれます。 |
 
 ## API
 
-- `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, antialias, onContext, clock, document, assets, scheduler })`
+- `createSharedRenderer({ load, maxPixels, maxSide, maxRatio, stillSize, stillBytes, lingerMs, releaseMs, restoreMs, antialias, onContext, clock, document, assets, scheduler })`
 - `renderer.view(host, item, { still })`はビューを返します：`focus()`、`blur()`、`invalidate()`、`showStill()`、`dispose()`、`live`、`scene`、`host`、`item`。
 - `renderer.focused`、`renderer.stats`（`contexts`、`draws`、`snapshots`、`live`、`lost`、`canvas`、`frames`、`assets`、`stills`）、`renderer.assets`、`renderer.stills`、`renderer.scheduler`、`renderer.dispose()`。
 - アイテムは`{ key, build({ three, assets, width, height }) }`で、`{ scene, camera, update?, resize?, render?, dispose? }`を返します。`update(dt, now)`は動いているものがあれば真を返し、ビューは上限（毎秒30回まで）が許す次のフレームで再び描かれます。シーンに`render(gl)`があれば、レンダラーが行う1回の`gl.render(scene, camera)`の代わりに、その関数でビューを描きます。これは、パスに分けて描くシーン（天空、遠い天体、深度を消去してから近い天体）のためのものです。描画のたびと、そのビューの静止画を作るときに、`update`のあとで呼ばれ、`gl.autoClear`と`gl.clearDepth()`（どちらも`GLRenderer`では省略可能）を使い、`autoClear`は元に戻します。[共有シーン](scene.md)は、この方法でつくられています。

@@ -9115,6 +9115,8 @@ interface SharedRendererOptions<T extends ThreeLike = ThreeLike> {
     lingerMs?: number;
     /** Milliseconds out of sight, in a hidden tab, after which the context is let go and the views show stills (30000). It comes back when the view does. */
     releaseMs?: number;
+    /** Milliseconds a lost context is waited for before a new one is made (3000). A browser that never gives it back (iOS Safari under memory pressure) would leave the view black for good. A new context that cannot be made is tried again after twice as long, up to three times, then `onContext("unavailable")`. A rebuilt context is told as `"restored"`. */
+    restoreMs?: number;
     antialias?: boolean;
     /** Called when the context is lost or restored, or WebGL is not available. */
     onContext?: (state: "lost" | "restored" | "unavailable") => void;

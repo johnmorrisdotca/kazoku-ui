@@ -11,6 +11,9 @@ import type { BuildContext, GLRenderer, Item3D, RendererStats, Scene3D, SharedRe
 
 export type { BuildContext, GLRenderer, Item3D, RendererStats, Scene3D, SharedRenderer, SharedRendererOptions, ThreeLike, View, ViewOptions };
 
+/** How many times a context that never came back is made again before the page is told `"unavailable"`. */
+const MAX_REBUILDS = 3;
+
 interface Internal {
   host: HTMLElement;
   item: Item3D;
@@ -31,6 +34,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   const limits = { maxPixels: options.maxPixels ?? MAX_PIXELS, maxSide: options.maxSide ?? MAX_SIDE, maxRatio: options.maxRatio ?? MAX_RATIO };
   const stillSize = options.stillSize ?? 320;
   const releaseMs = options.releaseMs ?? 30_000;
+  const restoreMs = options.restoreMs ?? 3000;
   const doc = (): Document => options.document ?? globalThis.document;
   const scheduler = options.scheduler ?? createScheduler(options.clock === undefined ? {} : { clock: options.clock });
   const assets = options.assets ?? createAssetCache(options.lingerMs === undefined ? {} : { lingerMs: options.lingerMs });
@@ -51,10 +55,12 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   let focused: Internal | undefined;
   let token = 0;
   let lost = false;
+  let rebuilding = false;
   let lostPause = false;
   let sightPause = false;
   let onScreen = true;
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  let restoreTimer: ReturnType<typeof setTimeout> | undefined;
   let listening = false;
   let queue: Promise<unknown> = Promise.resolve();
   const shooting = new Map<string, Promise<Still | undefined>>();
@@ -72,8 +78,10 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
     if (canvas !== undefined) canvas.style.visibility = "hidden";
     if (focused?.img) focused.img.style.visibility = "";
     options.onContext?.("lost");
+    waitForRestore();
   };
   const onRestored = (): void => {
+    clearTimeout(restoreTimer);
     lost = false;
     if (lostPause) {
       lostPause = false;
@@ -88,31 +96,63 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
     options.onContext?.("restored");
   };
 
+  /** A browser that does not give a lost context back (iOS Safari under memory pressure) leaves the view black for good: after `restoreMs` the context is made again, a few times, then the page is told `"unavailable"`. */
+  function waitForRestore(): void {
+    clearTimeout(restoreTimer);
+    if (!lost || focused === undefined || !focused.wantsLive) return;
+    restoreTimer = setTimeout(() => {
+      // A hidden tab is rebuilt when it is seen again (`sight`).
+      if (lost && doc().visibilityState !== "hidden") void rebuild();
+    }, restoreMs);
+  }
+
+  async function rebuild(): Promise<void> {
+    const v = focused;
+    if (v === undefined || !v.wantsLive || v.disposed) return;
+    rebuilding = true;
+    releaseGL();
+    const mine = ++token;
+    try {
+      for (let attempt = 0; attempt < MAX_REBUILDS; attempt += 1) {
+        if (await goLive(v, mine, true)) {
+          options.onContext?.("restored");
+          return;
+        }
+        if (mine !== token || v.disposed) return;
+        if (attempt < MAX_REBUILDS - 1) await new Promise((resolve) => setTimeout(resolve, restoreMs * 2 ** attempt));
+        if (mine !== token || v.disposed) return;
+      }
+      options.onContext?.("unavailable");
+    } finally {
+      rebuilding = false;
+    }
+  }
+
   function ensureGL(): Promise<GLRenderer> {
     if (gl !== undefined && !lost) return Promise.resolve(gl);
     if (gl !== undefined && lost) releaseGL();
+    // Cleared after the promise is stored: with three already loaded, a context that cannot be made throws before the first await, and clearing inside would leave the failed promise here for good.
     creating ??= (async () => {
-      try {
-        three ??= await options.load();
-        const element = doc().createElement("canvas");
-        element.addEventListener("webglcontextlost", onLost);
-        element.addEventListener("webglcontextrestored", onRestored);
-        const Renderer = three.WebGLRenderer as unknown as new (parameters: Record<string, unknown>) => GLRenderer;
-        const made = new Renderer({ canvas: element, antialias: options.antialias ?? true, alpha: true, powerPreference: "default" });
-        canvas = element;
-        gl = made;
-        counts.contexts += 1;
-        sized = "";
-        return made;
-      } finally {
-        creating = undefined;
-      }
-    })();
+      three ??= await options.load();
+      const element = doc().createElement("canvas");
+      element.addEventListener("webglcontextlost", onLost);
+      element.addEventListener("webglcontextrestored", onRestored);
+      const Renderer = three.WebGLRenderer as unknown as new (parameters: Record<string, unknown>) => GLRenderer;
+      const made = new Renderer({ canvas: element, antialias: options.antialias ?? true, alpha: true, powerPreference: "default" });
+      canvas = element;
+      gl = made;
+      counts.contexts += 1;
+      sized = "";
+      return made;
+    })().finally(() => {
+      creating = undefined;
+    });
     return creating;
   }
 
   /** Let go of the context (forced, so the GPU memory is free now) and of the scene using it. The views keep their stills. */
   function releaseGL(): void {
+    clearTimeout(restoreTimer);
     if (focused?.live) detach(focused, true);
     if (canvas !== undefined) {
       canvas.removeEventListener("webglcontextlost", onLost);
@@ -172,12 +212,12 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   }
 
   /** Take the canvas, with a scene, into the host. */
-  async function goLive(v: Internal, mine: number): Promise<boolean> {
+  async function goLive(v: Internal, mine: number, quiet = false): Promise<boolean> {
     let renderer: GLRenderer;
     try {
       renderer = await ensureGL();
     } catch {
-      if (mine === token) options.onContext?.("unavailable");
+      if (mine === token && !quiet) options.onContext?.("unavailable");
       return false;
     }
     if (mine !== token || v.disposed) return false;
@@ -294,7 +334,10 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
       clearTimeout(idleTimer);
       idleTimer = undefined;
       if (gl === undefined && v.wantsLive) void goLive(v, ++token);
-      else scheduler.invalidate(v.job);
+      else {
+        scheduler.invalidate(v.job);
+        waitForRestore();
+      }
     } else if (!idle && gl === undefined && v.wantsLive && !v.live) void goLive(v, ++token);
   }
 
@@ -321,7 +364,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
     const have = stills.get(v.item.key);
     if (have !== undefined) return have;
     // A lost context is left for its owner to restore or rebuild; a still waits for it.
-    if (lost || v.disposed) return undefined;
+    if (lost || rebuilding || v.disposed) return undefined;
     let renderer: GLRenderer;
     try {
       renderer = await ensureGL();
