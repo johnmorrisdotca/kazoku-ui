@@ -210,11 +210,10 @@ test("a context the browser never gives back is made again, and the view draws o
     window.__first = document.querySelector(".host canvas");
     window.__first.getContext("webgl2").getExtension("WEBGL_lose_context").loseContext();
   });
-  await expect.poll(async () => (await demo(page)).lost).toBe(true);
-  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost"]);
-  // No restoreContext: after restoreMs the renderer makes a new context and the focused view is live on it.
-  await expect.poll(async () => (await demo(page)).lost).toBe(false);
-  expect(await page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost", "restored"]);
+  // No restoreContext: after restoreMs the renderer makes a new context and the focused view is live on it. The state "lost" lasts only restoreMs, and WebKit tells of a loss
+  // a few hundred ms late, so a poll can miss it; the page's own list of events keeps it.
+  await expect.poll(() => page.evaluate(() => window.kazokuDemo.contextEvents)).toEqual(["lost", "restored"]);
+  expect((await demo(page)).lost).toBe(false);
   await expect.poll(() => live(page, 0)).toBe(true);
   expect(await page.evaluate(() => { const c = document.querySelector(".host canvas"); return c !== null && c !== window.__first && !c.getContext("webgl2").isContextLost() && c.style.visibility !== "hidden"; })).toBe(true);
   expect((await readCounts(page)).contexts).toBe(count + 1);
