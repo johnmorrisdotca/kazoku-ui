@@ -2,9 +2,8 @@ import { chromium, expect, test } from "@playwright/test";
 import { COUNT_SCRIPT, drainGpu, drawCounts, readCounts, SOFTWARE_GL_ARGS, untilStill } from "../dist/testing/index.js";
 
 // The test kit's software drawing (KAZOKU-UI-93): SOFTWARE_GL_ARGS keeps WebGL in software and the page's own pictures on the CPU, and drainGpu and untilStill work on a real page.
-// Chromium only, once (the desk project); the first test starts its own browsers, one at a time, so it can compare the old list with the new.
+// Chromium only, once, in the project of its own (playwright.config.mjs) that runs when no other test does: drawing in software takes the CPU for seconds. The first test starts its own browsers, one at a time, so it can compare the old list with the new.
 test.describe.configure({ mode: "serial" });
-test.beforeEach(({ browserName }, info) => test.skip(browserName !== "chromium" || info.project.name !== "chromium-desk", "Chromium, once"));
 
 /** Open a page made of this HTML at an address nobody serves, so the counting script installed first runs before the page's own. */
 const open = async (page, html) => {

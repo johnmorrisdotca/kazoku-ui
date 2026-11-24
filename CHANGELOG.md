@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The kit's heavy software-drawing test runs alone** (KAZOKU-UI-97). `e2e/software-drawing.demo.mjs` draws in software for about 19 s, and a test in another worker (the manual save-image one) ran out its 5 s while the two shared the CPU. The test now has a Playwright project of its own, `software-drawing`, that depends on the four others, so it runs after them with nothing else running; CI runs it as a job of its own (`--no-deps`). No wait was lengthened. Tests and CI only; no change to the package.
+
 ## [0.54.1] - 2026-11-21
 
 - **A lost WebGL context that the browser never gives back is made again** (MODULES-1499). The shared renderer waited for `webglcontextrestored` for ever: on a phone that lost the context (iOS Safari under memory pressure), the view stayed black, nothing drew again, and a page's own labels stayed where the last frame left them. After `restoreMs` (new option, 3000) it now lets the lost context go, makes a new one and builds the focused view's scene on it, then tells `onContext("restored")`; a context that cannot be made is tried again after twice as long, up to three times, then `onContext("unavailable")`. A tab hidden at the time is rebuilt when it is seen again. Also fixed: once a context could not be made with three.js already loaded, every later try failed at once with the same stale error (the pending-creation promise was cleared before it was stored). Two e2e tests in `e2e/renderer.demo.mjs` (a context never restored, and one that cannot be made again) failed on 0.54.0. Backwards compatible: a browser that restores the context in time never reaches the new path.

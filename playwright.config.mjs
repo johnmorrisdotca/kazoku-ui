@@ -11,6 +11,8 @@ const gl = { launchOptions: { args: [...SOFTWARE_GL_ARGS] } };
 // WebKit has no software switch, so off CI it skips the pages that draw WebGL; CI (a hosted runner, no graphics card) plays them.
 const webglPages = process.env.CI ? undefined : /(renderer|scene|body-label)\.demo/;
 
+const alone = /software-drawing\.demo/;
+
 export default defineConfig({
   testDir: "e2e",
   testMatch: "*.demo.mjs",
@@ -21,10 +23,12 @@ export default defineConfig({
   use: { baseURL: `http://127.0.0.1:${port}`, headless: true, reducedMotion: "no-preference", locale: "en-US" },
   webServer: { command: "node scripts/dev.mjs", env: { PORT: String(port) }, url: `http://127.0.0.1:${port}/`, reuseExistingServer: false },
   projects: [
-    { name: "chromium-phone", use: { ...devices["Desktop Chrome"], ...phone, ...gl, isMobile: true } },
-    { name: "chromium-desk", use: { ...devices["Desktop Chrome"], ...desk, ...gl } },
+    { name: "chromium-phone", use: { ...devices["Desktop Chrome"], ...phone, ...gl, isMobile: true }, testIgnore: alone },
+    { name: "chromium-desk", use: { ...devices["Desktop Chrome"], ...desk, ...gl }, testIgnore: alone },
     // WebKit on a desktop viewport with touch: `isMobile` is Chromium's to honour.
-    { name: "webkit-phone", use: { ...devices["Desktop Safari"], ...phone }, testIgnore: webglPages },
-    { name: "webkit-desk", use: { ...devices["Desktop Safari"], ...desk }, testIgnore: webglPages },
+    { name: "webkit-phone", use: { ...devices["Desktop Safari"], ...phone }, testIgnore: [alone, webglPages].filter(Boolean) },
+    { name: "webkit-desk", use: { ...devices["Desktop Safari"], ...desk }, testIgnore: [alone, webglPages].filter(Boolean) },
+    // The test kit's software-drawing page draws heavily on the CPU for seconds. It waits for the four projects above, so it runs when nothing else does and no test shares its CPU; `--no-deps` runs it by itself.
+    { name: "software-drawing", use: { ...devices["Desktop Chrome"], ...desk, ...gl }, testMatch: alone, dependencies: ["chromium-phone", "chromium-desk", "webkit-phone", "webkit-desk"] },
   ],
 });
