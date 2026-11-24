@@ -25,6 +25,15 @@ const scrollSettled = (page) => page.evaluate(() => new Promise((resolve) => {
   };
   window.requestAnimationFrame(frame);
 }));
+/** A point over the view that is also inside the window: the part of the view that shows (a view partly scrolled off a phone's 844 px has a middle outside the window), a little right of its middle. */
+const onScene = (page) => page.evaluate(() => {
+  const r = document.querySelector("#scene").getBoundingClientRect();
+  const left = Math.max(r.left, 0);
+  const right = Math.min(r.right, window.innerWidth);
+  const top = Math.max(r.top, 0);
+  const bottom = Math.min(r.bottom, window.innerHeight);
+  return { x: left + (right - left) * 0.7, y: top + (bottom - top) * 0.5 };
+});
 /** The pointer is over the view: the wheel goes to whatever is under it, so a test checks before it turns the wheel. */
 const overScene = (page, at) => page.evaluate(([p]) => document.querySelector("#scene").contains(document.elementFromPoint(p.x, p.y)), [at]);
 const ready = async (page, query = "") => {
@@ -571,8 +580,7 @@ test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer,
   await ready(page);
   // Make the page taller than the window, so it has somewhere to scroll.
   await page.evaluate(() => { document.body.style.minHeight = "400vh"; });
-  const scene = await page.locator("#scene").boundingBox();
-  const at = { x: scene.x + scene.width * 0.7, y: scene.y + scene.height * 0.5 };
+  const at = await onScene(page);
   await page.mouse.move(at.x, at.y);
   const top = await page.evaluate(() => window.scrollY);
   await page.mouse.wheel(0, 120);
@@ -582,9 +590,7 @@ test("the wheel moves a zoomed view, Ctrl and the wheel zooms about the pointer,
   const zoomed = await stateOf(page);
   expect(zoomed.zoom).toBeGreaterThan(1);
   const parked = await scrollSettled(page);
-  const again = await page.locator("#scene").boundingBox();
-  at.x = again.x + again.width * 0.7;
-  at.y = again.y + again.height * 0.5;
+  Object.assign(at, await onScene(page));
   await page.mouse.move(at.x, at.y);
   expect(await overScene(page, at)).toBe(true);
   await page.mouse.wheel(0, 80);
