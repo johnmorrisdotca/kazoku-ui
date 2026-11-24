@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.54.2] - 2026-11-23
+
 - **The search box's Home and End test checks the caret in WebKit on a Mac too** (KAZOKU-UI-150). Safari on a Mac moves the caret to the start and end of a line with Control+A and Control+E, not Home and End, so that test skipped the caret check there. It now presses the browser's own keys on every platform and checks the caret each time, and still checks that the box leaves Home and End to the browser. Tests only; no change to the package.
 
 - **The wheel test aims at the part of the view that shows** (KAZOKU-UI-99). `e2e/view-controls.demo.mjs` "the wheel moves a zoomed view..." aimed the pointer at 70% across and 50% down the view's whole box, so when the page's scroll left part of the view outside a phone's window the point could be outside the window and not over the view (CI saw this on webkit-phone). It now aims inside the part of the view that is in the window. Tests only; no change to the package.
