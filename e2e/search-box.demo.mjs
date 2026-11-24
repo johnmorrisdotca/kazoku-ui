@@ -172,16 +172,19 @@ test("Right and Left move across a row's actions, Enter does the one it stands o
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowDown");
   expect((await state(page)).active).toBe("row 1");
-  // Home and End are left to the box, not the list: the box does not take the key (it is not default-prevented), the highlight stays, and where the browser moves a caret with them (not WebKit on a Mac) the caret moves
+  // Home and End are left to the box, not the list: the box does not take the key (it is not default-prevented), and the caret moves with the browser's own keys for the start and end of the line (Home and End, but Control+A and Control+E in WebKit on a Mac)
   await page.evaluate(() => {
     window.__homeEnd = [];
     window.addEventListener("keydown", (e) => { if (e.key === "Home" || e.key === "End") window.__homeEnd.push(e.defaultPrevented); });
   });
   await page.keyboard.press("Home");
-  if (!macWebKit(browserName)) expect(await box(page).evaluate((el) => el.selectionStart)).toBe(0);
   await page.keyboard.press("End");
-  if (!macWebKit(browserName)) expect(await box(page).evaluate((el) => el.selectionStart)).toBe(4);
   expect(await page.evaluate(() => window.__homeEnd)).toEqual([false, false]);
+  const [lineStart, lineEnd] = macWebKit(browserName) ? ["Control+a", "Control+e"] : ["Home", "End"];
+  await page.keyboard.press(lineStart);
+  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(0);
+  await page.keyboard.press(lineEnd);
+  expect(await box(page).evaluate((el) => el.selectionStart)).toBe(4);
   expect((await state(page)).active).toBe("row 1");
 });
 
