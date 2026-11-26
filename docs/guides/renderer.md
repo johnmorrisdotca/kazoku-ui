@@ -116,6 +116,7 @@ console.log(scheduler.pending, JSON.stringify(scheduler.stats), drawn.length);
 ```
 
 - `pixelRatioFor(width, height, deviceRatio, limits?)` is the ratio to draw a canvas at: the device's, held to `MAX_RATIO`, then lowered until the canvas fits `MAX_PIXELS` and `MAX_SIDE`.
+- `stillAskedFor(host)` is the `data-still-size` a view's host asks for: its own, else the nearest ancestor's, going up out of shadow roots to the element that holds them (a custom element puts the attribute on itself, not on the stage in its shadow root), `null` when none has one.
 - `stillSideFor(asked, base, limits?)` is the long side of a still in pixels: a host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE`, 2048, and the renderer's `maxSide`), else the renderer's own `stillSize`. A body drawn big asks for a big still and a small tile keeps the small one.
 - `stillKeyFor(key, side, base)` is the key a still is kept under: `key` at the renderer's own size and `key@side` at any other, so one thing asked for at two sizes is two pictures.
 - `MAX_FPS` (30) is the most draws of one job in a second; it is not an option, because the family's rule for live 3D is 30.

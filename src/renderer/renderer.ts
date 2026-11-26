@@ -4,7 +4,7 @@
 // three.js is never imported here: the page passes `load: () => import("three")`, so three stays the page's own (peer) dependency, loads only when a view first
 // goes live, and a page of stills ships no 3D code at all. What a view shows is an adapter the package supplies (`Item3D`): it builds a scene from shared assets.
 import { createAssetCache, type AssetScope } from "./cache.ts";
-import { MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, stillKeyFor, stillSideFor } from "./pixels.ts";
+import { MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, stillAskedFor, stillKeyFor, stillSideFor } from "./pixels.ts";
 import { createScheduler, type Job } from "./scheduler.ts";
 import { createStillCache, type Still } from "./stills.ts";
 import type { BuildContext, GLRenderer, Item3D, RendererStats, Scene3D, SharedRenderer, SharedRendererOptions, ThreeLike, View, ViewOptions } from "./types.ts";
@@ -39,8 +39,8 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   const scheduler = options.scheduler ?? createScheduler(options.clock === undefined ? {} : { clock: options.clock });
   const assets = options.assets ?? createAssetCache(options.lingerMs === undefined ? {} : { lingerMs: options.lingerMs });
   const views = new Set<Internal>();
-  /** The side a view's still is made at: the host's `data-still-size` (device pixels, long side), else the renderer's own. Read when the still is asked for, so a page may change it. */
-  const sideOf = (v: Internal): number => stillSideFor(v.host.getAttribute("data-still-size"), stillSize, limits);
+  /** The side a view's still is made at: the host's or its nearest ancestor's `data-still-size` (device pixels, long side), else the renderer's own. Read when the still is asked for, so a page may change it. */
+  const sideOf = (v: Internal): number => stillSideFor(stillAskedFor(v.host), stillSize, limits);
   /** What a view's still is kept under: its item's key, with the size when it is not the renderer's own. */
   const keyOf = (v: Internal): string => stillKeyFor(v.item.key, sideOf(v), stillSize);
   const byKey = (key: string): Internal[] => [...views].filter((v) => keyOf(v) === key);

@@ -8728,10 +8728,10 @@ interface TypePreset {
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`
 
-15 values and 25 types.
+16 values and 26 types.
 
 ```js
-import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_FPS, MAX_PIXELS, MAX_RATIO, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, STILL_BYTES, stillKeyFor, stillSideFor } from '@johnmorrisdotca/kazoku-ui/renderer';
+import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_FPS, MAX_PIXELS, MAX_RATIO, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, STILL_BYTES, stillAskedFor, stillKeyFor, stillSideFor } from '@johnmorrisdotca/kazoku-ui/renderer';
 ```
 
 ### browserClock
@@ -8838,6 +8838,14 @@ function pixelRatioFor(width: number, height: number, deviceRatio: number, limit
 const STILL_BYTES: number;
 ```
 
+### stillAskedFor
+
+*function*. The `data-still-size` a view's host asks for: its own, else the nearest ancestor's, going up out of shadow roots to the element that holds them (a custom element
+
+```ts
+function stillAskedFor(host: StillNode | null | undefined): string | null;
+```
+
 ### stillKeyFor
 
 *function*. The still cache's key for a thing at a size: the thing's own key at the renderer's own size (as before), and `key@side` at any other, so one thing at two sizes is two pictures.
@@ -8848,7 +8856,7 @@ function stillKeyFor(key: string, side: number, base: number): string;
 
 ### stillSideFor
 
-*function*. The long side of a still, in pixels: the host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
+*function*. The long side of a still, in pixels: the `data-still-size` a host asks for (`stillAskedFor`) if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
 
 ```ts
 function stillSideFor(asked: string | null | undefined, base: number, limits?: PixelLimits): number;
@@ -9195,6 +9203,18 @@ interface StillCacheOptions {
     /** Called with a picture that leaves the list, to revoke its URL (`URL.revokeObjectURL` by default). */
     free?: (still: Still) => void;
     onEvict?: (key: string, still: Still) => void;
+}
+```
+
+### StillNode
+
+*interface*. What `stillAskedFor` needs of a node: an attribute, a parent, and the shadow root it is in (whose `host` is the next one up). Duck-typed so a test needs no DOM.
+
+```ts
+interface StillNode {
+    getAttribute?(name: string): string | null;
+    parentElement?: StillNode | null;
+    getRootNode?(): object | null | undefined;
 }
 ```
 

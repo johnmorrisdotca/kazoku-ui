@@ -34,7 +34,7 @@ export function pixelRatioFor(width: number, height: number, deviceRatio: number
 export const MAX_STILL_SIDE = 2048;
 
 /**
- * The long side of a still, in pixels: the host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
+ * The long side of a still, in pixels: the `data-still-size` a host asks for (`stillAskedFor`) if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
  * rounded), else the renderer's own `base`. A big body drawn 1,600 CSS pixels wide asks for a still near that, and a small tile keeps the renderer's small one.
  */
 export function stillSideFor(asked: string | null | undefined, base: number, limits: PixelLimits = {}): number {
@@ -46,4 +46,29 @@ export function stillSideFor(asked: string | null | undefined, base: number, lim
 /** The still cache's key for a thing at a size: the thing's own key at the renderer's own size (as before), and `key@side` at any other, so one thing at two sizes is two pictures. */
 export function stillKeyFor(key: string, side: number, base: number): string {
   return side === base ? key : `${key}@${side}`;
+}
+
+/** What `stillAskedFor` needs of a node: an attribute, a parent, and the shadow root it is in (whose `host` is the next one up). Duck-typed so a test needs no DOM. */
+export interface StillNode {
+  getAttribute?(name: string): string | null;
+  parentElement?: StillNode | null;
+  getRootNode?(): object | null | undefined;
+}
+
+/**
+ * The `data-still-size` a view's host asks for: its own, else the nearest ancestor's, going up out of shadow roots to the element that holds them (a custom element
+ * around a stage in its shadow root puts the attribute on itself, not on the stage). The first value that is a number above 0 wins, so a page may set it on the
+ * element it owns; `null` when none does.
+ */
+export function stillAskedFor(host: StillNode | null | undefined): string | null {
+  const seen = new Set<StillNode>();
+  let node = host ?? null;
+  while (node && !seen.has(node)) {
+    seen.add(node);
+    const asked = node.getAttribute?.("data-still-size") ?? null;
+    if (asked !== null && asked.trim() !== "" && Number.isFinite(Number(asked)) && Number(asked) > 0) return asked;
+    const root = node.getRootNode?.();
+    node = node.parentElement ?? (root as { host?: StillNode | null } | null | undefined)?.host ?? null;
+  }
+  return null;
 }

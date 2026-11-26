@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createAssetCache, disposeDeep, type Timers } from "../src/renderer/cache.ts";
-import { MAX_PIXELS, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, stillKeyFor, stillSideFor } from "../src/renderer/pixels.ts";
+import { MAX_PIXELS, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, stillAskedFor, stillKeyFor, stillSideFor, type StillNode } from "../src/renderer/pixels.ts";
 import { createScheduler, type FrameClock, type Job } from "../src/renderer/scheduler.ts";
 import { createStillCache, type Still } from "../src/renderer/stills.ts";
 import { COUNT_SCRIPT, gpuObjects, GPU_KINDS, SOFTWARE_GL_ARGS, withinPixelBudget, type GlCounts } from "../src/testing/index.ts";
@@ -451,4 +451,24 @@ test("stills of one thing at two sizes are two pictures: the cache key carries t
   assert.equal(stillKeyFor("jupiter", 160, 160), "jupiter");
   assert.equal(stillKeyFor("jupiter", 960, 160), "jupiter@960");
   assert.notEqual(stillKeyFor("jupiter", 960, 160), stillKeyFor("jupiter", 480, 160));
+});
+
+test("a view's host is asked first, then each ancestor, and up out of a shadow root to the element round it", () => {
+  const node = (asked: string | null, parent: StillNode | null = null, shadowHost: StillNode | null = null): StillNode => ({
+    getAttribute: (name) => (name === "data-still-size" ? asked : null),
+    parentElement: parent,
+    getRootNode: () => ({ host: shadowHost }),
+  });
+  assert.equal(stillAskedFor(null), null);
+  assert.equal(stillAskedFor(node(null)), null);
+  assert.equal(stillAskedFor(node("640")), "640");
+  const outer = node("960");
+  assert.equal(stillAskedFor(node(null, node(null, outer))), "960", "an ancestor's");
+  assert.equal(stillAskedFor(node(null, null, outer)), "960", "the element round a shadow root");
+  assert.equal(stillAskedFor(node("320", null, outer)), "320", "the nearest wins");
+  assert.equal(stillAskedFor(node("abc", null, outer)), "960", "a value that is not a number is passed over");
+  assert.equal(stillAskedFor(node("0", null, outer)), "960", "and so is 0");
+  const loop: StillNode = { getAttribute: () => null, getRootNode: () => ({}) };
+  loop.parentElement = loop;
+  assert.equal(stillAskedFor(loop), null, "a loop ends");
 });

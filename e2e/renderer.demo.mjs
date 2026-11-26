@@ -373,3 +373,27 @@ test("a host's data-still-size makes its still that many pixels on the long side
   expect(made.small).toBe(STILL_SIDE);
   expect(made.keys).toEqual([true, true, true]);
 });
+
+test("a host inside a shadow root takes data-still-size from the element round it, as a custom element's stage does", async ({ page }) => {
+  test.setTimeout(150_000);
+  await ready(page);
+  const made = await page.evaluate(async () => {
+    const renderer = window.kazokuDemo.renderer;
+    const item = window.kazokuDemo.views[4].item;
+    const outer = document.createElement("div");
+    outer.style.cssText = "position:fixed;left:0;top:0;width:200px;height:150px";
+    const stage = document.createElement("div");
+    stage.style.cssText = "position:relative;width:200px;height:150px";
+    outer.attachShadow({ mode: "open" }).append(stage);
+    document.body.append(outer);
+    const view = renderer.view(stage, item);
+    outer.setAttribute("data-still-size", "512");
+    const still = await view.showStill();
+    const kept = renderer.stills.get(`${item.key}@512`) !== undefined;
+    view.dispose();
+    outer.remove();
+    return { side: Math.max(still.width, still.height), kept };
+  });
+  expect(made.side).toBe(512);
+  expect(made.kept).toBe(true);
+});
