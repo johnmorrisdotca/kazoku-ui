@@ -198,3 +198,38 @@ test("a credit line in pieces links its licence and its source, by property or b
   await expect(line.locator('[part="credit-link"]')).toHaveText(["Yale"]);
   await expect(line.locator('[part="text"]')).toContainText("Stars: Yale x");
 });
+
+// MODULES-1827: on an iPhone a quick double tap on a button zoomed the page. A page with the frame asks the browser to treat taps as presses (`touch-action: manipulation` on the document, so it holds
+// for every button and control under it, in a package's own demo as well as in the kazoku-ui parts); a pinch still zooms. A browser under test cannot do the double-tap zoom itself, so the test reads
+// what the iPhone reads, the computed `touch-action` of the document, and also taps twice to hold that both taps press and the scale stays 1.
+for (const name of ["page-frame.html", "index.html"]) {
+  test(`${name}: a quick double tap presses twice and never zooms: the document's touch-action is manipulation (MODULES-1827)`, async ({ page }) => {
+    await ready(page, name);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).touchAction)).toBe("manipulation");
+    // the same for a button the page's own script adds late, with no style of its own
+    await page.evaluate(() => {
+      const button = document.createElement("button");
+      button.id = "late-button";
+      button.textContent = "Press";
+      button.style.cssText = "position:fixed;left:20px;top:120px;width:120px;height:60px;z-index:9";
+      (window).__presses = 0;
+      button.addEventListener("click", () => ((window).__presses += 1));
+      document.body.append(button);
+    });
+    const effective = await page.evaluate(() => {
+      for (let node = document.getElementById("late-button"); node !== null; node = node.parentElement) if (getComputedStyle(node).touchAction === "manipulation") return true;
+      return false;
+    });
+    expect(effective, "a button under the document is covered").toBe(true);
+    const box = await page.locator("#late-button").boundingBox();
+    if (page.context().browser() !== null && (await page.evaluate(() => navigator.maxTouchPoints)) > 0) {
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await page.waitForTimeout(60);
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    } else {
+      await page.locator("#late-button").dblclick();
+    }
+    expect(await page.evaluate(() => window.__presses)).toBe(2);
+    expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  });
+}

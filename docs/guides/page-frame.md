@@ -113,6 +113,10 @@ Importing `page-frame/define` registers both tags, leaving a taken tag alone. `d
 
 Under a strict Content-Security-Policy the styles are adopted as a constructable stylesheet, so `style-src 'self'` is enough; a browser that cannot adopt one uses a `<style>` carrying the element's `nonce`. The look follows the family's variables (`--kazoku-ink`, `--kazoku-surface`, `--kazoku-line`, `--kazoku-accent`) and one more, `--kazoku-muted`, for the embed form's colour.
 
+## Taps are presses
+
+A page with the frame asks the browser to treat a tap as a press, by setting `touch-action: manipulation` on the document. On an iPhone a quick second tap on a button zooms the page in, so a double tap on a demo's button did not press twice; with this, every button and control on the page, the package's own as well as the kazoku-ui parts, presses on each tap. Pinch zoom, scrolling and panning are as they were. The style is set from a script through the DOM, so a `style-src 'self'` policy does not stop it, it is put back when the last frame element leaves the page, and a page that sets its own `touch-action` on the document is left alone. The tests read the computed `touch-action` of the document, because a browser under test cannot do the double-tap zoom itself.
+
 ## What it does not do
 
 It does not draw the page's heading (the page has its own `<h1>`), it does not choose where the sheets or the credits live, and it never hides the credit line in a fold. [The demo](https://johnmorrisdotca.github.io/kazoku-ui/page-frame.html) shows the three forms of the credit line.

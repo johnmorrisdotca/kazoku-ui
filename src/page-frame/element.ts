@@ -1,12 +1,13 @@
 // <kazoku-page-header> and <kazoku-page-credits>: the two things every demo page shows without a menu. The header is one line (the package's name, what this page shows) with a Home
 // link and, when the package has them, a Sheets link; it sits inside the page's own top bar and is not a bar of its own. The credit line is this page's data credits, or one link
 // to them, above the family footer. An embed form of the credit line is the credit only, small. They read the page's `lang` (the language picker writes it on <html>) and say their
-// words again when it changes. They draw nothing of the page.
+// words again when it changes. They draw nothing of the page; they only ask the browser to treat a tap as a press (`touch-action: manipulation` on the document), so a quick second tap on a button does not zoom an iPhone's page.
 import { type CreditPart, creditNodes, creditText, parseCreditParts } from "../shared/credit-parts.ts";
 import { adoptStyles } from "../shared/adopt.ts";
 import { watchScheme } from "../shared/scheme.ts";
 import { samePage } from "./link.ts";
 import { applyPageMeta } from "./meta.ts";
+import { holdPresses } from "./presses.ts";
 import { CREDITS_TAG, TAG } from "./index.ts";
 import { CREDITS_STYLES, HEADER_STYLES } from "./styles.ts";
 import { type PageText, type PageTexts } from "./text.ts";
@@ -75,7 +76,7 @@ export class PageHeaderElement extends HTMLElement {
       adoptStyles(this.#root, HEADER_STYLES, this.nonce);
       this.#styled = true;
     }
-    this.#stop.push(watchScheme(this), followLanguage(this, () => this.#render()));
+    this.#stop.push(watchScheme(this), followLanguage(this, () => this.#render()), holdPresses(this.ownerDocument));
     this.#ready = true;
     this.#render();
   }
@@ -186,7 +187,7 @@ export class PageCreditsElement extends HTMLElement {
       adoptStyles(this.#root, CREDITS_STYLES, this.nonce);
       this.#styled = true;
     }
-    this.#stop.push(watchScheme(this), followLanguage(this, () => this.#render()));
+    this.#stop.push(watchScheme(this), followLanguage(this, () => this.#render()), holdPresses(this.ownerDocument));
     this.#ready = true;
     this.#render();
   }
