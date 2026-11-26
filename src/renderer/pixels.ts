@@ -29,3 +29,21 @@ export function pixelRatioFor(width: number, height: number, deviceRatio: number
   while (r > 0.001 && (Math.floor(width * r) * Math.floor(height * r) > maxPixels || Math.max(Math.floor(width * r), Math.floor(height * r)) > maxSide)) r = Math.floor((r - 0.001) * 1000) / 1000;
   return r;
 }
+
+/** Most pixels along the long side of a still a host may ask for with `data-still-size` (2048 by 2048 is 4.2 million pixels, inside `MAX_PIXELS`). */
+export const MAX_STILL_SIDE = 2048;
+
+/**
+ * The long side of a still, in pixels: the host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
+ * rounded), else the renderer's own `base`. A big body drawn 1,600 CSS pixels wide asks for a still near that, and a small tile keeps the renderer's small one.
+ */
+export function stillSideFor(asked: string | null | undefined, base: number, limits: PixelLimits = {}): number {
+  const wanted = Number(asked);
+  if (asked === null || asked === undefined || asked.trim() === "" || !Number.isFinite(wanted) || wanted <= 0) return base;
+  return Math.round(Math.max(16, Math.min(wanted, MAX_STILL_SIDE, limits.maxSide ?? MAX_SIDE)));
+}
+
+/** The still cache's key for a thing at a size: the thing's own key at the renderer's own size (as before), and `key@side` at any other, so one thing at two sizes is two pictures. */
+export function stillKeyFor(key: string, side: number, base: number): string {
+  return side === base ? key : `${key}@${side}`;
+}

@@ -4,7 +4,7 @@
 // three.js is never imported here: the page passes `load: () => import("three")`, so three stays the page's own (peer) dependency, loads only when a view first
 // goes live, and a page of stills ships no 3D code at all. What a view shows is an adapter the package supplies (`Item3D`): it builds a scene from shared assets.
 import { createAssetCache, type AssetScope } from "./cache.ts";
-import { MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor } from "./pixels.ts";
+import { MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, stillKeyFor, stillSideFor } from "./pixels.ts";
 import { createScheduler, type Job } from "./scheduler.ts";
 import { createStillCache, type Still } from "./stills.ts";
 import type { BuildContext, GLRenderer, Item3D, RendererStats, Scene3D, SharedRenderer, SharedRendererOptions, ThreeLike, View, ViewOptions } from "./types.ts";
@@ -39,7 +39,11 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   const scheduler = options.scheduler ?? createScheduler(options.clock === undefined ? {} : { clock: options.clock });
   const assets = options.assets ?? createAssetCache(options.lingerMs === undefined ? {} : { lingerMs: options.lingerMs });
   const views = new Set<Internal>();
-  const byKey = (key: string): Internal[] => [...views].filter((v) => v.item.key === key);
+  /** The side a view's still is made at: the host's `data-still-size` (device pixels, long side), else the renderer's own. Read when the still is asked for, so a page may change it. */
+  const sideOf = (v: Internal): number => stillSideFor(v.host.getAttribute("data-still-size"), stillSize, limits);
+  /** What a view's still is kept under: its item's key, with the size when it is not the renderer's own. */
+  const keyOf = (v: Internal): string => stillKeyFor(v.item.key, sideOf(v), stillSize);
+  const byKey = (key: string): Internal[] => [...views].filter((v) => keyOf(v) === key);
   const stills = createStillCache({
     ...(options.stillBytes === undefined ? {} : { maxBytes: options.stillBytes }),
     onEvict: (key) => {
@@ -202,7 +206,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   }
 
   function paintStill(v: Internal): Still | undefined {
-    const still = stills.get(v.item.key);
+    const still = stills.get(keyOf(v));
     if (v.img !== null && still !== undefined && v.img.getAttribute("src") !== still.url) v.img.src = still.url;
     return still;
   }
@@ -346,7 +350,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
   function showStill(v: Internal): Promise<Still | undefined> {
     const have = paintStill(v);
     if (have !== undefined) return Promise.resolve(have);
-    const key = v.item.key;
+    const key = keyOf(v);
     let pending = shooting.get(key);
     if (pending === undefined) {
       pending = (queue = queue.then(() => shoot(v)).catch(() => undefined)) as Promise<Still | undefined>;
@@ -361,7 +365,8 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
 
   /** One still, made now, from the same renderer, then the canvas is put back as it was (all in one task, so nothing is shown at the wrong size). */
   async function shoot(v: Internal): Promise<Still | undefined> {
-    const have = stills.get(v.item.key);
+    const key = keyOf(v);
+    const have = stills.get(key);
     if (have !== undefined) return have;
     // A lost context is left for its owner to restore or rebuild; a still waits for it.
     if (lost || rebuilding || v.disposed) return undefined;
@@ -374,7 +379,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
     }
     if (lost) return undefined;
     const host = measure(v.host);
-    const scale = stillSize / Math.max(host.width, host.height);
+    const scale = sideOf(v) / Math.max(host.width, host.height);
     const width = Math.max(1, Math.round(host.width * scale));
     const height = Math.max(1, Math.round(host.height * scale));
     const scope = assets.scope();
@@ -397,7 +402,7 @@ export function createSharedRenderer<T extends ThreeLike = ThreeLike>(options: S
       const made = await blob;
       if (made === null) return undefined;
       const still: Still = { url: URL.createObjectURL(made), width, height, bytes: width * height * 4 };
-      stills.set(v.item.key, still);
+      stills.set(key, still);
       counts.snapshots += 1;
       return still;
     } catch {

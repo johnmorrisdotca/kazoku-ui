@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createAssetCache, disposeDeep, type Timers } from "../src/renderer/cache.ts";
-import { MAX_PIXELS, MAX_SIDE, pixelRatioFor } from "../src/renderer/pixels.ts";
+import { MAX_PIXELS, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, stillKeyFor, stillSideFor } from "../src/renderer/pixels.ts";
 import { createScheduler, type FrameClock, type Job } from "../src/renderer/scheduler.ts";
 import { createStillCache, type Still } from "../src/renderer/stills.ts";
 import { COUNT_SCRIPT, gpuObjects, GPU_KINDS, SOFTWARE_GL_ARGS, withinPixelBudget, type GlCounts } from "../src/testing/index.ts";
@@ -430,4 +430,25 @@ test("the test kit's counts add up, and its script installs on a page without th
   assert.doesNotThrow(() => new Function(COUNT_SCRIPT));
   // tests draw in software, never on the machine's graphics card
   assert.ok(SOFTWARE_GL_ARGS.includes("--use-angle=swiftshader") && SOFTWARE_GL_ARGS.includes("--enable-unsafe-swiftshader"));
+});
+
+test("a host's data-still-size sets the long side of its still, within what a still may be, and a view with none gets the renderer's own", () => {
+  assert.equal(stillSideFor(null, 160), 160);
+  assert.equal(stillSideFor(undefined, 160), 160);
+  assert.equal(stillSideFor("", 160), 160);
+  assert.equal(stillSideFor("abc", 160), 160);
+  assert.equal(stillSideFor("0", 160), 160);
+  assert.equal(stillSideFor("-5", 160), 160);
+  assert.equal(stillSideFor("960", 160), 960);
+  assert.equal(stillSideFor("1593.4", 160), 1593);
+  assert.equal(stillSideFor("5000", 160), MAX_STILL_SIDE, "held to what a still may be");
+  assert.equal(stillSideFor("8", 160), 16, "and not below 16");
+  assert.equal(stillSideFor("3000", 160, { maxSide: 1024 }), 1024, "the renderer's own side limit holds too");
+  assert.ok(MAX_STILL_SIDE ** 2 <= MAX_PIXELS);
+});
+
+test("stills of one thing at two sizes are two pictures: the cache key carries the size only when it is not the renderer's own", () => {
+  assert.equal(stillKeyFor("jupiter", 160, 160), "jupiter");
+  assert.equal(stillKeyFor("jupiter", 960, 160), "jupiter@960");
+  assert.notEqual(stillKeyFor("jupiter", 960, 160), stillKeyFor("jupiter", 480, 160));
 });

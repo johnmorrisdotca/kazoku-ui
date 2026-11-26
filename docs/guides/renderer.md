@@ -116,6 +116,8 @@ console.log(scheduler.pending, JSON.stringify(scheduler.stats), drawn.length);
 ```
 
 - `pixelRatioFor(width, height, deviceRatio, limits?)` is the ratio to draw a canvas at: the device's, held to `MAX_RATIO`, then lowered until the canvas fits `MAX_PIXELS` and `MAX_SIDE`.
+- `stillSideFor(asked, base, limits?)` is the long side of a still in pixels: a host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE`, 2048, and the renderer's `maxSide`), else the renderer's own `stillSize`. A body drawn big asks for a big still and a small tile keeps the small one.
+- `stillKeyFor(key, side, base)` is the key a still is kept under: `key` at the renderer's own size and `key@side` at any other, so one thing asked for at two sizes is two pictures.
 - `MAX_FPS` (30) is the most draws of one job in a second; it is not an option, because the family's rule for live 3D is 30.
 - `createScheduler({ clock, maxDraws, budgetMs })` gives `invalidate(job, priority?)`, `remove(job)`, `pause()`, `resume()` and the counts in `stats`. A `Job` is `{ draw(now, dt) }`, and a `draw` that returns true is drawn again at the next frame the 30 a second cap allows. `browserClock()` is the real clock and `FrameClock` the shape of a stand-in.
 - `createAssetCache({ lingerMs, timers })` gives `acquire(key, make, dispose?)`, `release(key)`, `scope()` (what one view takes, let go with one `release()`), `clear()` and `stats()`.

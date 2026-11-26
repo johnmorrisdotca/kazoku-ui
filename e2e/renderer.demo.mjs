@@ -351,3 +351,25 @@ test("a view focused out of sight draws nothing until it is scrolled into view",
   await expect.poll(async () => (await demo(page)).draws, { timeout: 30_000 }).toBeGreaterThan(before.stats);
   await expect.poll(() => live(page, 20)).toBe(true);
 });
+
+test("a host's data-still-size makes its still that many pixels on the long side, and asking again at another size makes another picture", async ({ page }) => {
+  test.setTimeout(150_000);
+  await ready(page);
+  const made = await page.evaluate(async () => {
+    const renderer = window.kazokuDemo.renderer;
+    const view = window.kazokuDemo.views[3];
+    const side = (still) => Math.max(still.width, still.height);
+    const key = (suffix) => (suffix === "" ? view.item.key : `${view.item.key}${suffix}`);
+    view.host.setAttribute("data-still-size", "640");
+    const big = await view.showStill();
+    view.host.setAttribute("data-still-size", "800");
+    const bigger = await view.showStill();
+    view.host.removeAttribute("data-still-size");
+    const small = await view.showStill();
+    return { big: side(big), bigger: side(bigger), small: side(small), keys: [renderer.stills.get(key("@640")) !== undefined, renderer.stills.get(key("@800")) !== undefined, renderer.stills.get(key("")) !== undefined] };
+  });
+  expect(made.big).toBe(640);
+  expect(made.bigger).toBe(800);
+  expect(made.small).toBe(STILL_SIDE);
+  expect(made.keys).toEqual([true, true, true]);
+});

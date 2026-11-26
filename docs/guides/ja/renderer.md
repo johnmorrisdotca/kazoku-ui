@@ -118,6 +118,8 @@ console.log(scheduler.pending, JSON.stringify(scheduler.stats), drawn.length);
 ```
 
 - `pixelRatioFor(width, height, deviceRatio, limits?)`は、キャンバスを描くピクセル比です。端末のピクセル比を`MAX_RATIO`までに抑え、さらに、キャンバスが`MAX_PIXELS`と`MAX_SIDE`に収まるまで下げた値になります。
+- `stillSideFor(asked, base, limits?)`は、静止画の長辺のピクセル数です。ホストの`data-still-size`が0より大きい数なら、その値（16以上で、上限は`MAX_STILL_SIDE`（2048）とレンダラーの`maxSide`）になり、そうでなければレンダラー自身の`stillSize`になります。大きく描く天体は大きな静止画を求め、小さなタイルは小さいままです。
+- `stillKeyFor(key, side, base)`は、静止画を保存するキーです。レンダラー自身の大きさでは`key`、それ以外の大きさでは`key@side`になるので、同じものを2つの大きさで求めると2枚の絵になります。
 - `MAX_FPS`（30）は、1つのジョブが1秒に描かれる最大回数です。ファミリー共通のルール（ライブ3Dは毎秒30フレームまで）なので、オプションではありません。
 - `createScheduler({ clock, maxDraws, budgetMs })`は、`invalidate(job, priority?)`、`remove(job)`、`pause()`、`resume()`と、`stats`の数値を返します。`Job`は`{ draw(now, dt) }`で、真を返した`draw`は、毎秒30回までの上限が許す次のフレームで、また描かれます。`browserClock()`は本物の時計、`FrameClock`は代わりの形です。
 - `createAssetCache({ lingerMs, timers })`は、`acquire(key, make, dispose?)`、`release(key)`、`scope()`（1つのビューが取るもの。`release()`1回で手放します）、`clear()`、`stats()`を返します。
