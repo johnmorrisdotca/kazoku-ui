@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.54.5] - 2026-11-26
+
+- **A page with the frame no longer zooms on a quick double tap** (MODULES-1827). On an iPhone, tapping a button twice quickly zoomed the page in, in every family package's demo. `<kazoku-page-header>` and `<kazoku-page-credits>` (every demo page has one, the embed page the credit line) now set `touch-action: manipulation` on the document, once for however many frame elements the page has, from a script through the DOM (so a `style-src 'self'` policy does not stop it), and put it back when the last one leaves. Every button and control under the document is covered, the package's own as well as the kazoku-ui parts; pinch zoom, scrolling and panning are unchanged. A page that sets its own `touch-action` on the document is left alone. The family's `demo/family.css` is not edited: it is held to a hash in each package, and the frame is the one part every demo has. Tests: `e2e/page-frame.demo.mjs` (the document's computed `touch-action` on the frame's demo pages, a button added late is covered, and two quick taps press twice with the scale at 1; a browser under test cannot do the double-tap zoom itself, so it fails before the change on the computed style). English and Japanese guides.
+
 ## [0.54.4] - 2026-11-25
 
 - **A view's still takes `data-still-size` from the element round its stage too** (MODULES-1834). 0.54.3 read the attribute from the view's host only, but a custom element puts it on itself, not on the stage in its shadow root (wakusei-planets carried this as a patch of 0.41.0 for that reason). The renderer now looks at the host, then each ancestor, going up out of shadow roots to the element that holds them; the nearest value that is a number above 0 wins. `stillAskedFor(host)` is exported from `/renderer` (with the type `StillNode`). Tests: `test/renderer.test.ts` (the climb, the nearest wins, a loop ends) and `e2e/renderer.demo.mjs` (a stage in a shadow root takes its element's value).
