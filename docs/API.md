@@ -1,6 +1,6 @@
 # @johnmorrisdotca/kazoku-ui API reference
 
-Every export of @johnmorrisdotca/kazoku-ui 0.54.2, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
+Every export of @johnmorrisdotca/kazoku-ui 0.54.3, one section for each entry point, written by `pnpm docs:api` from the built declarations. Do not edit it by hand: `pnpm docs:check` fails when it is out of date. The guides are in [docs/guides](guides/getting-started.md).
 
 ## `@johnmorrisdotca/kazoku-ui`
 
@@ -8728,10 +8728,10 @@ interface TypePreset {
 
 ## `@johnmorrisdotca/kazoku-ui/renderer`
 
-12 values and 25 types.
+15 values and 25 types.
 
 ```js
-import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_FPS, MAX_PIXELS, MAX_RATIO, MAX_SIDE, pixelRatioFor, STILL_BYTES } from '@johnmorrisdotca/kazoku-ui/renderer';
+import { browserClock, createAssetCache, createScheduler, createSharedRenderer, createStillCache, disposeDeep, MAX_FPS, MAX_PIXELS, MAX_RATIO, MAX_SIDE, MAX_STILL_SIDE, pixelRatioFor, STILL_BYTES, stillKeyFor, stillSideFor } from '@johnmorrisdotca/kazoku-ui/renderer';
 ```
 
 ### browserClock
@@ -8814,6 +8814,14 @@ const MAX_RATIO = 2;
 const MAX_SIDE = 4096;
 ```
 
+### MAX_STILL_SIDE
+
+*constant*. Most pixels along the long side of a still a host may ask for with `data-still-size` (2048 by 2048 is 4.2 million pixels, inside `MAX_PIXELS`).
+
+```ts
+const MAX_STILL_SIDE = 2048;
+```
+
 ### pixelRatioFor
 
 *function*. The pixel ratio to draw a `width` by `height` CSS pixel canvas at: the device's, held to `maxRatio`, then lowered until the canvas fits `maxPixels` and
@@ -8828,6 +8836,22 @@ function pixelRatioFor(width: number, height: number, deviceRatio: number, limit
 
 ```ts
 const STILL_BYTES: number;
+```
+
+### stillKeyFor
+
+*function*. The still cache's key for a thing at a size: the thing's own key at the renderer's own size (as before), and `key@side` at any other, so one thing at two sizes is two pictures.
+
+```ts
+function stillKeyFor(key: string, side: number, base: number): string;
+```
+
+### stillSideFor
+
+*function*. The long side of a still, in pixels: the host's `data-still-size` if it is a number above 0 (held to 16 and to `MAX_STILL_SIDE` and the renderer's side limit,
+
+```ts
+function stillSideFor(asked: string | null | undefined, base: number, limits?: PixelLimits): number;
 ```
 
 ### AssetCache

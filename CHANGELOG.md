@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.54.3] - 2026-11-25
+
 - **A view's still is made at the size its host asks for** (MODULES-1834). The shared renderer made every still at the one `stillSize` of its options and ignored `data-still-size`, so a body drawn 1,593 CSS pixels wide was a 160 pixel picture blown up (wakusei-planets sets `data-still-size` from its `still-size` attribute, and the site's size-compare page was pixelated). The renderer now reads `data-still-size` from the view's host when the still is asked for: the long side of the still in pixels, a number above 0, held to 16 and to `MAX_STILL_SIDE` (2048, about 4.2 million pixels, inside `MAX_PIXELS`) and to the renderer's `maxSide`; a host with none, or a value that is not a number, gets the renderer's own `stillSize`, as before. Stills are kept under `key` at the renderer's own size and `key@side` at any other, so one thing at two sizes is two pictures and the byte budget counts both. `stillSideFor` and `stillKeyFor` are exported from `/renderer` with `MAX_STILL_SIDE`. Tests: `test/renderer.test.ts` (the reading and the key) and `e2e/renderer.demo.mjs` (a still at 640, then 800, then none: 640, 800 and the renderer's 320 pixels, each its own cached picture).
 
 ## [0.54.2] - 2026-11-23
