@@ -156,8 +156,9 @@ const PARTS = [
   assert.ok(Math.abs(pure.lengthKm(pure.lowPrecisionSun(Date.UTC(2000, 0, 1, 12))) - pure.AU_KM) < 0.02 * pure.AU_KM);`,
   },
   {
-    name: "body-label", pure: ["bodyLabelLayout", "bodyLabelFacing", "createBodyLabel", "loadBodyLabelFont", "BODY_LABEL_HEIGHTS", "BODY_LABEL_MAX_LATITUDE", "BODY_LABEL_FONT", "BODY_LABEL_FONT_BYTES"],
+    name: "body-label", pure: ["bodyLabelLayout", "bodyLabelFacing", "createBodyLabel", "loadBodyLabelFont", "BODY_LABEL_FACE_WIDTH", "BODY_LABEL_HEIGHTS", "BODY_LABEL_MAX_LATITUDE", "BODY_LABEL_FONT", "BODY_LABEL_FONT_BYTES"],
     run: `assert.deepEqual(pure.bodyLabelLayout({ widthEm: 4, repeat: "both" }).spans.map((span) => span.centre), [0, 180]);
+  assert.ok(pure.bodyLabelLayout({ widthEm: 40, size: "large" }).spans[0].width <= pure.BODY_LABEL_FACE_WIDTH);
   assert.equal(Math.round(pure.bodyLabelFacing(0, -5, 0) * 180 / Math.PI), 90);
   assert.equal(pure.BODY_LABEL_FONT, "Michroma");`,
   },

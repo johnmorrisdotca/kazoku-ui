@@ -37,7 +37,7 @@ label.dispose();                                 // texture, material and geomet
 | `repeat` | `once`, `both` (two, on opposite sides, so one is always in view), `around` (as many as fit all round). | `once` |
 | `latitude` | The band's latitude in degrees: 0 is the equator; 55 or -55 is a band near a pole. Kept within 70 of the equator (`BODY_LABEL_MAX_LATITUDE`). | `0` |
 | `longitude` | Where the (first) name is centred, degrees east in the body's own frame. | `0` |
-| `size` | `small`, `medium` or `large`: the letters' height, 9, 14 or 20 degrees of latitude (`BODY_LABEL_HEIGHTS`). A name too long for its share of the circle is made smaller until it fits. | `medium` |
+| `size` | `small`, `medium` or `large`: the letters' height, 9, 14 or 20 degrees of latitude (`BODY_LABEL_HEIGHTS`). A name too long for its share of the circle, or wider than 64 degrees (`BODY_LABEL_FACE_WIDTH`), is made smaller until the whole word stays on the facing side. | `medium` |
 | `facing` | True: the name keeps facing the reader while the body turns under it. | `false` |
 | `radius` | The globe's radius in its mesh's own units. | `1` |
 | `minRadiusPx` | No label while the body is drawn smaller than this, in CSS pixels of radius. | `24` |

@@ -10,6 +10,11 @@ export type BodyLabelSize = "small" | "medium" | "large";
 export const BODY_LABEL_HEIGHTS: Readonly<Record<BodyLabelSize, number>> = { small: 9, medium: 14, large: 20 };
 /** The farthest from the equator a name is written, in degrees: beyond it the letters would be stretched too far along a short circle. */
 export const BODY_LABEL_MAX_LATITUDE = 70;
+/**
+ * The most of the equator one copy of a name may cover, in degrees. Wider than this, the ends cross the limb and the body hides them (a planet shows the first letters, a letter sticks out of a small moon).
+ * The word is made smaller until it stays on the facing side.
+ */
+export const BODY_LABEL_FACE_WIDTH = 64;
 
 /** What the layout needs: the text's width in ems (from the page's font), and the settings. */
 export interface BodyLabelLayoutInput {
@@ -47,7 +52,7 @@ const wrap360 = (degrees: number): number => ((degrees % 360) + 360) % 360;
 const GAP_EM = 1.5;
 
 /**
- * Lay the name out on the globe. A name too long for its share of the circle is made smaller until it fits, so two copies never meet.
+ * Lay the name out on the globe. A name too long for its share of the circle, or wider than `BODY_LABEL_FACE_WIDTH`, is made smaller until the whole word stays on the facing side, so two copies never meet and the limb does not hide the ends.
  *
  * @example
  * ```ts
@@ -67,8 +72,8 @@ export function bodyLabelLayout(input: BodyLabelLayoutInput): BodyLabelLayout {
   // a degree of height is a degree of arc; along the band an em of text is `stretch` degrees of longitude for each degree of height
   const along = (h: number, em: number): number => em * h * stretch;
   const share = repeat === "both" ? 180 : 360;
-  // the name and a gap must fit in its share of the circle
-  const room = share - (repeat === "once" ? 0 : along(height, GAP_EM));
+  // the name and a gap must fit in its share of the circle, and one copy must stay on the facing side (BODY_LABEL_FACE_WIDTH)
+  const room = Math.min(share - (repeat === "once" ? 0 : along(height, GAP_EM)), BODY_LABEL_FACE_WIDTH);
   if (along(height, widthEm) > room && widthEm > 0) height *= room / along(height, widthEm);
   const width = along(height, widthEm);
   let count = repeat === "once" ? 1 : repeat === "both" ? 2 : Math.max(1, Math.floor(360 / (width + along(height, GAP_EM))));

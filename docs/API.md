@@ -7478,10 +7478,18 @@ type PanZoomWheel = "zoom" | "modifier" | "none";
 
 ## `@johnmorrisdotca/kazoku-ui/body-label`
 
-8 values and 11 types.
+9 values and 11 types.
 
 ```js
-import { BODY_LABEL_FONT, BODY_LABEL_FONT_BYTES, BODY_LABEL_HEIGHTS, BODY_LABEL_MAX_LATITUDE, bodyLabelFacing, bodyLabelLayout, createBodyLabel, loadBodyLabelFont } from '@johnmorrisdotca/kazoku-ui/body-label';
+import { BODY_LABEL_FACE_WIDTH, BODY_LABEL_FONT, BODY_LABEL_FONT_BYTES, BODY_LABEL_HEIGHTS, BODY_LABEL_MAX_LATITUDE, bodyLabelFacing, bodyLabelLayout, createBodyLabel, loadBodyLabelFont } from '@johnmorrisdotca/kazoku-ui/body-label';
+```
+
+### BODY_LABEL_FACE_WIDTH
+
+*constant*. The most of the equator one copy of a name may cover, in degrees. Wider than this, the ends cross the limb and the body hides them (a planet shows the first letters, a letter sticks out of a small moon).
+
+```ts
+const BODY_LABEL_FACE_WIDTH = 64;
 ```
 
 ### BODY_LABEL_FONT
@@ -7526,7 +7534,7 @@ function bodyLabelFacing(x: number, z: number, longitude?: number): number;
 
 ### bodyLabelLayout
 
-*function*. Lay the name out on the globe. A name too long for its share of the circle is made smaller until it fits, so two copies never meet.
+*function*. Lay the name out on the globe. A name too long for its share of the circle, or wider than `BODY_LABEL_FACE_WIDTH`, is made smaller until the whole word stays on the facing side, so two copies never meet and the limb does not hide the ends.
 
 ```ts
 function bodyLabelLayout(input: BodyLabelLayoutInput): BodyLabelLayout;

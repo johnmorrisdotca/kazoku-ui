@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { BODY_LABEL_HEIGHTS, BODY_LABEL_MAX_LATITUDE, bodyLabelFacing, bodyLabelLayout } from "../src/body-label/index.ts";
+import { BODY_LABEL_FACE_WIDTH, BODY_LABEL_HEIGHTS, BODY_LABEL_MAX_LATITUDE, bodyLabelFacing, bodyLabelLayout } from "../src/body-label/index.ts";
 
 const close = (a: number, b: number, within = 1e-9): void => assert.ok(Math.abs(a - b) <= within, `${a} is not ${b}`);
 
@@ -43,14 +43,18 @@ test("the band is kept within 70 degrees of the equator, and bad numbers fall ba
   assert.equal(odd.spans.length, 0);
 });
 
-test("a name too long for its share of the circle is made smaller until it fits, and copies never meet", () => {
+test("a name too wide for the facing side is made smaller until the whole word stays there, and copies never meet", () => {
   const once = bodyLabelLayout({ widthEm: 40, size: "large" });
   assert.ok(once.height < BODY_LABEL_HEIGHTS.large);
-  close(once.spans[0]!.width, 360, 1e-9);
+  close(once.spans[0]!.width, BODY_LABEL_FACE_WIDTH, 1e-9);
   const both = bodyLabelLayout({ widthEm: 30, repeat: "both" });
+  close(both.spans[0]!.width, BODY_LABEL_FACE_WIDTH, 1e-9);
   assert.ok(both.spans[0]!.width + 1.5 * both.height <= 180 + 1e-9);
   const around = bodyLabelLayout({ widthEm: 30, repeat: "around" });
-  assert.equal(around.spans.length, 1);
+  assert.ok(around.spans.length > 1);
+  for (const span of around.spans) assert.ok(span.width <= BODY_LABEL_FACE_WIDTH + 1e-9);
+  // a short name is left at its size: four ems of a medium letter is 56 degrees, inside the facing side
+  close(bodyLabelLayout({ widthEm: 4 }).spans[0]!.width, 56);
 });
 
 test("facing: the turn that brings the name's middle round to the camera, in the globe's own frame", () => {
